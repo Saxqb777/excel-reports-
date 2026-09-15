@@ -11,7 +11,7 @@ export function Heatmap({ rows, cols, cells, format = "integer", currency, onSel
   const step = (v: number) => (v <= 0 ? 0 : 1 + Math.min(6, Math.floor((v / max) * 6.999)));
   return (
     <div className="h-full w-full overflow-auto">
-      <table className="w-full border-collapse text-[12px]">
+      <table className="w-full border-collapse text-[14.5px]">
         <thead>
           <tr>
             <th className="sticky left-0 bg-bg p-1 text-left"></th>
@@ -31,7 +31,7 @@ export function Heatmap({ rows, cols, cells, format = "integer", currency, onSel
                   const dark = s >= 5;
                   return (
                     <td key={c} className="p-[1px]">
-                      <div className="num flex h-7 cursor-pointer items-center justify-end px-2 text-[11.5px]" style={{ background: s === 0 ? "var(--bg-sunk)" : seqVar(s), color: s === 0 ? "var(--ink-4)" : dark ? "var(--bg)" : "var(--ink)" }}
+                      <div className="num flex h-7 cursor-pointer items-center justify-end px-2 text-[14px]" style={{ background: s === 0 ? "var(--bg-sunk)" : seqVar(s), color: s === 0 ? "var(--ink-4)" : dark ? "var(--bg)" : "var(--ink)" }}
                         onClick={() => onSelect?.(r, c)}
                         onPointerEnter={(e) => tip.show(e, { title: `${r} / ${c}`, rows: [{ label: "Value", value: formatNumber(v, format, currency) }] })} onPointerMove={tip.move} onPointerLeave={tip.hide}>
                         {v ? formatNumber(v, format, currency, true) : "·"}

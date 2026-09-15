@@ -31,7 +31,7 @@ export function TimeTile({ w }: { w: LineWidget }) {
   return (
     <Tile title={w.title} subtitle={w.subtitle} selected={Boolean(sel)} onClear={() => dispatch({ type: "clearSelection", widgetId: w.id })} tableActive={table} onToggleTable={() => setTable((t) => !t)}
       right={data.series.length > 1 ? (
-        <div className="flex items-center gap-3 text-[11px] text-ink-2">
+        <div className="flex items-center gap-3 text-[14px] text-ink-2">
           {data.series.map((s, i) => (
             <span key={s.label} className="flex items-center gap-1.5">
               {s.kind === "bar" ? <span className="inline-block h-[8px] w-[8px]" style={{ background: i === 0 ? "var(--accent)" : catVar(i) }} /> : <span className="inline-block h-[2px] w-3 bg-ink" />}

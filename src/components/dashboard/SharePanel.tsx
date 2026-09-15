@@ -19,26 +19,26 @@ export function SharePanel({ projectId, token, enabled, hasPassword, open, onClo
   };
   return (
     <Modal title="Share this dashboard" onClose={onClose}>
-      <div className="space-y-4 text-[12.5px]">
+      <div className="space-y-4 text-[14px]">
         <div>
           <div className="label mb-1">View-only link</div>
           <div className="flex gap-2">
-            <input readOnly className="field num flex-1 text-[11.5px]" value={link} onFocus={(e) => e.currentTarget.select()} aria-label="Share link" />
+            <input readOnly className="field num flex-1 text-[14px]" value={link} onFocus={(e) => e.currentTarget.select()} aria-label="Share link" />
             <button type="button" className="btn" onClick={() => copy(link, "link")}>{copied === "link" ? "Copied" : "Copy"}</button>
           </div>
-          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-ink-3">
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[14px] text-ink-3">
             <button type="button" className="hover:text-ink" onClick={() => copy(`${link}?board=1`, "board")}>{copied === "board" ? "Copied boardroom link" : "Copy boardroom (TV) link"}</button>
             <span>·</span>
             <span>Viewers see the live data, filters and Ask are hidden for them, no upload or history.</span>
           </div>
         </div>
         <div className="flex items-center justify-between border-t border-line pt-3">
-          <div><div className="text-ink">Link active</div><div className="text-[11px] text-ink-3">Turn off to revoke access instantly. Turning it back on keeps the same link.</div></div>
+          <div><div className="text-ink">Link active</div><div className="text-[14px] text-ink-3">Turn off to revoke access instantly. Turning it back on keeps the same link.</div></div>
           <button type="button" className={`chip ${enabled ? "chip-on" : ""}`} disabled={busy} onClick={() => patch({ enabled: !enabled })}>{enabled ? "on" : "off"}</button>
         </div>
         <div className="border-t border-line pt-3">
           <div className="text-ink">Password</div>
-          <div className="text-[11px] text-ink-3">{hasPassword ? "A password is set. Viewers enter it once per browser." : "Optional. Anyone with the link can view until you set one."}</div>
+          <div className="text-[14px] text-ink-3">{hasPassword ? "A password is set. Viewers enter it once per browser." : "Optional. Anyone with the link can view until you set one."}</div>
           <div className="mt-2 flex gap-2">
             <input type="password" className="field flex-1" placeholder={hasPassword ? "New password" : "Set a password"} value={password} onChange={(e) => setPassword(e.target.value)} aria-label="Share password" />
             <button type="button" className="btn btn-accent" disabled={busy || !password} onClick={() => patch({ password })}>{hasPassword ? "Change" : "Set"}</button>

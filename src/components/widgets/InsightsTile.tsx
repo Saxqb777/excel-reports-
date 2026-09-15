@@ -8,7 +8,7 @@ import { formatDate, formatNumber } from "@/lib/engine/format";
 export type { Insight };
 
 /** Top three changes since the previous version. Falls back to a version summary before any comparison exists. */
-export function InsightsTile({ w, insights, comparedTo }: { w: InsightsWidget; insights?: Insight[]; comparedTo?: number | null }) {
+export function InsightsTile({ w, insights }: { w: InsightsWidget; insights?: Insight[]; comparedTo?: number | null }) {
   const { snapshot, baseMask, layout, dispatch, isSelected } = useDashboard();
   const summary = useMemo(() => {
     let n = 0; for (let i = 0; i < snapshot.n; i++) n += baseMask[i];
@@ -36,8 +36,8 @@ export function InsightsTile({ w, insights, comparedTo }: { w: InsightsWidget; i
                 {it.delta === undefined || it.delta === null ? (i === 0 && it.kind === "baseline" ? "▸" : "·") : it.delta > 0 ? "▲" : it.delta < 0 ? "▼" : "▬"}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[12.5px] font-medium text-ink">{it.headline}</div>
-                {it.detail && <div className="truncate-2 text-[11.5px] leading-snug text-ink-3">{it.detail}</div>}
+                <div className="truncate text-[14px] font-medium text-ink">{it.headline}</div>
+                {it.detail && <div className="truncate-2 text-[14px] leading-snug text-ink-3">{it.detail}</div>}
               </div>
               {typeof it.delta === "number" && it.delta !== 0 && it.kind !== "kpi" && (
                 <div className={`num shrink-0 pt-0.5 text-[15px] leading-none ${it.tone === "pos" ? "text-pos" : it.tone === "neg" ? "text-neg" : it.tone === "warn" ? "text-warn" : "text-ink-3"}`}>{it.delta > 0 ? "+" : ""}{formatNumber(it.delta)}</div>
@@ -46,7 +46,6 @@ export function InsightsTile({ w, insights, comparedTo }: { w: InsightsWidget; i
           );
         })}
       </div>
-      {comparedTo !== undefined && comparedTo !== null && <div className="label absolute right-3 top-2 hidden md:block">vs v{comparedTo}</div>}
     </section>
   );
 }

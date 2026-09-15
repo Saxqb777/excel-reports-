@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useDashboard } from "@/lib/ui/dashboard-state";
 import { distinctValues } from "@/lib/engine/metrics";
 import { formatDate } from "@/lib/engine/format";
@@ -22,8 +22,14 @@ export function FilterRow() {
     dispatch({ type: "date", range: { from: to - days * DAY, to, preset: id } });
   };
   const active = state.selections.length + Object.keys(state.controls).length + (state.search ? 1 : 0) + (state.dateRange.preset !== "all" ? 1 : 0);
+  const [openMobile, setOpenMobile] = useState(false);
   return (
-    <div className="flex min-h-9 shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-line bg-bg px-3 py-1.5">
+    <div className="shrink-0 border-b border-line bg-bg">
+    <div className="flex items-center justify-between px-3 py-1.5 md:hidden">
+      <button type="button" className={`chip ${active ? "chip-on" : ""}`} onClick={() => setOpenMobile((o) => !o)} aria-expanded={openMobile}>Filters{active ? ` · ${active}` : ""} {openMobile ? "▴" : "▾"}</button>
+      {active > 0 && <button type="button" className="btn h-[22px] px-2 py-0 text-[14px]" onClick={() => dispatch({ type: "reset" })}>Clear all</button>}
+    </div>
+    <div className={`${openMobile ? "flex" : "hidden"} min-h-9 flex-wrap items-center gap-x-4 gap-y-1.5 px-3 py-1.5 md:flex`}>
       {dateField && (
         <div className="flex items-center gap-1.5">
           <span className="label">{dateField.label}</span>
@@ -44,7 +50,7 @@ export function FilterRow() {
         );
       })}
       {search && (
-        <input className="field h-[22px] w-44 text-[11px]" placeholder={`Search ${search.label?.toLowerCase() === "search" ? "" : search.label ?? ""}`.trim() + "…"} value={state.search} onChange={(e) => dispatch({ type: "search", value: e.target.value })} aria-label="Search rows" />
+        <input className="field h-[22px] w-44 text-[14px]" placeholder={`Search ${search.label?.toLowerCase() === "search" ? "" : search.label ?? ""}`.trim() + "…"} value={state.search} onChange={(e) => dispatch({ type: "search", value: e.target.value })} aria-label="Search rows" />
       )}
       <div className="ml-auto flex items-center gap-2">
         {state.selections.map((s) => (
@@ -53,10 +59,11 @@ export function FilterRow() {
           </button>
         ))}
         {state.dateRange.preset !== "all" && state.dateRange.from !== null && (
-          <span className="num text-[11px] text-ink-3">{formatDate(state.dateRange.from)} – {formatDate(state.dateRange.to)}</span>
+          <span className="num text-[14px] text-ink-3">{formatDate(state.dateRange.from)} – {formatDate(state.dateRange.to)}</span>
         )}
-        {active > 0 && <button type="button" className="btn h-[22px] px-2 py-0 text-[11px]" onClick={() => dispatch({ type: "reset" })}>Clear all</button>}
+        {active > 0 && <button type="button" className="btn hidden h-[22px] px-2 py-0 text-[14px] md:inline-block" onClick={() => dispatch({ type: "reset" })}>Clear all</button>}
       </div>
+    </div>
     </div>
   );
 }

@@ -61,7 +61,7 @@ export function UploadFlow({ projectId, onDone, children }: Props) {
           <div className="border border-accent bg-bg px-8 py-6 text-center">
             <div className="label mb-1 text-accent">Update data</div>
             <div className="text-[15px] font-medium">Drop the new workbook to refresh every visual</div>
-            <div className="mt-1 text-[11.5px] text-ink-3">The previous version stays in history. Columns are checked against the known schema first.</div>
+            <div className="mt-1 text-[14px] text-ink-3">The previous version stays in history. Columns are checked against the known schema first.</div>
           </div>
         </div>
       )}
@@ -70,7 +70,7 @@ export function UploadFlow({ projectId, onDone, children }: Props) {
       )}
       {askName && (
         <Modal title="Who is uploading?" onClose={() => setAskName(null)}>
-          <p className="text-[12.5px] text-ink-2">Shown next to the version as the uploader.</p>
+          <p className="text-[14px] text-ink-2">Shown next to the version as the uploader.</p>
           <input autoFocus className="field mt-3 w-full" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) { try { localStorage.setItem("meridian-user", name.trim()); } catch {} const f = askName; setAskName(null); void send(f, name.trim(), false); } }} />
           <div className="mt-4 flex justify-end gap-2">
             <button type="button" className="btn" onClick={() => setAskName(null)}>Cancel</button>
@@ -82,7 +82,7 @@ export function UploadFlow({ projectId, onDone, children }: Props) {
         <Modal title="The columns changed" onClose={() => setPending(null)} wide>
           <SchemaDiffView diff={pending.diff} mapping={mapping} setMapping={setMapping} />
           <div className="mt-5 flex items-center justify-between gap-3">
-            <span className="text-[11.5px] text-ink-3">Confirming records the decisions in the project&rsquo;s schema, so future uploads with the same headers load without asking.</span>
+            <span className="text-[14px] text-ink-3">Confirming records the decisions in the project&rsquo;s schema, so future uploads with the same headers load without asking.</span>
             <div className="flex shrink-0 gap-2">
               <button type="button" className="btn" onClick={() => setPending(null)}>Cancel</button>
               <button type="button" className="btn btn-accent" disabled={busy} onClick={() => void send(pending.file, name.trim() || "Unknown", true, mapping)}>{busy ? "Loading…" : "Confirm and load"}</button>
@@ -91,12 +91,12 @@ export function UploadFlow({ projectId, onDone, children }: Props) {
         </Modal>
       )}
       {error && (
-        <div role="alert" className="fixed bottom-4 left-1/2 z-[80] -translate-x-1/2 border border-neg bg-bg px-4 py-2 text-[12px] text-ink shadow-[var(--shadow-pop)]">
+        <div role="alert" className="fixed bottom-4 left-1/2 z-[80] -translate-x-1/2 border border-neg bg-bg px-4 py-2 text-[14.5px] text-ink shadow-[var(--shadow-pop)]">
           <span className="text-neg">Upload failed.</span> {error} <button type="button" className="ml-3 text-ink-3 hover:text-ink" onClick={() => setError(null)}>Dismiss</button>
         </div>
       )}
       {toast && (
-        <div role="status" className="fixed bottom-4 left-1/2 z-[80] -translate-x-1/2 border border-line bg-bg-elev px-4 py-2 text-[12px] text-ink shadow-[var(--shadow-pop)]">
+        <div role="status" className="fixed bottom-4 left-1/2 z-[80] -translate-x-1/2 border border-line bg-bg-elev px-4 py-2 text-[14.5px] text-ink shadow-[var(--shadow-pop)]">
           <span className="num text-pos">●</span> {toast}
         </div>
       )}
@@ -119,7 +119,7 @@ export function Modal({ title, children, onClose, wide }: { title: string; child
 function SchemaDiffView({ diff, mapping, setMapping }: { diff: DiffPayload; mapping: Record<string, string>; setMapping: (m: Record<string, string>) => void }) {
   const renamed = diff.matched.filter((m) => m.how !== "exact");
   return (
-    <div className="space-y-4 text-[12px]">
+    <div className="space-y-4 text-[14.5px]">
       <p className="text-ink-2">The new file has <span className="num text-ink">{diff.rows}</span> rows on sheet <span className="num text-ink">{diff.sheet}</span>. Review what changed before it replaces the dashboard data.</p>
       {renamed.length > 0 && (
         <section>
@@ -144,7 +144,7 @@ function SchemaDiffView({ diff, mapping, setMapping }: { diff: DiffPayload; mapp
             {diff.added.map((a) => (
               <li key={a.header} className="grid grid-cols-[1fr_auto] items-center gap-3 px-3 py-1.5">
                 <div className="min-w-0"><div className="text-ink">{a.header} <span className="num text-ink-4">· {a.suggestedType}</span></div><div className="num truncate text-ink-3">{a.samples.join(" · ") || "no values yet"}</div></div>
-                <select className="field h-7 text-[11px]" value={mapping[a.header] ?? "new"} onChange={(e) => setMapping({ ...mapping, [a.header]: e.target.value })}>
+                <select className="field h-7 text-[14px]" value={mapping[a.header] ?? "new"} onChange={(e) => setMapping({ ...mapping, [a.header]: e.target.value })}>
                   <option value="new">Add as a new field</option>
                   <option value="ignore">Ignore this column</option>
                   {diff.missing.map((m) => <option key={m.fieldId} value={m.fieldId}>This is “{m.label}” renamed</option>)}

@@ -19,7 +19,7 @@ export function SettingsForm({ project, uploads }: { project: ProjectSummary; up
   const [fields, setFields] = useState<Field[]>(project.schemaMap.fields);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [confirm, setConfirm] = useState("");
+  const [armed, setArmed] = useState(false);
 
   const patch = async (body: Record<string, unknown>, ok: string) => {
     setBusy(true); setStatus(null);
@@ -40,15 +40,19 @@ export function SettingsForm({ project, uploads }: { project: ProjectSummary; up
   };
   const removeLogo = async () => { setBusy(true); await fetch(`/api/projects/${project.id}/logo`, { method: "DELETE" }); setBusy(false); setLogoUrl(null); router.refresh(); };
   const del = async () => {
-    setBusy(true);
-    const res = await fetch(`/api/projects/${project.id}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirm }) });
-    setBusy(false);
-    if (res.ok) router.push("/"); else setStatus((await res.json()).error ?? "Delete failed.");
+    setBusy(true); setStatus(null);
+    try {
+      const res = await fetch(`/api/projects/${project.id}?confirm=yes`, { method: "DELETE" });
+      if (res.ok) { window.location.assign("/"); return; }
+      setStatus((await res.json().catch(() => ({}))).error ?? `Delete failed (${res.status}).`);
+    } catch (e) {
+      setStatus(e instanceof Error ? e.message : "Delete failed.");
+    } finally { setBusy(false); setArmed(false); }
   };
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      {status && <div role="status" className="mb-4 border border-line bg-bg-elev px-3 py-2 text-[12px] text-ink">{status}</div>}
+      {status && <div role="status" className="mb-4 border border-line bg-bg-elev px-3 py-2 text-[14.5px] text-ink">{status}</div>}
       <div className="grid grid-cols-1 gap-px bg-line lg:grid-cols-2">
         <section className="bg-bg p-5">
           <h2 className="label-strong mb-3">Identity and theme</h2>
@@ -58,14 +62,14 @@ export function SettingsForm({ project, uploads }: { project: ProjectSummary; up
             <label className="block sm:col-span-2"><span className="label">Description</span><input className="field mt-1 w-full" value={description} onChange={(e) => setDescription(e.target.value)} /></label>
             <label className="block"><span className="label">Brand colour</span><div className="mt-1 flex items-center gap-2"><input type="color" value={primary} onChange={(e) => setPrimary(e.target.value)} className="h-7 w-10 cursor-pointer border border-line bg-bg p-0.5" /><input className="field num w-28" value={primary} onChange={(e) => /^#[0-9a-fA-F]{0,6}$/.test(e.target.value) && setPrimary(e.target.value)} /></div></label>
             <label className="block"><span className="label">Default theme</span><select className="field mt-1 w-full" value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}><option value="dark">Dark</option><option value="light">Light</option><option value="system">Follow the viewer&rsquo;s system</option></select></label>
-            <label className="block"><span className="label">Monogram (no logo)</span><input className="field num mt-1 w-24 uppercase" maxLength={3} value={monogram} onChange={(e) => setMonogram(e.target.value.toUpperCase())} placeholder="AG" /></label>
+            <label className="block"><span className="label block">Monogram (no logo)</span><input className="field num mt-1 w-24 uppercase" maxLength={3} value={monogram} onChange={(e) => setMonogram(e.target.value.toUpperCase())} placeholder="AG" /></label>
             <div className="block">
               <span className="label">Logo</span>
               <div className="mt-1 flex items-center gap-3">
                 {logoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={logoUrl} alt="Logo" className="h-8 max-w-[140px] object-contain" />
-                ) : <span className="text-[11.5px] text-ink-3">None yet</span>}
+                ) : <span className="text-[14px] text-ink-3">None yet</span>}
                 <label className="btn cursor-pointer">Upload<input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadLogo(f); }} /></label>
                 {logoUrl && <button type="button" className="btn" onClick={removeLogo} disabled={busy}>Remove</button>}
               </div>
@@ -76,7 +80,7 @@ export function SettingsForm({ project, uploads }: { project: ProjectSummary; up
 
         <section className="bg-bg p-5">
           <h2 className="label-strong mb-3">Versions</h2>
-          <ul className="divide-y divide-line text-[12px]">
+          <ul className="divide-y divide-line text-[14.5px]">
             {uploads.map((u) => (
               <li key={u.id} className="flex items-center justify-between gap-3 py-1.5">
                 <span className="num text-ink">v{u.versionNo} {u.id === project.currentUploadId && <span className="label ml-1 text-accent">live</span>}</span>
@@ -84,14 +88,14 @@ export function SettingsForm({ project, uploads }: { project: ProjectSummary; up
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-[11.5px] text-ink-3">Restore and download live in the dashboard&rsquo;s History drawer.</p>
+          <p className="mt-3 text-[14px] text-ink-3">Restore and download live in the dashboard&rsquo;s History drawer.</p>
         </section>
 
         <section className="bg-bg p-5 lg:col-span-2">
           <h2 className="label-strong mb-1">Fields</h2>
-          <p className="mb-3 text-[11.5px] text-ink-3">Rename how a column reads on the dashboard, change what it is used for, or hide it. Visuals bind to the stable id, so renames never break anything. Derived fields are computed by the system.</p>
+          <p className="mb-3 text-[14px] text-ink-3">Rename how a column reads on the dashboard, change what it is used for, or hide it. Visuals bind to the stable id, so renames never break anything. Derived fields are computed by the system.</p>
           <div className="overflow-auto">
-            <table className="w-full text-[12px]">
+            <table className="w-full text-[14.5px]">
               <thead><tr className="label text-left"><th className="py-1 pr-3">Source column</th><th className="py-1 pr-3">Label</th><th className="py-1 pr-3">Type</th><th className="py-1 pr-3">Used as</th><th className="py-1 pr-3">Meaning</th><th className="py-1">Hidden</th></tr></thead>
               <tbody>
                 {fields.map((f, i) => (
@@ -112,8 +116,16 @@ export function SettingsForm({ project, uploads }: { project: ProjectSummary; up
 
         <section className="bg-bg p-5 lg:col-span-2">
           <h2 className="label-strong mb-1 text-neg">Delete project</h2>
-          <p className="mb-3 text-[11.5px] text-ink-3">Removes the dashboard, every uploaded version and the share link. This cannot be undone. Type the project name to confirm.</p>
-          <div className="flex gap-2"><input className="field w-72" placeholder={project.name} value={confirm} onChange={(e) => setConfirm(e.target.value)} /><button type="button" className="btn hover:border-neg hover:text-neg" disabled={busy || confirm !== project.name} onClick={del}>Delete permanently</button></div>
+          <p className="mb-3 text-[14px] text-ink-3">Removes the dashboard, every uploaded version and the share link. This cannot be undone.</p>
+          {!armed ? (
+            <button type="button" className="btn hover:border-neg hover:text-neg" disabled={busy} onClick={() => setArmed(true)}>Delete this project…</button>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[14.5px] text-ink">Delete <span className="font-semibold">{project.name}</span> and all of its versions?</span>
+              <button type="button" className="btn border-neg bg-neg text-white hover:bg-neg hover:text-white" disabled={busy} onClick={del}>{busy ? "Deleting…" : "Yes, delete permanently"}</button>
+              <button type="button" className="btn" disabled={busy} onClick={() => setArmed(false)}>Keep it</button>
+            </div>
+          )}
         </section>
       </div>
     </div>

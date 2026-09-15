@@ -24,10 +24,10 @@ export interface HBarsProps {
   showShare?: boolean;
 }
 
-const ROW_H = 26;
-const BAR_H = 14;
+const ROW_H = 30;
+const BAR_H = 16;
 
-const CHAR_W = 6.6;
+const CHAR_W = 7.2;
 
 export function HBars({ rows, stackKeys, colorBy = "single", format = "integer", currency, selected, onSelect, labelWidth: labelWidthProp, total, showShare = true }: HBarsProps) {
   const [ref, size] = useSize<HTMLDivElement>();
@@ -57,7 +57,7 @@ export function HBars({ rows, stackKeys, colorBy = "single", format = "integer",
           const segs = keys.length ? keys.map((k, ki) => ({ k, v: tweened[ri * keys.length + ki] ?? 0, raw: r.stacks?.[k] ?? 0, ki })) : [{ k: r.key, v: tweened[ri] ?? 0, raw: r.value, ki: 0 }];
           return (
             <g key={r.key} transform={`translate(0,${y})`} opacity={rowDim ? 0.35 : 1} style={{ transition: "opacity 160ms ease" }}>
-              <text x={labelWidth - 10} y={ROW_H / 2} dominantBaseline="middle" textAnchor="end" className="fill-[var(--ink-2)]" fontSize={12} style={{ fontFamily: "var(--font-ui)" }}>
+              <text x={labelWidth - 10} y={ROW_H / 2} dominantBaseline="middle" textAnchor="end" className="fill-[var(--ink-2)]" fontSize={13.5} style={{ fontFamily: "var(--font-ui)" }}>
                 {r.key.length > maxChars ? r.key.slice(0, maxChars - 1) + "…" : r.key}
               </text>
               <rect x={labelWidth} y={(ROW_H - BAR_H) / 2} width={plotW} height={BAR_H} fill="var(--bg-sunk)" className="cursor-pointer" onClick={() => onSelect?.(r.key)} />
@@ -88,11 +88,11 @@ export function HBars({ rows, stackKeys, colorBy = "single", format = "integer",
                   />
                 );
               })}
-              <text x={labelWidth + plotW + 8} y={ROW_H / 2} dominantBaseline="middle" className="num fill-[var(--ink)]" fontSize={11.5} fontWeight={500}>
+              <text x={labelWidth + plotW + 8} y={ROW_H / 2} dominantBaseline="middle" className="num fill-[var(--ink)]" fontSize={13} fontWeight={500}>
                 {formatNumber(r.value, format, currency, true)}
               </text>
               {showShare && sum > 0 && (
-                <text x={labelWidth + plotW + valueW + shareW - 4} y={ROW_H / 2} dominantBaseline="middle" textAnchor="end" className="num fill-[var(--ink-3)]" fontSize={11}>
+                <text x={labelWidth + plotW + valueW + shareW - 4} y={ROW_H / 2} dominantBaseline="middle" textAnchor="end" className="num fill-[var(--ink-3)]" fontSize={12.5}>
                   {pct(r.value, sum)}
                 </text>
               )}
@@ -123,7 +123,7 @@ export function Legend({ keys, colorBy = "status", onToggle, active }: { keys: s
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
       {keys.map((k, i) => (
-        <button key={k} type="button" onClick={() => onToggle?.(k)} className={`flex items-center gap-1.5 text-[11px] ${active && active !== k ? "text-ink-4" : "text-ink-2"} ${onToggle ? "cursor-pointer hover:text-ink" : "cursor-default"}`}>
+        <button key={k} type="button" onClick={() => onToggle?.(k)} className={`flex items-center gap-1.5 text-[14px] ${active && active !== k ? "text-ink-4" : "text-ink-2"} ${onToggle ? "cursor-pointer hover:text-ink" : "cursor-default"}`}>
           <span className="inline-block h-[8px] w-[8px]" style={{ background: stackColor(k, i, colorBy) }} />
           {k}
         </button>

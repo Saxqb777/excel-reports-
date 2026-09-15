@@ -12,6 +12,8 @@ interface State {
   controls: Record<string, string[]>; // filter-row selects: field -> values
   search: string;
   dateRange: DateRange;
+  /** Review mode: tables show only rows that are new or changed since the previous version. */
+  changesOnly: boolean;
 }
 
 type Action =
@@ -20,9 +22,10 @@ type Action =
   | { type: "control"; field: string; values: string[] }
   | { type: "search"; value: string }
   | { type: "date"; range: DateRange }
+  | { type: "changesOnly"; value: boolean }
   | { type: "reset" };
 
-const initial: State = { selections: [], controls: {}, search: "", dateRange: { from: null, to: null, preset: "all" } };
+const initial: State = { selections: [], controls: {}, search: "", dateRange: { from: null, to: null, preset: "all" }, changesOnly: false };
 
 function reducer(s: State, a: Action): State {
   switch (a.type) {
@@ -36,6 +39,7 @@ function reducer(s: State, a: Action): State {
     case "control": { const controls = { ...s.controls }; if (a.values.length) controls[a.field] = a.values; else delete controls[a.field]; return { ...s, controls }; }
     case "search": return { ...s, search: a.value };
     case "date": return { ...s, dateRange: a.range };
+    case "changesOnly": return { ...s, changesOnly: a.value };
     case "reset": return initial;
   }
 }

@@ -28,7 +28,7 @@ export function Dots({ points, lanes, target, targetLabel, format = "days", sele
             {ticks.map((t) => (
               <g key={t} transform={`translate(${x(t)},0)`}>
                 <line y1={0} y2={ih} stroke="var(--line)" />
-                <text y={ih + 14} textAnchor="middle" fontSize={10.5} className="num fill-[var(--ink-3)]">{formatNumber(t, format)}</text>
+                <text y={ih + 14} textAnchor="middle" fontSize={12} className="num fill-[var(--ink-3)]">{formatNumber(t, format)}</text>
               </g>
             ))}
             {lanes.map((l) => {
@@ -38,14 +38,14 @@ export function Dots({ points, lanes, target, targetLabel, format = "days", sele
                 <g key={l} opacity={dim ? 0.35 : 1} style={{ transition: "opacity 160ms ease" }}>
                   <rect x={-m.left} y={y(l) ?? 0} width={iw + m.left} height={y.bandwidth()} fill="transparent" className="cursor-pointer" onClick={() => onSelect?.(l)} />
                   <line x1={0} x2={iw} y1={cy} y2={cy} stroke="var(--line)" strokeWidth={1} />
-                  <text x={-10} y={cy} dominantBaseline="middle" textAnchor="end" fontSize={12} className="fill-[var(--ink-2)] pointer-events-none" style={{ fontFamily: "var(--font-ui)" }}>{l}</text>
+                  <text x={-10} y={cy} dominantBaseline="middle" textAnchor="end" fontSize={13.5} className="fill-[var(--ink-2)] pointer-events-none" style={{ fontFamily: "var(--font-ui)" }}>{l}</text>
                 </g>
               );
             })}
             {target !== undefined && (
               <g transform={`translate(${x(target)},0)`}>
                 <line y1={-4} y2={ih} stroke="var(--accent)" strokeWidth={1} strokeDasharray="3 3" />
-                <text y={-1} x={4} fontSize={10} className="fill-[var(--accent)] label">{targetLabel ?? "target"}</text>
+                <text y={-1} x={4} fontSize={11.5} className="fill-[var(--accent)] label">{targetLabel ?? "target"}</text>
               </g>
             )}
             {points.map((p) => {

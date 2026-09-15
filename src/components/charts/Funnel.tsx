@@ -34,13 +34,13 @@ export function Funnel({ stages, selected, onSelect }: { stages: FunnelStage[]; 
               onPointerEnter={(e) => tip.show(e, { title: s.label, rows: [{ label: "Count", value: formatNumber(s.value) }, { label: "Of received", value: pct(s.value, top), muted: true }, ...(prev !== null && !s.sub ? [{ label: "Of previous stage", value: pct(s.value, prev), muted: true }] : [])] })}
               onPointerMove={tip.move} onPointerLeave={tip.hide}>
               <rect x={0} y={0} width="100%" height={rowH} fill="transparent" />
-              <text x={labelW - 10} y={rowH / 2} dominantBaseline="middle" textAnchor="end" fontSize={12} className={s.sub ? "fill-[var(--ink-3)]" : "fill-[var(--ink)]"} style={{ fontFamily: "var(--font-ui)", fontWeight: s.sub ? 400 : 500 }}>
+              <text x={labelW - 10} y={rowH / 2} dominantBaseline="middle" textAnchor="end" fontSize={13.5} className={s.sub ? "fill-[var(--ink-3)]" : "fill-[var(--ink)]"} style={{ fontFamily: "var(--font-ui)", fontWeight: s.sub ? 400 : 500 }}>
                 {s.sub ? "\u21B3 " : ""}{s.label}
               </text>
               <rect x={labelW} y={(rowH - barH) / 2} width={plotW} height={barH} fill="var(--bg-sunk)" />
               <path d={roundedRight(labelW, (rowH - barH) / 2, w, barH, 4)} fill={toneVar(s.tone)} style={{ filter: isSel ? "brightness(1.15)" : undefined }} />
-              <text x={labelW + plotW + 8} y={rowH / 2} dominantBaseline="middle" fontSize={12} fontWeight={500} className="num fill-[var(--ink)]">{formatNumber(s.value)}</text>
-              <text x={labelW + plotW + valueW + shareW - 2} y={rowH / 2} dominantBaseline="middle" textAnchor="end" fontSize={11} className="num fill-[var(--ink-3)]">{i === 0 ? "" : pct(s.value, top)}</text>
+              <text x={labelW + plotW + 8} y={rowH / 2} dominantBaseline="middle" fontSize={13.5} fontWeight={500} className="num fill-[var(--ink)]">{formatNumber(s.value)}</text>
+              <text x={labelW + plotW + valueW + shareW - 2} y={rowH / 2} dominantBaseline="middle" textAnchor="end" fontSize={12.5} className="num fill-[var(--ink-3)]">{i === 0 ? "" : pct(s.value, top)}</text>
             </g>
           );
         })}

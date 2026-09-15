@@ -101,7 +101,7 @@ export const AGTHIA_LAYOUT: Layout = {
     {
       id: "overview", title: "Overview",
       widgets: [
-        { id: "insights", type: "insights", title: "What changed" },
+        { id: "insights", type: "insights", title: "What changed since the last update" },
         { id: "kpi_rfqs", type: "kpi", title: "RFQs received", metric: { agg: "count" }, good: "up", sparkline: { dateField: "date_received", unit: "week" } },
         { id: "kpi_quoted", type: "kpi", title: "Quoted rate", metric: { agg: "rate", numerator: { field: "quotation_status", op: "eq", value: "Quoted" }, format: "percent" }, good: "up", secondary: { metric: { agg: "count", filter: { field: "quotation_status", op: "eq", value: "Pending" } }, label: "still pending" }, onClick: { field: "quotation_status", op: "eq", value: "Quoted" } },
         { id: "kpi_win", type: "kpi", title: "Win rate", metric: { agg: "rate", numerator: { field: "outcome", op: "eq", value: "Won" }, denominator: DECIDED, format: "percent" }, good: "up", secondary: { metric: { agg: "count", filter: DECIDED }, label: "decided" }, onClick: DECIDED },

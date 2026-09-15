@@ -128,9 +128,25 @@ export async function activateUpload(projectId: string, uploadId: string) {
   return toUploadSummary(u);
 }
 
-export async function getUploadFile(projectId: string, uploadId: string): Promise<{ fileName: string; bytes: Buffer | null; url: string | null } | null> {
+export async function getUploadFile(projectId: string, uploadId: string): Promise<{ fileName: string; bytes: Buffer | null; url: string | null; kind: string } | null> {
   const rows = await db().select().from(schema.uploads).where(and(eq(schema.uploads.id, uploadId), eq(schema.uploads.projectId, projectId))).limit(1);
   const u = rows[0];
   if (!u) return null;
-  return { fileName: u.fileName, bytes: u.fileBytes ?? null, url: u.storageRef };
+  return { fileName: u.fileName, bytes: u.fileBytes ?? null, url: u.storageRef, kind: u.storageKind };
+}
+
+/** Deletes a stored version. If it was live, the newest remaining version becomes live. */
+export async function deleteUpload(projectId: string, uploadId: string): Promise<{ ok: boolean; reason?: string; currentUploadId: string | null }> {
+  const all = await db().select({ id: schema.uploads.id, versionNo: schema.uploads.versionNo }).from(schema.uploads).where(eq(schema.uploads.projectId, projectId)).orderBy(desc(schema.uploads.versionNo));
+  if (!all.some((u) => u.id === uploadId)) return { ok: false, reason: "Version not found", currentUploadId: null };
+  if (all.length === 1) return { ok: false, reason: "This is the only version. Delete the project instead.", currentUploadId: uploadId };
+  const project = await getProjectById(projectId);
+  await db().delete(schema.uploads).where(and(eq(schema.uploads.id, uploadId), eq(schema.uploads.projectId, projectId)));
+  let current = project?.currentUploadId ?? null;
+  if (current === uploadId) {
+    const next = all.find((u) => u.id !== uploadId)!;
+    await db().update(schema.projects).set({ currentUploadId: next.id, updatedAt: new Date() }).where(eq(schema.projects.id, projectId));
+    current = next.id;
+  }
+  return { ok: true, currentUploadId: current };
 }

@@ -39,7 +39,7 @@ export function TimeChart({ times, series, unit, format = "integer", currency, o
             {ticks.map((t) => (
               <g key={t} transform={`translate(0,${y(t)})`}>
                 <line x1={0} x2={iw} stroke="var(--line)" strokeWidth={1} />
-                <text x={-8} dominantBaseline="middle" textAnchor="end" fontSize={10.5} className="num fill-[var(--ink-3)]">{formatNumber(t, format === "percent" ? "percent" : "integer", currency, true)}</text>
+                <text x={-8} dominantBaseline="middle" textAnchor="end" fontSize={12} className="num fill-[var(--ink-3)]">{formatNumber(t, format === "percent" ? "percent" : "integer", currency, true)}</text>
               </g>
             ))}
             {times.map((t, i) => {
@@ -60,7 +60,7 @@ export function TimeChart({ times, series, unit, format = "integer", currency, o
                     return <path key={s.label} d={roundedTop(offset, y(v), bw, h, 4)} fill={colorOf(si)} opacity={selected !== null && selected !== undefined && !isSel ? 0.4 : 1} className="pointer-events-none transition-opacity duration-150" />;
                   })}
                   {i % labelEvery === 0 && (
-                    <text x={bx + x.bandwidth() / 2} y={ih + 15} textAnchor="middle" fontSize={10.5} className="num fill-[var(--ink-3)] pointer-events-none">{labelFor(t, unit, true)}</text>
+                    <text x={bx + x.bandwidth() / 2} y={ih + 15} textAnchor="middle" fontSize={12} className="num fill-[var(--ink-3)] pointer-events-none">{labelFor(t, unit, true)}</text>
                   )}
                 </g>
               );

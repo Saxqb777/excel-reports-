@@ -16,7 +16,7 @@ export function proposeLayout(schema: SchemaMap): Layout {
   const outcome = fields.find((f) => f.semantic === "outcome");
   const amount = fields.find((f) => f.semantic === "amount") ?? measures[0];
 
-  const widgets: Widget[] = [{ id: "insights", type: "insights", title: "What changed" }];
+  const widgets: Widget[] = [{ id: "insights", type: "insights", title: "What changed since the last update" }];
   const grid: GridItem[] = [{ i: "insights", x: 0, y: 0, w: 12, h: 2 }];
   const kpis: KpiWidget[] = [];
   kpis.push({ id: "kpi_rows", type: "kpi", title: `${id ? id.label : "Rows"} count`, metric: { agg: "count" }, good: "up", ...(primaryDate ? { sparkline: { dateField: primaryDate.id, unit: "week" as const } } : {}) });

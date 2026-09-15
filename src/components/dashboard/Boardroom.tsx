@@ -56,13 +56,13 @@ export function Boardroom({ pages, theme, name, clientName, upload, intelligence
           {theme.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={theme.logoUrl} alt="" className="h-6 w-auto max-w-[120px] object-contain" />
-          ) : <span className="num flex h-6 min-w-6 items-center justify-center px-1 text-[11px] font-semibold" style={{ background: "var(--accent)", color: "var(--accent-ink)" }}>{(theme.monogram ?? name.slice(0, 2)).toUpperCase()}</span>}
+          ) : <span className="num flex h-6 min-w-6 items-center justify-center px-1 text-[14px] font-semibold" style={{ background: "var(--accent)", color: "var(--accent-ink)" }}>{(theme.monogram ?? name.slice(0, 2)).toUpperCase()}</span>}
           <span className="text-[15px] font-semibold text-ink">{name}</span>
-          {clientName && <span className="text-[13px] text-ink-3">{clientName}</span>}
+          {clientName && <span className="text-[14px] text-ink-3">{clientName}</span>}
           <span className="label ml-4">{page?.title}</span>
-          <span className="num text-[11px] text-ink-4">{index + 1} / {visible.length}{paused ? " · paused" : ""}</span>
+          <span className="num text-[14px] text-ink-4">{index + 1} / {visible.length}{paused ? " · paused" : ""}</span>
         </div>
-        <div className="num flex items-center gap-4 text-[12px] text-ink-3">
+        <div className="num flex items-center gap-4 text-[14.5px] text-ink-3">
           {upload && <span>Updated {formatDateTime(upload.uploadedAt)}</span>}
           <span className="text-ink">{clock}</span>
         </div>
@@ -70,7 +70,7 @@ export function Boardroom({ pages, theme, name, clientName, upload, intelligence
       <main className="flex-1" key={page?.id} style={{ animation: "fade-in 400ms ease both" }}>
         {page && <Grid page={page} intelligence={intelligence} />}
       </main>
-      <footer className="flex h-7 items-center justify-between px-5 text-[10.5px] text-ink-4">
+      <footer className="flex h-7 items-center justify-between px-5 text-[14.5px] text-ink-4">
         <span>Space pauses · arrows move · Esc or double-click exits</span>
         <span className="label">Meridian</span>
       </footer>

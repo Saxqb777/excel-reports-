@@ -51,8 +51,8 @@ export function NewProjectForm() {
   const step = !file ? 1 : !preview ? 1 : 2;
   return (
     <form onSubmit={submit} className="mt-8 space-y-6">
-      <ol className="flex items-center gap-3 text-[11px]">
-        {["Drop the workbook", "Confirm what was found", "Name it and create"].map((t, i) => <li key={t} className={`flex items-center gap-2 ${i < step ? "text-ink" : "text-ink-4"}`}><span className={`num flex h-4 w-4 items-center justify-center border text-[10px] ${i < step ? "border-accent text-accent" : "border-line"}`}>{i + 1}</span>{t}{i < 2 && <span className="h-px w-6 bg-line" />}</li>)}
+      <ol className="flex items-center gap-3 text-[14px]">
+        {["Drop the workbook", "Confirm what was found", "Name it and create"].map((t, i) => <li key={t} className={`flex items-center gap-2 ${i < step ? "text-ink" : "text-ink-4"}`}><span className={`num flex h-4 w-4 items-center justify-center border text-[14px] ${i < step ? "border-accent text-accent" : "border-line"}`}>{i + 1}</span>{t}{i < 2 && <span className="h-px w-6 bg-line" />}</li>)}
       </ol>
       <div
         onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
@@ -61,23 +61,23 @@ export function NewProjectForm() {
         className={`flex h-32 cursor-pointer flex-col items-center justify-center border border-dashed text-center transition-colors ${over ? "border-accent bg-[var(--accent-wash)]" : "border-line-strong hover:border-accent"}`}>
         <input ref={inputRef} type="file" accept=".xlsx,.xlsm,.xls,.csv" className="hidden" onChange={(e) => void pick(e.target.files?.[0] ?? null)} />
         {file ? (
-          <><div className="num text-[13px] text-ink">{file.name}</div><div className="num mt-1 text-[11px] text-ink-3">{(file.size / 1024).toFixed(1)} KB · {busy && !preview ? "reading…" : "click to change"}</div></>
+          <><div className="num text-[14px] text-ink">{file.name}</div><div className="num mt-1 text-[14px] text-ink-3">{(file.size / 1024).toFixed(1)} KB · {busy && !preview ? "reading…" : "click to change"}</div></>
         ) : (
-          <><div className="text-[13px] text-ink">Drop the workbook here</div><div className="mt-1 text-[11px] text-ink-3">xlsx, xlsm or csv · or click to browse</div></>
+          <><div className="text-[14px] text-ink">Drop the workbook here</div><div className="mt-1 text-[14px] text-ink-3">xlsx, xlsm or csv · or click to browse</div></>
         )}
       </div>
 
       {preview && (
         <section className="border border-line">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-2.5">
-            <div className="text-[12.5px] text-ink">Sheet <span className="num">{preview.sheet.name}</span> · <span className="num">{preview.rows}</span> rows kept, <span className="num">{preview.excluded}</span> excluded, <span className="num">{preview.fixes}</span> corrected · {preview.fields.length} fields</div>
+            <div className="text-[14px] text-ink">Sheet <span className="num">{preview.sheet.name}</span> · <span className="num">{preview.rows}</span> rows kept, <span className="num">{preview.excluded}</span> excluded, <span className="num">{preview.fixes}</span> corrected · {preview.fields.length} fields</div>
             <div className="label">{preview.template === "agthia" ? "Curated template matched" : "Generic proposal"}</div>
           </div>
           <div className="grid grid-cols-1 gap-px bg-line lg:grid-cols-[1fr_280px]">
             <div className="bg-bg p-4">
               <div className="label mb-2">Fields · adjust labels and how each is used</div>
               <div className="max-h-80 overflow-auto">
-                <table className="w-full table-fixed text-[12px]">
+                <table className="w-full table-fixed text-[14.5px]">
                   <thead><tr className="label text-left"><th className="py-1 pr-2">Column</th><th className="py-1 pr-2">Label</th><th className="py-1 pr-2">Used as</th><th className="py-1">Sample</th></tr></thead>
                   <tbody>
                     {fields.map((f, i) => (
@@ -94,10 +94,10 @@ export function NewProjectForm() {
             </div>
             <div className="bg-bg p-4">
               <div className="label mb-2">Proposed dashboard</div>
-              <ul className="space-y-2 text-[12px]">
-                {preview.pages.map((p) => <li key={p.id}><div className="text-ink">{p.title} <span className="num text-ink-3">· {p.widgets.length}</span></div><div className="text-[11px] text-ink-3">{p.widgets.map((w) => w.title).join(" · ")}</div></li>)}
+              <ul className="space-y-2 text-[14.5px]">
+                {preview.pages.map((p) => <li key={p.id}><div className="text-ink">{p.title} <span className="num text-ink-3">· {p.widgets.length}</span></div><div className="text-[14px] text-ink-3">{p.widgets.map((w) => w.title).join(" · ")}</div></li>)}
               </ul>
-              <p className="mt-3 text-[11px] text-ink-3">Everything stays editable after creation: drag, resize, hide, pin answers from the question box.</p>
+              <p className="mt-3 text-[14px] text-ink-3">Everything stays editable after creation: drag, resize, hide, pin answers from the question box.</p>
             </div>
           </div>
         </section>
@@ -107,12 +107,12 @@ export function NewProjectForm() {
         <label className="block"><span className="label">Project name</span><input className="field mt-1 w-full" value={name} onChange={(e) => setName(e.target.value)} placeholder="Agthia RFQ pipeline" required /></label>
         <label className="block"><span className="label">Client</span><input className="field mt-1 w-full" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Agthia Group" /></label>
         <label className="block"><span className="label">Your name</span><input className="field mt-1 w-full" value={uploadedBy} onChange={(e) => setUploadedBy(e.target.value)} placeholder="Shown as the uploader" required /></label>
-        <label className="block"><span className="label">Brand colour</span><div className="mt-1 flex items-center gap-2"><input type="color" value={primary} onChange={(e) => setPrimary(e.target.value)} className="h-7 w-10 cursor-pointer border border-line bg-bg p-0.5" aria-label="Brand colour" /><span className="num text-[12px] text-ink-2">{primary}</span></div></label>
+        <label className="block"><span className="label">Brand colour</span><div className="mt-1 flex items-center gap-2"><input type="color" value={primary} onChange={(e) => setPrimary(e.target.value)} className="h-7 w-10 cursor-pointer border border-line bg-bg p-0.5" aria-label="Brand colour" /><span className="num text-[14.5px] text-ink-2">{primary}</span></div></label>
       </div>
-      {error && <div className="border border-neg px-3 py-2 text-[12px] text-ink"><span className="text-neg">Problem.</span> {error}</div>}
+      {error && <div className="border border-neg px-3 py-2 text-[14.5px] text-ink"><span className="text-neg">Problem.</span> {error}</div>}
       <div className="flex items-center gap-3">
         <button type="submit" className="btn btn-accent" disabled={busy || !preview}>{busy && preview ? "Creating…" : "Create dashboard"}</button>
-        <span className="text-[11.5px] text-ink-3">{preview ? "Review the fields above, then create." : "Drop a file to see what Meridian proposes."}</span>
+        <span className="text-[14px] text-ink-3">{preview ? "Review the fields above, then create." : "Drop a file to see what Meridian proposes."}</span>
       </div>
     </form>
   );

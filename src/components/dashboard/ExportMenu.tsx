@@ -38,14 +38,14 @@ export function ExportMenu({ projectId, pageId, name }: { projectId: string; pag
   };
   return (
     <div ref={ref} className="relative">
-      <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setOpen((o) => !o)} disabled={Boolean(busy)}>{busy ? "Exporting…" : "Export"}</button>
+      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setOpen((o) => !o)} disabled={Boolean(busy)}>{busy ? "Exporting…" : "Export"}</button>
       {open && (
         <div className="absolute right-0 top-8 z-[50] w-56 border border-line bg-bg-elev py-1 shadow-[var(--shadow-pop)]">
-          <button type="button" className="block w-full px-3 py-1.5 text-left text-[12px] text-ink-2 hover:bg-bg-hover hover:text-ink" onClick={() => server("png")}>This page as PNG<span className="block text-[10.5px] text-ink-4">Rendered at 2× in the current theme</span></button>
-          <button type="button" className="block w-full px-3 py-1.5 text-left text-[12px] text-ink-2 hover:bg-bg-hover hover:text-ink" onClick={() => server("pdf")}>All pages as PDF<span className="block text-[10.5px] text-ink-4">One landscape sheet per page</span></button>
+          <button type="button" className="block w-full px-3 py-1.5 text-left text-[14.5px] text-ink-2 hover:bg-bg-hover hover:text-ink" onClick={() => server("png")}>This page as PNG<span className="block text-[14.5px] text-ink-4">Rendered at 2× in the current theme</span></button>
+          <button type="button" className="block w-full px-3 py-1.5 text-left text-[14.5px] text-ink-2 hover:bg-bg-hover hover:text-ink" onClick={() => server("pdf")}>All pages as PDF<span className="block text-[14.5px] text-ink-4">One landscape sheet per page</span></button>
         </div>
       )}
-      {error && <div role="alert" className="absolute right-0 top-8 z-[50] w-64 border border-neg bg-bg px-3 py-2 text-[11.5px] text-ink"><span className="text-neg">Export failed.</span> {error} <button type="button" className="ml-2 text-ink-3 hover:text-ink" onClick={() => setError(null)}>Dismiss</button></div>}
+      {error && <div role="alert" className="absolute right-0 top-8 z-[50] w-64 border border-neg bg-bg px-3 py-2 text-[14px] text-ink"><span className="text-neg">Export failed.</span> {error} <button type="button" className="ml-2 text-ink-3 hover:text-ink" onClick={() => setError(null)}>Dismiss</button></div>}
     </div>
   );
 }

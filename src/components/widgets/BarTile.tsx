@@ -50,5 +50,5 @@ export function BarTile({ w }: { w: BarWidget }) {
 }
 
 export function Empty({ text = "No rows match the current filters." }: { text?: string }) {
-  return <div className="flex h-full items-center justify-center text-[12px] text-ink-3">{text}</div>;
+  return <div className="flex h-full items-center justify-center text-[14.5px] text-ink-3">{text}</div>;
 }

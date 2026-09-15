@@ -10,6 +10,7 @@ import { DashboardProvider } from "@/lib/ui/dashboard-state";
 import { TooltipProvider } from "@/lib/ui/tooltip";
 import { TopBar } from "./TopBar";
 import { FilterRow } from "./FilterRow";
+import { UpdateBanner } from "./UpdateBanner";
 import { Grid } from "./Grid";
 import { UploadFlow } from "./UploadFlow";
 import { HistoryDrawer } from "./HistoryDrawer";
@@ -18,6 +19,7 @@ import { SharePanel } from "./SharePanel";
 import { Boardroom } from "./Boardroom";
 import { ExportMenu } from "./ExportMenu";
 import { applyTheme } from "./ThemeToggle";
+import { useBrand } from "@/lib/ui/theme";
 
 export interface DashboardProps {
   projectId: string;
@@ -61,7 +63,7 @@ export function DashboardClient(props: DashboardProps) {
   useEffect(() => setIntel(props.intelligence ?? null), [props.intelligence]);
   useEffect(() => { setLayout(props.layout); savedLayout.current = props.layout; }, [props.layout]);
   const page = layout.pages.find((p) => p.id === pageId) ?? layout.pages[0];
-  useEffect(() => { document.documentElement.style.setProperty("--accent", theme.primary); }, [theme.primary]);
+  useBrand(theme.primary);
   useEffect(() => { if (props.print?.theme) applyTheme(props.print.theme); }, [props.print?.theme]);
 
   const refresh = useCallback(async () => {
@@ -108,7 +110,7 @@ export function DashboardClient(props: DashboardProps) {
   const hiddenWidgets = useMemo(() => (page.hidden ?? []).map((id) => page.widgets.find((w) => w.id === id)).filter((w): w is Widget => Boolean(w)), [page]);
 
   const readOnly = props.readOnly ?? false;
-  const intelligence = { insights: intel?.insights, anomalies: intel?.anomalies, comparedTo: intel?.comparedTo, previousKpis: intel?.previousKpis };
+  const intelligence = { insights: intel?.insights, anomalies: intel?.anomalies, comparedTo: intel?.comparedTo, previousKpis: intel?.previousKpis, newIds: intel?.newIds, changedIds: intel?.changedIds };
 
   if (board) {
     return (
@@ -127,34 +129,35 @@ export function DashboardClient(props: DashboardProps) {
           {({ openPicker, busy }) => (
             <div className={`flex min-h-screen flex-col bg-bg transition-opacity duration-300 ${reloading || busy ? "opacity-80" : ""} ${props.print ? "print-mode" : ""}`} data-print={props.print ? "1" : undefined}>
               {!props.print && (
-                <TopBar theme={theme} name={props.name} clientName={props.clientName} pages={layout.pages.map((p) => ({ id: p.id, title: p.title }))} activePage={page.id} onPage={setPageId} upload={upload} homeHref={props.homeHref}
+                <TopBar theme={theme} name={props.name} clientName={props.clientName} pages={layout.pages.map((p) => ({ id: p.id, title: p.title }))} activePage={page.id} onPage={setPageId} upload={upload} homeHref={props.homeHref} scope={props.projectId}
                   actions={readOnly ? (
                     <>
                       <ExportMenu projectId={props.projectId} pageId={page.id} name={props.name} />
-                      <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setBoard(true)} title="Full-screen boardroom mode">Boardroom</button>
+                      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setBoard(true)} title="Full-screen boardroom mode">Boardroom</button>
                     </>
                   ) : editing ? (
                     <>
                       <span className="label hidden md:inline">Editing layout · drag, resize, hide</span>
-                      <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={resetLayout} disabled={saving} title="Back to the proposed layout">Reset</button>
-                      <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={discard} disabled={saving}>Discard</button>
-                      <button type="button" className="btn btn-accent h-7 px-2 py-0 text-[11px]" onClick={saveLayout} disabled={saving || !dirty}>{saving ? "Saving…" : "Save layout"}</button>
+                      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={resetLayout} disabled={saving} title="Back to the proposed layout">Reset</button>
+                      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={discard} disabled={saving}>Discard</button>
+                      <button type="button" className="btn btn-accent h-7 px-2 py-0 text-[14px]" onClick={saveLayout} disabled={saving || !dirty}>{saving ? "Saving…" : "Save layout"}</button>
                     </>
                   ) : (
                     <>
                       {props.actions}
-                      <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setAskOpen(true)}>Ask</button>
-                      <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setEditing(true)}>Edit layout</button>
+                      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setAskOpen(true)}>Ask</button>
+                      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setEditing(true)}>Edit layout</button>
                       <ExportMenu projectId={props.projectId} pageId={page.id} name={props.name} />
-                      <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setBoard(true)} title="Full-screen boardroom mode">Boardroom</button>
-                      {share && <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setShareOpen(true)}>Share</button>}
-                      <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setHistoryOpen(true)}>History</button>
-                      {props.slug && <Link href={`/p/${props.slug}/settings`} className="btn h-7 px-2 py-0 text-[11px] leading-7">Settings</Link>}
-                      <button type="button" className="btn btn-accent h-7 px-2 py-0 text-[11px]" onClick={openPicker} disabled={busy}>{busy ? "Loading…" : "Update data"}</button>
+                      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setBoard(true)} title="Full-screen boardroom mode">Boardroom</button>
+                      {share && <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setShareOpen(true)}>Share</button>}
+                      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setHistoryOpen(true)}>History</button>
+                      {props.slug && <Link href={`/p/${props.slug}/settings`} className="btn h-7 px-2 py-0 text-[14px] leading-7">Settings</Link>}
+                      <button type="button" className="btn btn-accent h-7 px-2 py-0 text-[14px]" onClick={openPicker} disabled={busy}>{busy ? "Loading…" : "Update data"}</button>
                     </>
                   )} />
               )}
               {!props.print && <FilterRow />}
+              {!props.print && intel?.comparedTo ? <UpdateBanner projectId={props.projectId} version={snapshot.version} comparedTo={intel.comparedTo} uploadedBy={upload?.uploadedBy ?? null} uploadedAt={upload?.uploadedAt ?? null} newCount={intel.newIds?.length ?? 0} changedCount={intel.changedIds?.length ?? 0} /> : null}
               {editing && hiddenWidgets.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-1.5">
                   <span className="label">Hidden</span>
@@ -165,8 +168,8 @@ export function DashboardClient(props: DashboardProps) {
                 {page && <Grid page={page} editable={editing} onLayoutChange={onLayoutChange} onHide={hideWidget} intelligence={intelligence} />}
               </main>
               {!props.print && (
-                <footer className="flex h-7 items-center justify-between border-t border-line px-3 text-[10.5px] text-ink-4">
-                  <span className="num">{snapshot.n} rows · version {snapshot.version}{readOnly ? "" : " · drop a workbook anywhere to update"}</span>
+                <footer className="flex h-7 items-center justify-between border-t border-line px-3 text-[14.5px] text-ink-4">
+                  <span className="num">{snapshot.n} rows · version {snapshot.version}<span className="hidden sm:inline">{readOnly ? "" : " · drop a workbook anywhere to update"}</span></span>
                   <span className="label">{props.clientName ? `${props.name} · ` : ""}Meridian</span>
                 </footer>
               )}

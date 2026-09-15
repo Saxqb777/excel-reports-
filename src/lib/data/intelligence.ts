@@ -1,11 +1,19 @@
 import { and, desc, eq, lt } from "drizzle-orm";
 import { db, hasDatabase, schema } from "@/lib/db/client";
 import type { Snapshot } from "@/lib/schema/types";
-import type { ProjectSummary } from "./projects";
+import { getFixturePreviousSnapshot, type ProjectSummary } from "./projects";
 import { computeInsights, topInsights, type Insight } from "@/lib/intelligence/insights";
 import { computeAnomalies, kpiValues, type Anomaly, type MetricHistoryPoint } from "@/lib/intelligence/anomalies";
 
-export interface Intelligence { insights: Insight[]; anomalies: Anomaly[]; comparedTo: number | null; previousKpis: Record<string, number | null> | null }
+export interface Intelligence {
+  insights: Insight[];
+  anomalies: Anomaly[];
+  comparedTo: number | null;
+  previousKpis: Record<string, number | null> | null;
+  /** Row ids that appeared in this version, and ids whose tracked fields changed. Drives the "new" and "changed" markers. */
+  newIds: string[];
+  changedIds: string[];
+}
 
 /**
  * Insights compare the current version with the one before it; anomalies compare KPI values with all earlier versions.
@@ -13,7 +21,7 @@ export interface Intelligence { insights: Insight[]; anomalies: Anomaly[]; compa
  */
 export async function getIntelligence(project: ProjectSummary, snapshot: Snapshot): Promise<Intelligence> {
   const key = `${snapshot.uploadId}:${snapshot.version}:${hashLayout(project)}`;
-  if (!hasDatabase()) return compute(project, snapshot, null, []);
+  if (!hasDatabase()) return compute(project, snapshot, getFixturePreviousSnapshot(project.id), []);
   const cur = await db().select({ insights: schema.uploads.insights, anomalies: schema.uploads.anomalies }).from(schema.uploads).where(eq(schema.uploads.id, snapshot.uploadId)).limit(1);
   const cached = cur[0]?.insights as (Intelligence & { key?: string }) | null | undefined;
   if (cached && cached.key === key) return cached;
@@ -30,7 +38,26 @@ function compute(project: ProjectSummary, snapshot: Snapshot, previous: Snapshot
   const all = computeInsights({ current: snapshot, previous, schema: project.schemaMap, layout: project.layout });
   const anomalies = computeAnomalies({ current: snapshot, history: [...history, { version: snapshot.version, values: kpiValues(snapshot, project.layout) }], schema: project.schemaMap, layout: project.layout });
   const anomalyInsights: Insight[] = anomalies.filter((a) => a.scope === "metric").slice(0, 1).map((a) => ({ id: `anom_${a.id}`, kind: "anomaly", headline: `${a.label} is unusual: ${a.detail.split(", against")[0].replace(`${a.label} is `, "")}`, detail: a.detail, tone: a.tone, score: 1.3, filter: a.filter }));
-  return { insights: topInsights([...anomalyInsights, ...all], 3), anomalies, comparedTo: previous?.version ?? null, previousKpis: previous ? kpiValues(previous, project.layout) : null };
+  const { newIds, changedIds } = rowDiff(snapshot, previous, project);
+  return { insights: topInsights([...anomalyInsights, ...all], 3), anomalies, comparedTo: previous?.version ?? null, previousKpis: previous ? kpiValues(previous, project.layout) : null, newIds, changedIds };
+}
+
+function rowDiff(current: Snapshot, previous: Snapshot | null, project: ProjectSummary): { newIds: string[]; changedIds: string[] } {
+  const idField = project.schemaMap.idField;
+  if (!previous || !idField) return { newIds: [], changedIds: [] };
+  const cur = current.columns[idField] ?? [], prev = previous.columns[idField] ?? [];
+  const prevIndex = new Map<string, number>();
+  prev.forEach((v, i) => { if (v !== null) prevIndex.set(String(v), i); });
+  const watched = current.fields.filter((f) => !f.derived && (f.role === "dimension" || f.role === "date" || f.role === "measure" || f.role === "text") && previous.columns[f.id]);
+  const newIds: string[] = [], changedIds: string[] = [];
+  cur.forEach((v, i) => {
+    if (v === null) return;
+    const id = String(v);
+    const pi = prevIndex.get(id);
+    if (pi === undefined) { newIds.push(id); return; }
+    for (const f of watched) if (current.columns[f.id][i] !== previous.columns[f.id][pi]) { changedIds.push(id); break; }
+  });
+  return { newIds, changedIds };
 }
 
 function hashLayout(project: ProjectSummary): string {

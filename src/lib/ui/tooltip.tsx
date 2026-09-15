@@ -30,7 +30,7 @@ export function TooltipProvider({ children }: { children: ReactNode }) {
     <TooltipCtx.Provider value={api}>
       {children}
       {mounted && state && createPortal(
-        <div ref={ref} role="tooltip" style={{ left, top }} className="pointer-events-none fixed z-[100] min-w-[160px] max-w-[320px] border border-line bg-bg-elev px-3 py-2 text-[11px] leading-snug text-ink shadow-[var(--shadow-pop)]">
+        <div ref={ref} role="tooltip" style={{ left, top }} className="pointer-events-none fixed z-[100] min-w-[160px] max-w-[320px] border border-line bg-bg-elev px-3 py-2 text-[14px] leading-snug text-ink shadow-[var(--shadow-pop)]">
           {state.c.title && <div className="mb-1 font-medium text-ink">{state.c.title}</div>}
           {state.c.rows?.map((r, i) => (
             <div key={r.key ?? i} className="flex items-baseline justify-between gap-4">

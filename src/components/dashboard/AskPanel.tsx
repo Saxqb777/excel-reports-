@@ -43,31 +43,31 @@ export function AskPanel({ projectId, open, onClose, onPin }: { projectId: strin
         <div className="flex h-11 items-center justify-between border-b border-line px-4"><span className="label-strong">Ask the data</span><button type="button" className="text-ink-3 hover:text-ink" onClick={onClose} aria-label="Close">×</button></div>
         <form className="flex items-center gap-2 border-b border-line px-4 py-3" onSubmit={(e) => { e.preventDefault(); void ask(q); }}>
           <span className="num text-accent" aria-hidden>▸</span>
-          <input ref={inputRef} className="field h-8 flex-1 num text-[12.5px]" placeholder="show me top 5 clients by margin this quarter" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Question" />
-          <button type="submit" className="btn btn-accent h-8 px-3 py-0 text-[11px]" disabled={busy || !q.trim()}>{busy ? "Thinking…" : "Ask"}</button>
+          <input ref={inputRef} className="field h-8 flex-1 num text-[14px]" placeholder="show me top 5 clients by margin this quarter" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Question" />
+          <button type="submit" className="btn btn-accent h-8 px-3 py-0 text-[14px]" disabled={busy || !q.trim()}>{busy ? "Thinking…" : "Ask"}</button>
         </form>
         <div className="min-h-0 flex-1 overflow-auto">
           {!result && !error && !busy && (
             <div className="px-4 py-3">
               <div className="label mb-2">Try</div>
               <div className="flex flex-wrap gap-1.5">{EXAMPLES.map((e) => <button key={e} type="button" className="chip" onClick={() => { setQ(e); void ask(e); }}>{e}</button>)}</div>
-              <p className="mt-4 text-[11.5px] leading-relaxed text-ink-3">Claude translates the question into a chart specification. Every number is then computed here, from the same data as the dashboard, so the answer respects your current filters and cross-filters the other tiles.</p>
+              <p className="mt-4 text-[14px] leading-relaxed text-ink-3">Claude translates the question into a chart specification. Every number is then computed here, from the same data as the dashboard, so the answer respects your current filters and cross-filters the other tiles.</p>
             </div>
           )}
-          {busy && <div className="px-4 py-6 text-[12px] text-ink-3">Working out which fields and filters answer that…</div>}
-          {error && <div className="m-4 border border-neg px-3 py-2 text-[12px] text-ink"><span className="text-neg">Could not answer.</span> {error}</div>}
+          {busy && <div className="px-4 py-6 text-[14.5px] text-ink-3">Working out which fields and filters answer that…</div>}
+          {error && <div className="m-4 border border-neg px-3 py-2 text-[14.5px] text-ink"><span className="text-neg">Could not answer.</span> {error}</div>}
           {result && (
             <div className="flex flex-col">
               {result.widget ? (
                 <div className="h-[360px] border-b border-line bg-line"><div className="h-full w-full bg-bg"><WidgetRenderer w={result.widget} /></div></div>
               ) : (
-                <div className="border-b border-line px-4 py-4 text-[12.5px] text-ink-2">{result.answer.explanation}</div>
+                <div className="border-b border-line px-4 py-4 text-[14px] text-ink-2">{result.answer.explanation}</div>
               )}
-              <div className="flex items-center justify-between gap-3 px-4 py-2 text-[11px] text-ink-3">
+              <div className="flex items-center justify-between gap-3 px-4 py-2 text-[14px] text-ink-3">
                 <span className="num">via {result.model}</span>
                 <div className="flex gap-2">
-                  {result.filters.length > 0 && <button type="button" className="btn h-6 px-2 py-0 text-[11px]" onClick={() => dispatch({ type: "clearSelection", widgetId: "ask" })}>Release filter</button>}
-                  {result.widget && onPin && <button type="button" className="btn btn-accent h-6 px-2 py-0 text-[11px]" onClick={() => onPin(result.widget!)}>Pin to dashboard</button>}
+                  {result.filters.length > 0 && <button type="button" className="btn h-6 px-2 py-0 text-[14px]" onClick={() => dispatch({ type: "clearSelection", widgetId: "ask" })}>Release filter</button>}
+                  {result.widget && onPin && <button type="button" className="btn btn-accent h-6 px-2 py-0 text-[14px]" onClick={() => onPin(result.widget!)}>Pin to dashboard</button>}
                 </div>
               </div>
             </div>
@@ -75,7 +75,7 @@ export function AskPanel({ projectId, open, onClose, onPin }: { projectId: strin
           {history.length > 1 && (
             <div className="border-t border-line px-4 py-3">
               <div className="label mb-1.5">Earlier</div>
-              <ul className="space-y-1">{history.slice(1).map((h, i) => <li key={i}><button type="button" className="text-left text-[12px] text-ink-2 hover:text-ink" onClick={() => { setQ(h.q); setResult(h.r); setError(null); }}>{h.q}</button></li>)}</ul>
+              <ul className="space-y-1">{history.slice(1).map((h, i) => <li key={i}><button type="button" className="text-left text-[14.5px] text-ink-2 hover:text-ink" onClick={() => { setQ(h.q); setResult(h.r); setError(null); }}>{h.q}</button></li>)}</ul>
             </div>
           )}
         </div>

@@ -60,7 +60,8 @@ export async function DELETE(req: NextRequest, ctx: RouteContext<"/api/projects/
   const project = await getProjectById(id);
   if (!project) return Response.json({ error: "Project not found" }, { status: 404 });
   const body = (await req.json().catch(() => ({}))) as { confirm?: string };
-  if (body.confirm !== project.name) return Response.json({ error: "Type the project name exactly to confirm deletion." }, { status: 400 });
+  const confirm = body.confirm ?? new URL(req.url).searchParams.get("confirm") ?? "";
+  if (confirm !== "yes" && confirm.trim().toLowerCase() !== project.name.trim().toLowerCase()) return Response.json({ error: "Confirm the deletion first." }, { status: 400 });
   await db().delete(schema.projects).where(eq(schema.projects.id, project.id));
   return Response.json({ ok: true });
 }

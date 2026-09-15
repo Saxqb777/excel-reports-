@@ -27,7 +27,7 @@ export default async function Page() {
 
       <div className="mt-10">
         <div className="label mb-3">Build</div>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1 num text-[12px]">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-1 num text-[14.5px]">
           <span className="text-ink-3">commit</span><span>{build.sha}</span>
           <span className="text-ink-3">branch</span><span>{build.branch}</span>
           <span className="text-ink-3">environment</span><span>{build.env}</span>

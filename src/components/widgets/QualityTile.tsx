@@ -52,8 +52,8 @@ export function QualityTile({ w, anomalies }: { w: QualityWidget; anomalies?: An
       <div className="grid grid-cols-1 gap-px bg-line lg:grid-cols-2">
         <div className="bg-bg p-3.5">
           <div className="label-strong mb-2">Logic checks</div>
-          {logic.length === 0 ? <div className="text-[11.5px] text-ink-3">Dates, statuses and outcomes agree with each other on every row.</div> : (
-            <ul className="space-y-1.5 text-[11.5px]">
+          {logic.length === 0 ? <div className="text-[14px] text-ink-3">Dates, statuses and outcomes agree with each other on every row.</div> : (
+            <ul className="space-y-1.5 text-[14px]">
               {logic.map((l) => (
                 <li key={l.id} className="flex items-start justify-between gap-3">
                   <button type="button" className="text-left text-ink hover:text-accent" onClick={() => applyRows(l.filter, l.rule, l.id)} title="Show these rows">
@@ -67,8 +67,8 @@ export function QualityTile({ w, anomalies }: { w: QualityWidget; anomalies?: An
         </div>
         <div className="bg-bg p-3.5">
           <div className="label-strong mb-2">Statistical anomalies</div>
-          {!anomalies || anomalies.length === 0 ? <div className="text-[11.5px] text-ink-3">Nothing sits far outside its own history yet. Metric anomalies need at least four earlier versions; row anomalies need at least six values.</div> : (
-            <ul className="space-y-1.5 text-[11.5px]">
+          {!anomalies || anomalies.length === 0 ? <div className="text-[14px] text-ink-3">Nothing sits far outside its own history yet. Metric anomalies need at least four earlier versions; row anomalies need at least six values.</div> : (
+            <ul className="space-y-1.5 text-[14px]">
               {anomalies.map((a) => (
                 <li key={a.id} className="flex items-start justify-between gap-3">
                   <button type="button" className="text-left text-ink hover:text-accent" onClick={() => applyRows(a.filter, a.label, a.id)} title="Show these rows">
@@ -91,7 +91,7 @@ export function QualityTile({ w, anomalies }: { w: QualityWidget; anomalies?: An
           {snapshot.excluded.length > 0 && (
             <div className="mt-3">
               <div className="label mb-1">Excluded rows and why</div>
-              <ul className="space-y-0.5 text-[11.5px]">
+              <ul className="space-y-0.5 text-[14px]">
                 {snapshot.excluded.map((e) => <li key={e.row} className="flex justify-between gap-3"><span className="num text-ink">{e.id ?? `row ${e.row}`}</span><span className="text-ink-3">{e.reason}</span></li>)}
               </ul>
             </div>
@@ -99,7 +99,7 @@ export function QualityTile({ w, anomalies }: { w: QualityWidget; anomalies?: An
           {snapshot.fixes.length > 0 && (
             <div className="mt-3">
               <div className="label mb-1">Corrections applied</div>
-              <ul className="space-y-0.5 text-[11.5px]">
+              <ul className="space-y-0.5 text-[14px]">
                 {snapshot.fixes.map((f, i) => <li key={i}><span className="num text-ink">row {f.row}</span> <span className="text-ink-2">{f.field}</span> <span className="num text-ink-3">{f.from} → {f.to}</span><div className="text-ink-3">{f.reason}</div></li>)}
               </ul>
             </div>
@@ -107,7 +107,7 @@ export function QualityTile({ w, anomalies }: { w: QualityWidget; anomalies?: An
         </div>
         <div className="bg-bg p-3.5">
           <div className="label-strong mb-2">Blanks by column</div>
-          <table className="w-full text-[11.5px]">
+          <table className="w-full text-[14px]">
             <tbody>
               {report.map((r) => (
                 <tr key={r.id} className="border-b border-line last:border-0">
@@ -123,7 +123,7 @@ export function QualityTile({ w, anomalies }: { w: QualityWidget; anomalies?: An
         <div className="bg-bg p-3.5">
           <div className="label-strong mb-2">Inconsistent values</div>
           {folded.length > 0 && (
-            <ul className="mb-3 space-y-2 text-[11.5px]">
+            <ul className="mb-3 space-y-2 text-[14px]">
               {folded.map((f) => (
                 <li key={f.id}>
                   <div className="text-ink">{f.label} <span className="text-ink-3">· {f.groups.reduce((a, g) => a + g[1].length, 0)} spellings folded</span></div>
@@ -132,8 +132,8 @@ export function QualityTile({ w, anomalies }: { w: QualityWidget; anomalies?: An
               ))}
             </ul>
           )}
-          {issues.length === 0 && folded.length === 0 ? <div className="text-[11.5px] text-ink-3">No casing, spacing or out-of-list values found.</div> : issues.length === 0 ? null : (
-            <ul className="space-y-2 text-[11.5px]">
+          {issues.length === 0 && folded.length === 0 ? <div className="text-[14px] text-ink-3">No casing, spacing or out-of-list values found.</div> : issues.length === 0 ? null : (
+            <ul className="space-y-2 text-[14px]">
               {issues.map((r) => (
                 <li key={r.id}>
                   <div className="text-ink">{r.label}</div>
@@ -150,5 +150,5 @@ export function QualityTile({ w, anomalies }: { w: QualityWidget; anomalies?: An
 }
 
 function Row({ k, v, tone }: { k: string; v: string; tone?: "warn" | "neg" }) {
-  return <div className="flex justify-between gap-3 border-b border-line py-1 text-[11.5px] last:border-0"><span className="text-ink-2">{k}</span><span className={`num ${tone === "warn" ? "text-warn" : tone === "neg" ? "text-neg" : "text-ink"}`}>{v}</span></div>;
+  return <div className="flex justify-between gap-3 border-b border-line py-1 text-[14px] last:border-0"><span className="text-ink-2">{k}</span><span className={`num ${tone === "warn" ? "text-warn" : tone === "neg" ? "text-neg" : "text-ink"}`}>{v}</span></div>;
 }

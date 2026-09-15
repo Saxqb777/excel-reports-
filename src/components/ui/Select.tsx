@@ -27,7 +27,7 @@ export function Select({ label, value, options, onChange, anyLabel = "Any", clas
   return (
     <div ref={ref} className={`relative ${className}`}>
       <button type="button" aria-haspopup="listbox" aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)} onKeyDown={onKey}
-        className={`flex h-[24px] items-center gap-1.5 border px-2 text-[11px] transition-colors ${value ? "border-accent bg-[var(--accent-wash)] text-ink" : "border-line text-ink-2 hover:border-line-strong hover:text-ink"}`}>
+        className={`flex h-[24px] items-center gap-1.5 border px-2 text-[14px] transition-colors ${value ? "border-accent bg-[var(--accent-wash)] text-ink" : "border-line text-ink-2 hover:border-line-strong hover:text-ink"}`}>
         <span className="label">{label}</span>
         <span className={`num max-w-[160px] truncate ${value ? "text-ink" : "text-ink-3"}`}>{current.label}</span>
         <span className="text-ink-4" aria-hidden>▾</span>
@@ -38,9 +38,9 @@ export function Select({ label, value, options, onChange, anyLabel = "Any", clas
             const selected = o.value === value;
             return (
               <li key={o.value} role="option" aria-selected={selected} onMouseEnter={() => setActive(i)} onClick={() => { onChange(o.value); setOpen(false); }}
-                className={`flex cursor-pointer items-center justify-between gap-4 px-2.5 py-1 text-[12px] ${i === active ? "bg-bg-hover" : ""} ${selected ? "text-ink" : "text-ink-2"}`}>
+                className={`flex cursor-pointer items-center justify-between gap-4 px-2.5 py-1 text-[14.5px] ${i === active ? "bg-bg-hover" : ""} ${selected ? "text-ink" : "text-ink-2"}`}>
                 <span className="flex items-center gap-2"><span className={`num w-2 ${selected ? "text-accent" : "text-transparent"}`}>●</span>{o.label}</span>
-                {o.count !== undefined && <span className="num text-[11px] text-ink-3">{o.count}</span>}
+                {o.count !== undefined && <span className="num text-[14px] text-ink-3">{o.count}</span>}
               </li>
             );
           })}

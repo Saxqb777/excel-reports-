@@ -69,11 +69,17 @@ function fixtureMode(): boolean {
   return !hasDatabase() && FIXTURE_DIR !== null && existsSync(FIXTURE_DIR);
 }
 
-interface Fixture { project: ProjectSummary; upload: UploadSummary; snapshot: Snapshot }
+interface Fixture { project: ProjectSummary; upload: UploadSummary; snapshot: Snapshot; previousUpload?: UploadSummary; previousSnapshot?: Snapshot }
 
 function readFixtures(): Fixture[] {
   if (!FIXTURE_DIR) return [];
   return readdirSync(FIXTURE_DIR).filter((f) => f.endsWith(".json")).map((f) => JSON.parse(readFileSync(path.join(FIXTURE_DIR, f), "utf8")) as Fixture);
+}
+
+/** Fixture mode only: the version before the current one, so insights and change markers can be checked locally. */
+export function getFixturePreviousSnapshot(projectId: string): Snapshot | null {
+  if (!fixtureMode()) return null;
+  return readFixtures().find((f) => f.project.id === projectId)?.previousSnapshot ?? null;
 }
 
 // ---------- Queries ----------
@@ -123,7 +129,7 @@ export async function getCurrentUpload(project: ProjectSummary): Promise<UploadS
 }
 
 export async function listUploads(projectId: string): Promise<UploadSummary[]> {
-  if (fixtureMode()) { const f = readFixtures().find((x) => x.project.id === projectId); return f ? [f.upload] : []; }
+  if (fixtureMode()) { const f = readFixtures().find((x) => x.project.id === projectId); return f ? [f.upload, ...(f.previousUpload ? [f.previousUpload] : [])] : []; }
   const rows = await db().select().from(schema.uploads).where(eq(schema.uploads.projectId, projectId)).orderBy(desc(schema.uploads.versionNo));
   return rows.map(toUploadSummary);
 }
