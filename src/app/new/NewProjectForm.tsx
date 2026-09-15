@@ -77,7 +77,7 @@ export function NewProjectForm() {
             <div className="bg-bg p-4">
               <div className="label mb-2">Fields · adjust labels and how each is used</div>
               <div className="max-h-80 overflow-auto">
-                <table className="w-full text-[12px]">
+                <table className="w-full table-fixed text-[12px]">
                   <thead><tr className="label text-left"><th className="py-1 pr-2">Column</th><th className="py-1 pr-2">Label</th><th className="py-1 pr-2">Used as</th><th className="py-1">Sample</th></tr></thead>
                   <tbody>
                     {fields.map((f, i) => (
@@ -85,7 +85,7 @@ export function NewProjectForm() {
                         <td className="num py-1 pr-2 text-ink-3">{f.source ?? <span className="text-ink-4">derived</span>}</td>
                         <td className="py-1 pr-2"><input className="field h-7 w-40" value={f.label} onChange={(e) => setFields((fs) => fs.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} /></td>
                         <td className="py-1 pr-2"><select className="field h-7" value={f.role} disabled={f.derived} onChange={(e) => setFields((fs) => fs.map((x, j) => (j === i ? { ...x, role: e.target.value as Role } : x)))}>{ROLES.map((r) => <option key={r} value={r}>{r}</option>)}</select></td>
-                        <td className="num truncate py-1 text-ink-3">{f.samples.join(" · ")}</td>
+                        <td className="py-1"><span className="num block max-w-[260px] truncate text-ink-3" title={f.samples.join(" · ")}>{f.samples.join(" · ")}</span></td>
                       </tr>
                     ))}
                   </tbody>

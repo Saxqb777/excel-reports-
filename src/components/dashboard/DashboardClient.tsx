@@ -16,6 +16,7 @@ import { HistoryDrawer } from "./HistoryDrawer";
 import { AskPanel } from "./AskPanel";
 import { SharePanel } from "./SharePanel";
 import { Boardroom } from "./Boardroom";
+import { ExportMenu } from "./ExportMenu";
 import { applyTheme } from "./ThemeToggle";
 
 export interface DashboardProps {
@@ -128,7 +129,10 @@ export function DashboardClient(props: DashboardProps) {
               {!props.print && (
                 <TopBar theme={theme} name={props.name} clientName={props.clientName} pages={layout.pages.map((p) => ({ id: p.id, title: p.title }))} activePage={page.id} onPage={setPageId} upload={upload} homeHref={props.homeHref}
                   actions={readOnly ? (
-                    <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setBoard(true)} title="Full-screen boardroom mode">Boardroom</button>
+                    <>
+                      <ExportMenu projectId={props.projectId} pageId={page.id} name={props.name} />
+                      <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setBoard(true)} title="Full-screen boardroom mode">Boardroom</button>
+                    </>
                   ) : editing ? (
                     <>
                       <span className="label hidden md:inline">Editing layout · drag, resize, hide</span>
@@ -141,6 +145,7 @@ export function DashboardClient(props: DashboardProps) {
                       {props.actions}
                       <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setAskOpen(true)}>Ask</button>
                       <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setEditing(true)}>Edit layout</button>
+                      <ExportMenu projectId={props.projectId} pageId={page.id} name={props.name} />
                       <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setBoard(true)} title="Full-screen boardroom mode">Boardroom</button>
                       {share && <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setShareOpen(true)}>Share</button>}
                       <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setHistoryOpen(true)}>History</button>

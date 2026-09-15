@@ -31,11 +31,13 @@ export function Grid({ page, editable = false, onLayoutChange, onHide, intellige
             const w = page.widgets.find((x) => x.id === g.i);
             const expandable = Boolean(w && w.type !== "kpi" && w.type !== "insights" && !compact);
             return (
-              <div key={g.i} className={`tile ${editable ? "outline outline-1 outline-dashed outline-[var(--line-strong)]" : ""}`} style={{ animation: compact ? undefined : `tile-in 320ms cubic-bezier(.2,.7,.2,1) both`, animationDelay: `${Math.min(i, 12) * 22}ms` }}>
-                {editable && <div className="drag-handle absolute inset-x-0 top-0 z-[2] h-8 cursor-grab active:cursor-grabbing" title="Drag to move" />}
-                <TileActionsProvider value={{ expand: expandable ? () => setExpanded(w!) : undefined, hide: editable && onHide ? () => onHide(g.i) : undefined, editing: editable }}>
-                  {w ? <WidgetRenderer w={w} {...intelligence} /> : <div className="p-3 text-[11px] text-ink-3">Missing widget {g.i}</div>}
-                </TileActionsProvider>
+              <div key={g.i} className={`tile ${editable ? "outline outline-1 outline-dashed outline-[var(--line-strong)]" : ""}`}>
+                <div className="h-full w-full" style={{ animation: compact ? undefined : `tile-in 320ms cubic-bezier(.2,.7,.2,1) both`, animationDelay: `${Math.min(i, 12) * 22}ms` }}>
+                  {editable && <div className="drag-handle absolute inset-x-0 top-0 z-[2] h-8 cursor-grab active:cursor-grabbing" title="Drag to move" />}
+                  <TileActionsProvider value={{ expand: expandable ? () => setExpanded(w!) : undefined, hide: editable && onHide ? () => onHide(g.i) : undefined, editing: editable }}>
+                    {w ? <WidgetRenderer w={w} {...intelligence} /> : <div className="p-3 text-[11px] text-ink-3">Missing widget {g.i}</div>}
+                  </TileActionsProvider>
+                </div>
               </div>
             );
           })}

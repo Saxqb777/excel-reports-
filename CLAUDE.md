@@ -37,5 +37,10 @@ This file is the running record of confirmed decisions. Any future session start
 1. Core: DB schema, ingestion, schema inference, engine, charts, grid, tokens — done
 2. Upload and history — done (drop anywhere on the dashboard, schema-change modal with rename/new/ignore decisions, confirmed-missing columns stop prompting, new money columns auto-add value tiles, history drawer with restore and file download)
 3. Intelligence — done (deterministic insight engine compares each version with the previous: KPI deltas with driven-by attribution, new/removed rows, stage and outcome transitions, dimension shifts, aging; robust z-score anomalies on KPI history, row measures and weekly counts; semantic logic checks; Ask panel translates questions into widget specs with Claude Opus 5 via structured outputs, server-side refusal fallback to Opus 4.8, numbers computed locally)
-4. Projects home, themes, sharing, layout editing, new-project wizard
-5. Polish: boardroom mode, export, transitions, skeletons
+4. Projects home, themes, sharing, layout editing, new-project wizard — done (live mini-dashboards on the home page; settings page for identity, colour, default theme, logo, monogram, field labels/roles/hidden, delete; share links with optional scrypt-hashed password and signed per-project cookie; layout edit mode with drag/resize/hide/restore/save/reset and pin-from-Ask; wizard previews fields and proposed pages before creating)
+5. Polish — done (boardroom mode with auto-cycling pages and keyboard control; server-side Chromium export to PNG (2×) and PDF (one sheet per page) via /api/projects/[id]/export, client-side PNG fallback; KPI deltas vs previous version; terminal-style selects; hover-revealed expand and table views on every chart; entrance and page transitions; loading skeleton)
+
+## Gotchas
+- Never put a CSS animation that ends on `transform` directly on a react-grid-layout item: the animation outranks the inline transform RGL uses for positioning. Animate an inner wrapper.
+- Export needs `serverExternalPackages` for `@sparticuz/chromium` and `puppeteer-core`, plus `outputFileTracingIncludes` for the chromium binaries. Locally set `CHROME_PATH` to a Chromium binary and `NEXT_PUBLIC_APP_URL` to the local origin.
+- The share page accepts `?print=1&page=<id>&theme=dark|light` (no chrome, no animations) and `?board=1` (boardroom).
