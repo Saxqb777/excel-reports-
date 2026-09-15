@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+/* Terminal direction: dense, monochrome, one accent. Tokens only. No default palette. */
+:root {
+  color-scheme: light;
+  --bg: #f4f4f2;
+  --bg-elev: #ffffff;
+  --bg-sunk: #ebebe8;
+  --line: #d6d6d1;
+  --line-strong: #a9a9a2;
+  --ink: #141414;
+  --ink-2: #4a4a47;
+  --ink-3: #7c7c77;
+  --accent: #0f5fd7;
+  --accent-ink: #ffffff;
+  --pos: #1d7a4c;
+  --neg: #b83227;
+  --warn: #a8690a;
+  --neutral: #6b6b66;
+  --font-ui: "IBM Plex Sans", system-ui, sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d0e10;
+  --bg-elev: #141619;
+  --bg-sunk: #08090a;
+  --line: #24272c;
+  --line-strong: #3a3e45;
+  --ink: #e8e8e4;
+  --ink-2: #a9aaa4;
+  --ink-3: #6f716c;
+  --accent: #4d8dff;
+  --accent-ink: #0b0c0e;
+  --pos: #3fbf7f;
+  --neg: #e0574b;
+  --warn: #d9a03a;
+  --neutral: #8a8b85;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-elev: var(--bg-elev);
+  --color-bg-sunk: var(--bg-sunk);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-pos: var(--pos);
+  --color-neg: var(--neg);
+  --color-warn: var(--warn);
+  --color-neutral: var(--neutral);
+  --font-ui: var(--font-ui);
+  --font-num: var(--font-num);
+  --radius: 2px;
+}
+
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.label { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
