@@ -47,6 +47,11 @@ This file is the running record of confirmed decisions. Any future session start
 4. Projects home, themes, sharing, layout editing, new-project wizard — done (live mini-dashboards on the home page; settings page for identity, colour, default theme, logo, monogram, field labels/roles/hidden, delete; share links with optional scrypt-hashed password and signed per-project cookie; layout edit mode with drag/resize/hide/restore/save/reset and pin-from-Ask; wizard previews fields and proposed pages before creating)
 5. Polish — done (boardroom mode with auto-cycling pages and keyboard control; server-side Chromium export to PNG (2×) and PDF (one sheet per page) via /api/projects/[id]/export, client-side PNG fallback; KPI deltas vs previous version; terminal-style selects; hover-revealed expand and table views on every chart; entrance and page transitions; loading skeleton)
 
+## Next (approved by the user 2026-09-15, not started; confirm scope before building each)
+- Meridian is a general product: anyone uploads their own kind of sheet. The Agthia template is just one auto-matched template.
+- Order: (1) sign-in and workspaces so each person sees only their projects, share links stay public; (2) column meaning (semantic) editable in settings with dashboard rebuild; (3) sheet picker for multi-sheet workbooks; (4) more auto-matched templates: sales pipeline, project plan, expenses, inventory, attendance; (5) public landing page with a demo.
+- The name stays Meridian.
+
 ## Gotchas
 - Hooks must sit above any early `return null` (the History drawer once declared `useState` after `if (!open) return null` and crashed with React #310 on open).
 - Never put a CSS animation that ends on `transform` directly on a react-grid-layout item: the animation outranks the inline transform RGL uses for positioning. Animate an inner wrapper.
