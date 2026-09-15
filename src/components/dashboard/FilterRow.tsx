@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useDashboard } from "@/lib/ui/dashboard-state";
 import { distinctValues } from "@/lib/engine/metrics";
 import { formatDate } from "@/lib/engine/format";
+import { Select } from "@/components/ui/Select";
 
 const DAY = 86_400_000;
 const PRESETS: { id: string; label: string; days?: number }[] = [
@@ -39,13 +40,7 @@ export function FilterRow() {
         const ordered = f?.order ? [...f.order.map((o) => opts.find((x) => x.value === o)).filter((x): x is { value: string; count: number } => Boolean(x)), ...opts.filter((o) => !f.order!.includes(o.value))] : opts;
         const current = state.controls[s.field]?.[0] ?? "";
         return (
-          <label key={s.field} className="flex items-center gap-1.5">
-            <span className="label">{s.label ?? f?.label ?? s.field}</span>
-            <select className="field h-[22px] py-0 pr-6 text-[11px]" value={current} onChange={(e) => dispatch({ type: "control", field: s.field, values: e.target.value ? [e.target.value] : [] })}>
-              <option value="">Any</option>
-              {ordered.map((o) => <option key={o.value} value={o.value}>{o.value} ({o.count})</option>)}
-            </select>
-          </label>
+          <Select key={s.field} label={s.label ?? f?.label ?? s.field} value={current} options={ordered.map((o) => ({ value: o.value, label: o.value, count: o.count }))} onChange={(v) => dispatch({ type: "control", field: s.field, values: v ? [v] : [] })} />
         );
       })}
       {search && (

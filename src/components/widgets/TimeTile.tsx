@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { LineWidget } from "@/lib/dashboard/types";
 import { timeSeries } from "@/lib/engine/metrics";
 import { periodStart } from "@/lib/schema/normalize";
@@ -7,7 +7,8 @@ import { nextPeriod } from "@/lib/engine/metrics";
 import { useDashboard } from "@/lib/ui/dashboard-state";
 import { TimeChart, labelFor } from "@/components/charts/TimeChart";
 import { catVar } from "@/lib/ui/colors";
-import { Tile } from "./Tile";
+import { Tile, DataTable } from "./Tile";
+import { formatNumber } from "@/lib/engine/format";
 import { Empty } from "./BarTile";
 
 export function TimeTile({ w }: { w: LineWidget }) {
@@ -26,8 +27,9 @@ export function TimeTile({ w }: { w: LineWidget }) {
     dispatch({ type: "toggle", selection: { widgetId: w.id, field: w.dateField, values: [String(t)], label: labelFor(t, w.unit), extra: { field: w.dateField, op: "between", value: [t, end] } } });
   };
   const fmt = w.series[0].metric.format ?? "integer";
+  const [table, setTable] = useState(false);
   return (
-    <Tile title={w.title} subtitle={w.subtitle} selected={Boolean(sel)} onClear={() => dispatch({ type: "clearSelection", widgetId: w.id })}
+    <Tile title={w.title} subtitle={w.subtitle} selected={Boolean(sel)} onClear={() => dispatch({ type: "clearSelection", widgetId: w.id })} tableActive={table} onToggleTable={() => setTable((t) => !t)}
       right={data.series.length > 1 ? (
         <div className="flex items-center gap-3 text-[11px] text-ink-2">
           {data.series.map((s, i) => (
@@ -38,7 +40,7 @@ export function TimeTile({ w }: { w: LineWidget }) {
           ))}
         </div>
       ) : undefined}>
-      {data.times.length === 0 ? <Empty /> : <TimeChart times={data.times} series={data.series} unit={w.unit} format={fmt} currency={w.series[0].metric.currency} selected={selectedT} onSelect={onSelect} />}
+      {data.times.length === 0 ? <Empty /> : table ? <DataTable columns={["Period", ...data.series.map((s) => s.label)]} rows={data.times.map((t, i) => [labelFor(t, w.unit), ...data.series.map((s) => formatNumber(s.values[i], fmt, w.series[0].metric.currency))])} /> : <TimeChart times={data.times} series={data.series} unit={w.unit} format={fmt} currency={w.series[0].metric.currency} selected={selectedT} onSelect={onSelect} />}
     </Tile>
   );
 }

@@ -60,7 +60,7 @@ export function HBars({ rows, stackKeys, colorBy = "single", format = "integer",
               <text x={labelWidth - 10} y={ROW_H / 2} dominantBaseline="middle" textAnchor="end" className="fill-[var(--ink-2)]" fontSize={12} style={{ fontFamily: "var(--font-ui)" }}>
                 {r.key.length > maxChars ? r.key.slice(0, maxChars - 1) + "…" : r.key}
               </text>
-              <rect x={labelWidth} y={(ROW_H - BAR_H) / 2} width={plotW} height={BAR_H} fill="transparent" className="cursor-pointer" onClick={() => onSelect?.(r.key)} />
+              <rect x={labelWidth} y={(ROW_H - BAR_H) / 2} width={plotW} height={BAR_H} fill="var(--bg-sunk)" className="cursor-pointer" onClick={() => onSelect?.(r.key)} />
               {segs.map((s) => {
                 if (s.v <= 0) return null;
                 const w = Math.max(0, x(s.v) - (cursor > 0 ? 2 : 0));

@@ -19,9 +19,12 @@ export async function POST(req: Request) {
   const clientName = String(form.get("clientName") ?? "").trim() || undefined;
   const uploadedBy = String(form.get("uploadedBy") ?? "").trim() || "Unknown";
   const primary = String(form.get("primary") ?? "").trim() || undefined;
+  let overrides: { id: string; label?: string; role?: "id" | "dimension" | "measure" | "date" | "text" | "ignore"; hidden?: boolean }[] | undefined;
+  const rawOverrides = form.get("overrides");
+  if (typeof rawOverrides === "string" && rawOverrides) { try { overrides = JSON.parse(rawOverrides); } catch { return Response.json({ error: "overrides must be JSON" }, { status: 400 }); } }
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await createProjectFromWorkbook({ buffer, fileName: file.name, name, clientName, uploadedBy, primary });
+    const result = await createProjectFromWorkbook({ buffer, fileName: file.name, name, clientName, uploadedBy, primary, overrides });
     return Response.json(result, { status: 201 });
   } catch (e) {
     console.error(e);

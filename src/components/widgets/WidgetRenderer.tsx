@@ -12,11 +12,11 @@ import type { Anomaly } from "@/lib/intelligence/anomalies";
 import { QualityTile } from "./QualityTile";
 import { Tile } from "./Tile";
 
-export interface IntelligenceProps { insights?: Insight[]; anomalies?: Anomaly[]; comparedTo?: number | null }
+export interface IntelligenceProps { insights?: Insight[]; anomalies?: Anomaly[]; comparedTo?: number | null; previousKpis?: Record<string, number | null> | null }
 
-export function WidgetRenderer({ w, insights, anomalies, comparedTo }: { w: Widget } & IntelligenceProps) {
+export function WidgetRenderer({ w, insights, anomalies, comparedTo, previousKpis }: { w: Widget } & IntelligenceProps) {
   switch (w.type) {
-    case "kpi": return <KpiTile w={w} anomaly={anomalies?.find((a) => a.scope === "metric" && a.widgetId === w.id)} />;
+    case "kpi": return <KpiTile w={w} anomaly={anomalies?.find((a) => a.scope === "metric" && a.widgetId === w.id)} previous={previousKpis?.[w.id]} comparedTo={comparedTo} />;
     case "bar": return <BarTile w={w} />;
     case "line": return <TimeTile w={w} />;
     case "funnel": return <FunnelTile w={w} />;

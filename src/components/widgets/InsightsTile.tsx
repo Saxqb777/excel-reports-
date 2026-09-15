@@ -35,10 +35,13 @@ export function InsightsTile({ w, insights, comparedTo }: { w: InsightsWidget; i
               <div className={`num shrink-0 pt-0.5 text-[18px] leading-none ${it.tone === "pos" ? "text-pos" : it.tone === "neg" ? "text-neg" : it.tone === "warn" ? "text-warn" : "text-ink-3"}`} aria-hidden>
                 {it.delta === undefined || it.delta === null ? (i === 0 && it.kind === "baseline" ? "▸" : "·") : it.delta > 0 ? "▲" : it.delta < 0 ? "▼" : "▬"}
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="truncate text-[12.5px] font-medium text-ink">{it.headline}</div>
                 {it.detail && <div className="truncate-2 text-[11.5px] leading-snug text-ink-3">{it.detail}</div>}
               </div>
+              {typeof it.delta === "number" && it.delta !== 0 && it.kind !== "kpi" && (
+                <div className={`num shrink-0 pt-0.5 text-[15px] leading-none ${it.tone === "pos" ? "text-pos" : it.tone === "neg" ? "text-neg" : it.tone === "warn" ? "text-warn" : "text-ink-3"}`}>{it.delta > 0 ? "+" : ""}{formatNumber(it.delta)}</div>
+              )}
             </button>
           );
         })}

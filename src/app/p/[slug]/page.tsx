@@ -28,5 +28,5 @@ export default async function ProjectPage(props: PageProps<"/p/[slug]">) {
     );
   }
   const intelligence = await getIntelligence(project, snapshot).catch((e) => { console.error(e); return null; });
-  return <DashboardClient projectId={project.id} name={project.name} clientName={project.clientName} theme={project.theme} layout={project.layout} snapshot={snapshot} upload={upload} intelligence={intelligence} />;
+  return <DashboardClient projectId={project.id} slug={project.slug} name={project.name} clientName={project.clientName} theme={project.theme} layout={project.layout} snapshot={snapshot} upload={upload} intelligence={intelligence} share={{ token: project.shareToken, enabled: project.shareEnabled, hasPassword: project.hasSharePassword }} />;
 }

@@ -1,9 +1,10 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { DotsWidget } from "@/lib/dashboard/types";
 import { useDashboard } from "@/lib/ui/dashboard-state";
 import { Dots, type DotPoint } from "@/components/charts/Dots";
-import { Tile } from "./Tile";
+import { Tile, DataTable } from "./Tile";
+import { formatNumber } from "@/lib/engine/format";
 import { Empty } from "./BarTile";
 
 export function DotsTile({ w }: { w: DotsWidget }) {
@@ -29,9 +30,10 @@ export function DotsTile({ w }: { w: DotsWidget }) {
   }, [snapshot, mask, w, laneField]);
   const sel = isSelected(w.id);
   const onSelect = (lane: string) => { if (w.colorField) dispatch({ type: "toggle", selection: { widgetId: w.id, field: w.colorField, values: [lane], label: `${laneField?.label ?? w.colorField} = ${lane}` } }); };
+  const [table, setTable] = useState(false);
   return (
-    <Tile title={w.title} subtitle={w.subtitle} selected={Boolean(sel)} onClear={() => dispatch({ type: "clearSelection", widgetId: w.id })}>
-      {points.length === 0 ? <Empty text="No values yet for this measure." /> : <Dots points={points} lanes={lanes} target={w.target} targetLabel={w.targetLabel} format={w.format ?? "days"} selectedLane={sel?.values[0] ?? null} onSelect={onSelect} />}
+    <Tile title={w.title} subtitle={w.subtitle} selected={Boolean(sel)} onClear={() => dispatch({ type: "clearSelection", widgetId: w.id })} tableActive={table} onToggleTable={() => setTable((t) => !t)}>
+      {points.length === 0 ? <Empty text="No values yet for this measure." /> : table ? <DataTable columns={["Row", laneField?.label ?? "Group", "Value"]} rows={[...points].sort((a, b) => b.value - a.value).map((p) => [p.label, p.lane, formatNumber(p.value, w.format ?? "days")])} /> : <Dots points={points} lanes={lanes} target={w.target} targetLabel={w.targetLabel} format={w.format ?? "days"} selectedLane={sel?.values[0] ?? null} onSelect={onSelect} />}
     </Tile>
   );
 }

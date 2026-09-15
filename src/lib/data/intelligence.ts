@@ -5,7 +5,7 @@ import type { ProjectSummary } from "./projects";
 import { computeInsights, topInsights, type Insight } from "@/lib/intelligence/insights";
 import { computeAnomalies, kpiValues, type Anomaly, type MetricHistoryPoint } from "@/lib/intelligence/anomalies";
 
-export interface Intelligence { insights: Insight[]; anomalies: Anomaly[]; comparedTo: number | null }
+export interface Intelligence { insights: Insight[]; anomalies: Anomaly[]; comparedTo: number | null; previousKpis: Record<string, number | null> | null }
 
 /**
  * Insights compare the current version with the one before it; anomalies compare KPI values with all earlier versions.
@@ -30,7 +30,7 @@ function compute(project: ProjectSummary, snapshot: Snapshot, previous: Snapshot
   const all = computeInsights({ current: snapshot, previous, schema: project.schemaMap, layout: project.layout });
   const anomalies = computeAnomalies({ current: snapshot, history: [...history, { version: snapshot.version, values: kpiValues(snapshot, project.layout) }], schema: project.schemaMap, layout: project.layout });
   const anomalyInsights: Insight[] = anomalies.filter((a) => a.scope === "metric").slice(0, 1).map((a) => ({ id: `anom_${a.id}`, kind: "anomaly", headline: `${a.label} is unusual: ${a.detail.split(", against")[0].replace(`${a.label} is `, "")}`, detail: a.detail, tone: a.tone, score: 1.3, filter: a.filter }));
-  return { insights: topInsights([...anomalyInsights, ...all], 3), anomalies, comparedTo: previous?.version ?? null };
+  return { insights: topInsights([...anomalyInsights, ...all], 3), anomalies, comparedTo: previous?.version ?? null, previousKpis: previous ? kpiValues(previous, project.layout) : null };
 }
 
 function hashLayout(project: ProjectSummary): string {

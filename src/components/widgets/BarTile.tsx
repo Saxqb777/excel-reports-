@@ -1,10 +1,11 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { BarWidget } from "@/lib/dashboard/types";
 import { groupBy } from "@/lib/engine/metrics";
 import { useDashboard } from "@/lib/ui/dashboard-state";
 import { HBars, Legend } from "@/components/charts/HBars";
-import { Tile } from "./Tile";
+import { Tile, DataTable } from "./Tile";
+import { formatNumber, pct } from "@/lib/engine/format";
 
 export function BarTile({ w }: { w: BarWidget }) {
   const { snapshot, maskFor, dispatch, isSelected, fields } = useDashboard();
@@ -26,8 +27,14 @@ export function BarTile({ w }: { w: BarWidget }) {
     dispatch({ type: "toggle", selection: { widgetId: w.id, field: w.dimension, values: [key], label: `${dim?.label ?? w.dimension} = ${key}${stack ? ` · ${stack}` : ""}`, extra } });
   };
   const selectedStack = sel?.extra && "field" in sel.extra ? String(sel.extra.value) : undefined;
+  const [table, setTable] = useState(false);
+  const total = rows.reduce((a, r) => a + r.value, 0);
+  const fmt = w.metric.format ?? "integer";
   return (
-    <Tile title={w.title} subtitle={w.subtitle} selected={Boolean(sel)} onClear={() => dispatch({ type: "clearSelection", widgetId: w.id })}>
+    <Tile title={w.title} subtitle={w.subtitle} selected={Boolean(sel)} onClear={() => dispatch({ type: "clearSelection", widgetId: w.id })} tableActive={table} onToggleTable={() => setTable((t) => !t)}>
+      {table ? (
+        <DataTable columns={[dim?.label ?? w.dimension, ...(stackKeys ?? []), stackKeys ? "Total" : "Value", "Share"]} rows={rows.map((r) => [r.key, ...(stackKeys ?? []).map((k) => formatNumber(r.stacks?.[k] ?? 0, fmt, w.metric.currency)), formatNumber(r.value, fmt, w.metric.currency), pct(r.value, total)])} />
+      ) : (
       <div className="flex h-full flex-col">
         {stackKeys && stackKeys.length > 1 && <div className="shrink-0 pb-1.5"><Legend keys={stackKeys} colorBy={w.colorBy ?? "status"} /></div>}
         <div className="min-h-0 flex-1">
@@ -37,6 +44,7 @@ export function BarTile({ w }: { w: BarWidget }) {
           )}
         </div>
       </div>
+      )}
     </Tile>
   );
 }

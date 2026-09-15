@@ -6,15 +6,24 @@ import { ingestNew } from "@/lib/ingest";
 import { storeFile } from "@/lib/storage/files";
 import type { Theme } from "@/lib/dashboard/types";
 import { schemaHash } from "./projects";
-import { slugify } from "@/lib/schema/types";
+import { slugify, type FieldRole } from "@/lib/schema/types";
+import { buildSnapshot } from "@/lib/schema/normalize";
+import { proposeLayout } from "@/lib/dashboard/propose";
 
-export interface CreateProjectInput { buffer: Buffer; fileName: string; name: string; clientName?: string; uploadedBy: string; primary?: string }
+export interface FieldOverride { id: string; label?: string; role?: FieldRole; hidden?: boolean }
+export interface CreateProjectInput { buffer: Buffer; fileName: string; name: string; clientName?: string; uploadedBy: string; primary?: string; overrides?: FieldOverride[] }
 
 export async function createProjectFromWorkbook(input: CreateProjectInput) {
   const projectId = `prj_${nanoid(10)}`;
   const uploadId = `upl_${nanoid(10)}`;
   const res = await ingestNew(input.buffer, input.fileName, uploadId);
   const sheet = res.workbook.sheets[res.workbook.primary];
+  if (input.overrides?.length) {
+    const fields = res.schema.fields.map((f) => { const o = input.overrides!.find((x) => x.id === f.id); return o ? { ...f, ...(o.label ? { label: o.label } : {}), ...(o.role ? { role: o.role } : {}), ...(o.hidden !== undefined ? { hidden: o.hidden } : {}) } : f; });
+    res.schema = { ...res.schema, fields };
+    if (res.template !== "agthia") res.layout = proposeLayout(res.schema);
+    res.snapshot = buildSnapshot(res.schema, sheet, { uploadId, version: 1 });
+  }
   const base = slugify(input.name).replace(/_/g, "-") || "project";
   let slug = base;
   for (let i = 2; ; i++) {

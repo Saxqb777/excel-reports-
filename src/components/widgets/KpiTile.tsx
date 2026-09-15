@@ -2,14 +2,15 @@
 import { useMemo } from "react";
 import type { KpiWidget } from "@/lib/dashboard/types";
 import { computeMetric, timeSeries } from "@/lib/engine/metrics";
-import { formatNumber } from "@/lib/engine/format";
+import { formatDelta, formatNumber } from "@/lib/engine/format";
+import { deltaTone } from "@/lib/ui/colors";
 import { useDashboard } from "@/lib/ui/dashboard-state";
 import { useTween } from "@/lib/ui/tween";
 import { Sparkline } from "@/components/charts/Sparkline";
 import { useTooltip } from "@/lib/ui/tooltip";
 import type { Anomaly } from "@/lib/intelligence/anomalies";
 
-export function KpiTile({ w, anomaly }: { w: KpiWidget; anomaly?: Anomaly }) {
+export function KpiTile({ w, anomaly, previous, comparedTo }: { w: KpiWidget; anomaly?: Anomaly; previous?: number | null; comparedTo?: number | null }) {
   const { snapshot, maskFor, dispatch, isSelected, baseMask } = useDashboard();
   const tip = useTooltip();
   const mask = maskFor(w.id);
@@ -21,6 +22,8 @@ export function KpiTile({ w, anomaly }: { w: KpiWidget; anomaly?: Anomaly }) {
   const fmt = w.metric.format ?? "integer";
   const sel = isSelected(w.id);
   const filteredElsewhere = mask !== baseMask && value !== all;
+  const delta = previous !== null && previous !== undefined && all !== null && !filteredElsewhere ? all - previous : null;
+  const dTone = deltaTone(delta, w.good ?? "up");
   const click = () => {
     if (!w.onClick) return;
     dispatch({ type: "toggle", selection: { widgetId: w.id, field: "__kpi__", values: [], label: w.title, extra: w.onClick } });
@@ -41,6 +44,11 @@ export function KpiTile({ w, anomaly }: { w: KpiWidget; anomaly?: Anomaly }) {
           <div className="min-w-0">
             <div className="kpi-value" aria-live="polite">{formatNumber(tw === null ? null : fmt === "percent" ? tw : Math.round(tw * 10) / 10, fmt, w.metric.currency, true)}</div>
             <div className="num mt-1.5 flex items-baseline gap-2 text-[11px] text-ink-3">
+              {delta !== null && (
+                <span className={`inline-flex items-center gap-1 ${dTone === "pos" ? "text-pos" : dTone === "neg" ? "text-neg" : "text-ink-3"}`} title={`Compared with version ${comparedTo ?? "previous"}`}>
+                  <span aria-hidden>{delta > 0 ? "▲" : delta < 0 ? "▼" : "▬"}</span>{formatDelta(delta, fmt)}<span className="text-ink-4">v{comparedTo}</span>
+                </span>
+              )}
               {w.secondary && <span><span className="text-ink-2">{formatNumber(secondary, w.secondary.metric.format ?? "integer", w.secondary.metric.currency)}</span> {w.secondary.label}</span>}
               {filteredElsewhere && <span>{fmt === "percent" || fmt === "days" ? "overall" : "of"} {formatNumber(all, fmt, w.metric.currency, true)}</span>}
             </div>

@@ -20,6 +20,7 @@ for (const s of shots) {
   page.on("pageerror", (e) => errors.push(String(e)));
   page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
   await page.goto(base + s.path, { waitUntil: "networkidle" });
+  if (s.upload) { await page.locator('input[type="file"]').first().setInputFiles(s.upload); await page.waitForTimeout(2500); }
   if (s.click) { for (const sel of s.click) { await page.locator(sel).first().click({ timeout: 8000 }); await page.waitForTimeout(600); } }
   await page.waitForTimeout(700);
   await page.screenshot({ path: `${out}/${s.name}.png`, fullPage: s.full ?? false });

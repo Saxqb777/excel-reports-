@@ -1,12 +1,16 @@
 "use client";
+import { useEffect, useState } from "react";
 import GridLayout, { useContainerWidth, verticalCompactor, type Layout as RglLayout } from "react-grid-layout";
-import type { Page } from "@/lib/dashboard/types";
+import type { Page, Widget } from "@/lib/dashboard/types";
 import { WidgetRenderer, type IntelligenceProps } from "@/components/widgets/WidgetRenderer";
+import { TileActionsProvider } from "@/components/widgets/Tile";
 
 export const ROW_HEIGHT = 36;
 
-export function Grid({ page, editable = false, onLayoutChange, intelligence }: { page: Page; editable?: boolean; onLayoutChange?: (l: RglLayout) => void; intelligence?: IntelligenceProps }) {
+export function Grid({ page, editable = false, onLayoutChange, onHide, intelligence, compact = false }: { page: Page; editable?: boolean; onLayoutChange?: (l: RglLayout) => void; onHide?: (id: string) => void; intelligence?: IntelligenceProps; compact?: boolean }) {
   const { width, containerRef, mounted } = useContainerWidth();
+  const [expanded, setExpanded] = useState<Widget | null>(null);
+  useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === "Escape") setExpanded(null); }; if (expanded) window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [expanded]);
   const hidden = new Set(page.hidden ?? []);
   const items = page.grid.filter((g) => !hidden.has(g.i));
   const layout: RglLayout = items.map((g) => ({ ...g, static: !editable }));
@@ -14,6 +18,7 @@ export function Grid({ page, editable = false, onLayoutChange, intelligence }: {
     <div ref={containerRef} className="w-full bg-line">
       {mounted && width > 0 && (
         <GridLayout
+          key={page.id}
           width={width}
           layout={layout}
           gridConfig={{ cols: 12, rowHeight: ROW_HEIGHT, margin: [1, 1], containerPadding: [0, 0] }}
@@ -22,16 +27,29 @@ export function Grid({ page, editable = false, onLayoutChange, intelligence }: {
           compactor={verticalCompactor}
           onLayoutChange={(l) => editable && onLayoutChange?.(l)}
         >
-          {items.map((g) => {
+          {items.map((g, i) => {
             const w = page.widgets.find((x) => x.id === g.i);
+            const expandable = Boolean(w && w.type !== "kpi" && w.type !== "insights" && !compact);
             return (
-              <div key={g.i} className="tile">
-                {editable && <div className="drag-handle absolute inset-x-0 top-0 z-[2] h-8 cursor-grab active:cursor-grabbing" />}
-                {w ? <WidgetRenderer w={w} {...intelligence} /> : <div className="p-3 text-[11px] text-ink-3">Missing widget {g.i}</div>}
+              <div key={g.i} className={`tile ${editable ? "outline outline-1 outline-dashed outline-[var(--line-strong)]" : ""}`} style={{ animation: compact ? undefined : `tile-in 320ms cubic-bezier(.2,.7,.2,1) both`, animationDelay: `${Math.min(i, 12) * 22}ms` }}>
+                {editable && <div className="drag-handle absolute inset-x-0 top-0 z-[2] h-8 cursor-grab active:cursor-grabbing" title="Drag to move" />}
+                <TileActionsProvider value={{ expand: expandable ? () => setExpanded(w!) : undefined, hide: editable && onHide ? () => onHide(g.i) : undefined, editing: editable }}>
+                  {w ? <WidgetRenderer w={w} {...intelligence} /> : <div className="p-3 text-[11px] text-ink-3">Missing widget {g.i}</div>}
+                </TileActionsProvider>
               </div>
             );
           })}
         </GridLayout>
+      )}
+      {expanded && (
+        <div className="fixed inset-0 z-[70] bg-[color-mix(in_oklab,var(--bg-sunk)_78%,transparent)] p-6 md:p-10" onClick={() => setExpanded(null)}>
+          <div className="relative h-full w-full border border-line bg-bg shadow-[var(--shadow-pop)]" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={expanded.title}>
+            <button type="button" className="chip absolute right-3 top-[5px] z-[2] h-[22px]" onClick={() => setExpanded(null)}>close ×</button>
+            <TileActionsProvider value={{}}>
+              <WidgetRenderer w={expanded} {...intelligence} />
+            </TileActionsProvider>
+          </div>
+        </div>
       )}
     </div>
   );
