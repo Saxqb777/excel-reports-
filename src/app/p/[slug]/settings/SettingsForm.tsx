@@ -57,7 +57,7 @@ export function SettingsForm({ project, uploads }: { project: ProjectSummary; up
             <label className="block"><span className="label">Client</span><input className="field mt-1 w-full" value={clientName} onChange={(e) => setClientName(e.target.value)} /></label>
             <label className="block sm:col-span-2"><span className="label">Description</span><input className="field mt-1 w-full" value={description} onChange={(e) => setDescription(e.target.value)} /></label>
             <label className="block"><span className="label">Brand colour</span><div className="mt-1 flex items-center gap-2"><input type="color" value={primary} onChange={(e) => setPrimary(e.target.value)} className="h-7 w-10 cursor-pointer border border-line bg-bg p-0.5" /><input className="field num w-28" value={primary} onChange={(e) => /^#[0-9a-fA-F]{0,6}$/.test(e.target.value) && setPrimary(e.target.value)} /></div></label>
-            <label className="block"><span className="label">Default theme</span><select className="field mt-1 w-full" value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}><option value="dark">Dark</option><option value="light">Light</option><option value="system">Follow the viewer's system</option></select></label>
+            <label className="block"><span className="label">Default theme</span><select className="field mt-1 w-full" value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}><option value="dark">Dark</option><option value="light">Light</option><option value="system">Follow the viewer&rsquo;s system</option></select></label>
             <label className="block"><span className="label">Monogram (no logo)</span><input className="field num mt-1 w-24 uppercase" maxLength={3} value={monogram} onChange={(e) => setMonogram(e.target.value.toUpperCase())} placeholder="AG" /></label>
             <div className="block">
               <span className="label">Logo</span>
@@ -84,7 +84,7 @@ export function SettingsForm({ project, uploads }: { project: ProjectSummary; up
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-[11.5px] text-ink-3">Restore and download live in the dashboard's History drawer.</p>
+          <p className="mt-3 text-[11.5px] text-ink-3">Restore and download live in the dashboard&rsquo;s History drawer.</p>
         </section>
 
         <section className="bg-bg p-5 lg:col-span-2">

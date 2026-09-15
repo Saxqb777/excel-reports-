@@ -41,7 +41,7 @@ export function HBars({ rows, stackKeys, colorBy = "single", format = "integer",
   const shareW = showShare ? 40 : 0;
   const plotW = Math.max(40, size.width - labelWidth - valueW - shareW - 8);
   const x = scaleLinear().domain([0, max]).range([0, plotW]);
-  const keys = stackKeys ?? [];
+  const keys = useMemo(() => stackKeys ?? [], [stackKeys]);
   const flat = useMemo(() => rows.flatMap((r) => (keys.length ? keys.map((k) => r.stacks?.[k] ?? 0) : [r.value])), [rows, keys]);
   const tweened = useTweenArray(flat);
   const colorIndex = new Map(keys.map((k, i) => [k, i]));

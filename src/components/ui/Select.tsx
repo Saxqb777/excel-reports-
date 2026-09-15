@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 export interface SelectOption { value: string; label: string; count?: number; tone?: string }
 
@@ -9,7 +9,7 @@ export function Select({ label, value, options, onChange, anyLabel = "Any", clas
   const [active, setActive] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
   const id = useId();
-  const all: SelectOption[] = [{ value: "", label: anyLabel }, ...options];
+  const all = useMemo<SelectOption[]>(() => [{ value: "", label: anyLabel }, ...options], [anyLabel, options]);
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };

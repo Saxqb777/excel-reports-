@@ -19,8 +19,6 @@ export interface Insight {
   ids?: string[];
 }
 
-const DAY = 86_400_000;
-
 function fullMask(s: Snapshot): Uint8Array { return buildMask(s.columns, s.n, []); }
 
 function kpiWidgets(layout: Layout): KpiWidget[] {

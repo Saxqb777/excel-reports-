@@ -5,6 +5,16 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    rules: {
+      // React Compiler strictness rules. The dashboard syncs server props into client state on purpose
+      // (upload refresh, restore, layout edits) and measures a tooltip's own box before placing it.
+      // Kept as warnings so they stay visible without blocking the build.
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/purity": "warn",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

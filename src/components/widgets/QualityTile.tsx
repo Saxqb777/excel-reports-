@@ -138,7 +138,7 @@ export function QualityTile({ w, anomalies }: { w: QualityWidget; anomalies?: An
                 <li key={r.id}>
                   <div className="text-ink">{r.label}</div>
                   {r.variants.map((v, i) => <div key={i} className="text-ink-3">Variants folded: <span className="num text-ink-2">{v.join(" / ")}</span></div>)}
-                  {r.outside.length > 0 && <div className="text-ink-3">Outside the sheet's dropdown list: <span className="num text-warn">{r.outside.join(", ")}</span></div>}
+                  {r.outside.length > 0 && <div className="text-ink-3">Outside the sheet&rsquo;s dropdown list: <span className="num text-warn">{r.outside.join(", ")}</span></div>}
                 </li>
               ))}
             </ul>

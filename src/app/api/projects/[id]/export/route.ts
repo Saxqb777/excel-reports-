@@ -1,5 +1,4 @@
 import type { NextRequest } from "next/server";
-import { createHmac } from "node:crypto";
 import { getProjectById } from "@/lib/data/projects";
 import { shareSecret, shareCookieName, signShare } from "@/lib/share/auth";
 

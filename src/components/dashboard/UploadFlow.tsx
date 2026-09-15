@@ -82,7 +82,7 @@ export function UploadFlow({ projectId, onDone, children }: Props) {
         <Modal title="The columns changed" onClose={() => setPending(null)} wide>
           <SchemaDiffView diff={pending.diff} mapping={mapping} setMapping={setMapping} />
           <div className="mt-5 flex items-center justify-between gap-3">
-            <span className="text-[11.5px] text-ink-3">Confirming records the decisions in the project's schema, so future uploads with the same headers load without asking.</span>
+            <span className="text-[11.5px] text-ink-3">Confirming records the decisions in the project&rsquo;s schema, so future uploads with the same headers load without asking.</span>
             <div className="flex shrink-0 gap-2">
               <button type="button" className="btn" onClick={() => setPending(null)}>Cancel</button>
               <button type="button" className="btn btn-accent" disabled={busy} onClick={() => void send(pending.file, name.trim() || "Unknown", true, mapping)}>{busy ? "Loading…" : "Confirm and load"}</button>
