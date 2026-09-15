@@ -35,7 +35,7 @@ This file is the running record of confirmed decisions. Any future session start
 ## Phases
 0. Pipeline live (status page, health endpoint) — done
 1. Core: DB schema, ingestion, schema inference, engine, charts, grid, tokens — done
-2. Upload and history
+2. Upload and history — done (drop anywhere on the dashboard, schema-change modal with rename/new/ignore decisions, confirmed-missing columns stop prompting, new money columns auto-add value tiles, history drawer with restore and file download)
 3. Intelligence: insights, anomalies, data quality, NL questions
 4. Projects home, themes, sharing, layout editing, new-project wizard
 5. Polish: boardroom mode, export, transitions, skeletons

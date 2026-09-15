@@ -51,6 +51,8 @@ export interface Field {
   derived?: DerivedSpec;
   hidden?: boolean;
   description?: string;
+  /** The user confirmed this column may be absent from uploads; its absence no longer asks for confirmation. */
+  optional?: boolean;
 }
 
 export interface SchemaMap {

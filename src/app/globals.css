@@ -127,6 +127,8 @@ body {
 .react-grid-item > .react-resizable-handle::after { content: ""; position: absolute; right: 4px; bottom: 4px; width: 6px; height: 6px; border-right: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); }
 .react-grid-item.static { cursor: default; }
 
+@keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
