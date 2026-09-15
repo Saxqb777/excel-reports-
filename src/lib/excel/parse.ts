@@ -69,9 +69,12 @@ function pickHeaderRow(grid: { v: RawCell; k: CellKind }[][]): number {
     const nonEmpty = row.filter((c) => c.v !== null);
     if (nonEmpty.length < 2) continue;
     const strings = nonEmpty.filter((c) => c.k === "s").length;
+    // Headers name distinct things: a banner repeated across columns, or "Q1, Q1, Q1", is not a header row.
+    const distinct = new Set(nonEmpty.map((c) => normKey(cleanText(c.v as string | number | boolean)))).size;
+    if (distinct < 2 || distinct < nonEmpty.length * 0.6) continue;
     const next = grid[r + 1];
     const nextHasData = next ? next.some((c) => c.v !== null) : false;
-    const score = strings / nonEmpty.length + nonEmpty.length / 100 + (nextHasData ? 0.2 : 0) - r * 0.01;
+    const score = strings / nonEmpty.length + distinct / 100 + (nextHasData ? 0.2 : 0) - r * 0.01;
     if (strings >= nonEmpty.length * 0.6 && score > bestScore) {
       bestScore = score;
       best = r;
@@ -150,12 +153,19 @@ export async function parseWorkbook(buffer: ArrayBuffer | Buffer, fileName: stri
   for (const ws of wb.worksheets) {
     if (ws.state && ws.state !== "visible") continue;
     const grid: { v: RawCell; k: CellKind }[][] = [];
-    const rowCount = ws.actualRowCount || ws.rowCount;
+    // rowCount is the last row that has values; actualRowCount skips blank rows in between and would drop the tail.
+    const rowCount = ws.rowCount;
     for (let r = 1; r <= rowCount; r++) {
       const row = ws.getRow(r);
       const arr: { v: RawCell; k: CellKind }[] = [];
       const colCount = Math.max(row.cellCount, ws.columnCount);
-      for (let c = 1; c <= colCount; c++) arr.push(coerce(row.getCell(c).value));
+      for (let c = 1; c <= colCount; c++) {
+        const cell = row.getCell(c);
+        // A cell merged sideways into a master on the same row (a title banner, a group heading) must not repeat the
+        // master's text into every column, or the banner outscores the real header row. Vertical merges keep the value.
+        const sideways = cell.isMerged && cell.master !== cell && cell.master.row === cell.row;
+        arr.push(sideways ? coerce(null) : coerce(cell.value));
+      }
       grid.push(arr);
     }
     const parsed = buildSheet(ws.name, grid, extractValidations(ws));
