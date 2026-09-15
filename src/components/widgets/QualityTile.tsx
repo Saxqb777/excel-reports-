@@ -2,13 +2,16 @@
 import { useMemo } from "react";
 import type { QualityWidget } from "@/lib/dashboard/types";
 import { useDashboard } from "@/lib/ui/dashboard-state";
-import { normKey } from "@/lib/schema/types";
+import { normKey, type FilterExpr } from "@/lib/schema/types";
 import { formatNumber, pct } from "@/lib/engine/format";
+import { logicChecks } from "@/lib/intelligence/quality";
+import type { Anomaly } from "@/lib/intelligence/anomalies";
 
 interface FieldQuality { id: string; label: string; blanks: number; outside: string[]; variants: string[][] }
 
-export function QualityTile({ w }: { w: QualityWidget }) {
-  const { snapshot } = useDashboard();
+export function QualityTile({ w, anomalies }: { w: QualityWidget; anomalies?: Anomaly[] }) {
+  const { snapshot, dispatch } = useDashboard();
+  const logic = useMemo(() => logicChecks(snapshot), [snapshot]);
   const report = useMemo(() => {
     const out: FieldQuality[] = [];
     for (const f of snapshot.fields) {
@@ -41,9 +44,44 @@ export function QualityTile({ w }: { w: QualityWidget }) {
   }, [snapshot, idField]);
   const folded = Object.entries(snapshot.variants ?? {}).map(([fid, m]) => ({ id: fid, label: snapshot.fields.find((f) => f.id === fid)?.label ?? fid, groups: Object.entries(m) }));
   const issues = report.filter((r) => r.outside.length || r.variants.length);
+  const applyRows = (filter: FilterExpr | undefined, label: string, id: string) => {
+    if (filter) dispatch({ type: "toggle", selection: { widgetId: "quality", field: "__quality__", values: [id], label, extra: filter } });
+  };
   return (
     <section className="tile h-full w-full overflow-auto" aria-label={w.title}>
-      <div className="grid grid-cols-1 gap-px bg-line lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-px bg-line lg:grid-cols-2">
+        <div className="bg-bg p-3.5">
+          <div className="label-strong mb-2">Logic checks</div>
+          {logic.length === 0 ? <div className="text-[11.5px] text-ink-3">Dates, statuses and outcomes agree with each other on every row.</div> : (
+            <ul className="space-y-1.5 text-[11.5px]">
+              {logic.map((l) => (
+                <li key={l.id} className="flex items-start justify-between gap-3">
+                  <button type="button" className="text-left text-ink hover:text-accent" onClick={() => applyRows(l.filter, l.rule, l.id)} title="Show these rows">
+                    <span className={`num mr-1.5 ${l.severity === "neg" ? "text-neg" : "text-warn"}`}>●</span>{l.rule}
+                  </button>
+                  <span className="num shrink-0 text-ink-3">{l.count} · {l.rows.slice(0, 3).join(", ")}{l.rows.length > 3 ? "…" : ""}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="bg-bg p-3.5">
+          <div className="label-strong mb-2">Statistical anomalies</div>
+          {!anomalies || anomalies.length === 0 ? <div className="text-[11.5px] text-ink-3">Nothing sits far outside its own history yet. Metric anomalies need at least four earlier versions; row anomalies need at least six values.</div> : (
+            <ul className="space-y-1.5 text-[11.5px]">
+              {anomalies.map((a) => (
+                <li key={a.id} className="flex items-start justify-between gap-3">
+                  <button type="button" className="text-left text-ink hover:text-accent" onClick={() => applyRows(a.filter, a.label, a.id)} title="Show these rows">
+                    <span className={`num mr-1.5 ${a.tone === "neg" ? "text-neg" : "text-warn"}`}>●</span>{a.detail}
+                  </button>
+                  <span className="num shrink-0 text-ink-3">z {a.z.toFixed(1)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-px border-t border-line bg-line lg:grid-cols-3">
         <div className="bg-bg p-3.5">
           <div className="label-strong mb-2">Rows</div>
           <Row k="Included" v={formatNumber(snapshot.n)} />

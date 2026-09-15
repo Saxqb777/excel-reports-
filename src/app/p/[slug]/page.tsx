@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentUpload, getProjectBySlug, getSnapshot } from "@/lib/data/projects";
+import { getIntelligence } from "@/lib/data/intelligence";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 
 export const dynamic = "force-dynamic";
@@ -26,5 +27,6 @@ export default async function ProjectPage(props: PageProps<"/p/[slug]">) {
       </main>
     );
   }
-  return <DashboardClient projectId={project.id} name={project.name} clientName={project.clientName} theme={project.theme} layout={project.layout} snapshot={snapshot} upload={upload} />;
+  const intelligence = await getIntelligence(project, snapshot).catch((e) => { console.error(e); return null; });
+  return <DashboardClient projectId={project.id} name={project.name} clientName={project.clientName} theme={project.theme} layout={project.layout} snapshot={snapshot} upload={upload} intelligence={intelligence} />;
 }

@@ -10,7 +10,8 @@ import { FilterRow } from "./FilterRow";
 import { Grid } from "./Grid";
 import { UploadFlow } from "./UploadFlow";
 import { HistoryDrawer } from "./HistoryDrawer";
-import type { Insight } from "@/components/widgets/InsightsTile";
+import { AskPanel } from "./AskPanel";
+import type { Intelligence } from "@/lib/data/intelligence";
 
 export interface DashboardProps {
   projectId: string;
@@ -20,7 +21,7 @@ export interface DashboardProps {
   layout: Layout;
   snapshot: Snapshot;
   upload: UploadSummary | null;
-  insights?: Insight[];
+  intelligence?: Intelligence | null;
   actions?: ReactNode;
   homeHref?: string | null;
   /** View-only surfaces (share links) hide upload and history. */
@@ -33,6 +34,9 @@ export function DashboardClient(props: DashboardProps) {
   const [snapshot, setSnapshot] = useState(props.snapshot);
   const [upload, setUpload] = useState(props.upload);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [askOpen, setAskOpen] = useState(false);
+  const [intel, setIntel] = useState<Intelligence | null>(props.intelligence ?? null);
+  useEffect(() => setIntel(props.intelligence ?? null), [props.intelligence]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [reloading, setReloading] = useState(false);
   useEffect(() => setSnapshot(props.snapshot), [props.snapshot]);
@@ -48,6 +52,7 @@ export function DashboardClient(props: DashboardProps) {
     if (upRes.ok) { const j = await upRes.json(); const cur = (j.uploads as UploadSummary[]).find((u) => u.id === j.currentUploadId) ?? null; setUpload(cur); }
     setRefreshKey((k) => k + 1);
     setReloading(false);
+    fetch(`/api/projects/${props.projectId}/intelligence`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j) setIntel(j); }).catch(() => {});
   }, [props.projectId]);
 
   const readOnly = props.readOnly ?? false;
@@ -61,13 +66,14 @@ export function DashboardClient(props: DashboardProps) {
                 actions={readOnly ? props.actions : (
                   <>
                     {props.actions}
+                    <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setAskOpen(true)}>Ask</button>
                     <button type="button" className="btn h-7 px-2 py-0 text-[11px]" onClick={() => setHistoryOpen(true)}>History</button>
                     <button type="button" className="btn btn-accent h-7 px-2 py-0 text-[11px]" onClick={openPicker} disabled={busy}>{busy ? "Loading…" : "Update data"}</button>
                   </>
                 )} />
               <FilterRow />
               <main className="flex-1">
-                {page && <Grid page={page} insights={props.insights} />}
+                {page && <Grid page={page} intelligence={{ insights: intel?.insights, anomalies: intel?.anomalies, comparedTo: intel?.comparedTo }} />}
               </main>
               <footer className="flex h-7 items-center justify-between border-t border-line px-3 text-[10.5px] text-ink-4">
                 <span className="num">{snapshot.n} rows · version {snapshot.version}{readOnly ? "" : " · drop a workbook anywhere to update"}</span>
@@ -77,6 +83,7 @@ export function DashboardClient(props: DashboardProps) {
           )}
         </UploadFlow>
         {!readOnly && <HistoryDrawer projectId={props.projectId} currentUploadId={upload?.id ?? null} open={historyOpen} onClose={() => setHistoryOpen(false)} refreshKey={refreshKey} onRestored={() => { setHistoryOpen(false); void refresh(); }} />}
+        {!readOnly && <AskPanel projectId={props.projectId} open={askOpen} onClose={() => setAskOpen(false)} />}
       </DashboardProvider>
     </TooltipProvider>
   );

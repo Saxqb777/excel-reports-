@@ -1,12 +1,11 @@
 "use client";
 import GridLayout, { useContainerWidth, verticalCompactor, type Layout as RglLayout } from "react-grid-layout";
 import type { Page } from "@/lib/dashboard/types";
-import { WidgetRenderer } from "@/components/widgets/WidgetRenderer";
-import type { Insight } from "@/components/widgets/InsightsTile";
+import { WidgetRenderer, type IntelligenceProps } from "@/components/widgets/WidgetRenderer";
 
 export const ROW_HEIGHT = 36;
 
-export function Grid({ page, editable = false, onLayoutChange, insights }: { page: Page; editable?: boolean; onLayoutChange?: (l: RglLayout) => void; insights?: Insight[] }) {
+export function Grid({ page, editable = false, onLayoutChange, intelligence }: { page: Page; editable?: boolean; onLayoutChange?: (l: RglLayout) => void; intelligence?: IntelligenceProps }) {
   const { width, containerRef, mounted } = useContainerWidth();
   const hidden = new Set(page.hidden ?? []);
   const items = page.grid.filter((g) => !hidden.has(g.i));
@@ -28,7 +27,7 @@ export function Grid({ page, editable = false, onLayoutChange, insights }: { pag
             return (
               <div key={g.i} className="tile">
                 {editable && <div className="drag-handle absolute inset-x-0 top-0 z-[2] h-8 cursor-grab active:cursor-grabbing" />}
-                {w ? <WidgetRenderer w={w} insights={insights} /> : <div className="p-3 text-[11px] text-ink-3">Missing widget {g.i}</div>}
+                {w ? <WidgetRenderer w={w} {...intelligence} /> : <div className="p-3 text-[11px] text-ink-3">Missing widget {g.i}</div>}
               </div>
             );
           })}

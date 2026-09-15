@@ -36,6 +36,6 @@ This file is the running record of confirmed decisions. Any future session start
 0. Pipeline live (status page, health endpoint) — done
 1. Core: DB schema, ingestion, schema inference, engine, charts, grid, tokens — done
 2. Upload and history — done (drop anywhere on the dashboard, schema-change modal with rename/new/ignore decisions, confirmed-missing columns stop prompting, new money columns auto-add value tiles, history drawer with restore and file download)
-3. Intelligence: insights, anomalies, data quality, NL questions
+3. Intelligence — done (deterministic insight engine compares each version with the previous: KPI deltas with driven-by attribution, new/removed rows, stage and outcome transitions, dimension shifts, aging; robust z-score anomalies on KPI history, row measures and weekly counts; semantic logic checks; Ask panel translates questions into widget specs with Claude Opus 5 via structured outputs, server-side refusal fallback to Opus 4.8, numbers computed locally)
 4. Projects home, themes, sharing, layout editing, new-project wizard
 5. Polish: boardroom mode, export, transitions, skeletons

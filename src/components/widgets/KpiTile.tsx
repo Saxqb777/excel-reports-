@@ -7,8 +7,9 @@ import { useDashboard } from "@/lib/ui/dashboard-state";
 import { useTween } from "@/lib/ui/tween";
 import { Sparkline } from "@/components/charts/Sparkline";
 import { useTooltip } from "@/lib/ui/tooltip";
+import type { Anomaly } from "@/lib/intelligence/anomalies";
 
-export function KpiTile({ w }: { w: KpiWidget }) {
+export function KpiTile({ w, anomaly }: { w: KpiWidget; anomaly?: Anomaly }) {
   const { snapshot, maskFor, dispatch, isSelected, baseMask } = useDashboard();
   const tip = useTooltip();
   const mask = maskFor(w.id);
@@ -31,7 +32,10 @@ export function KpiTile({ w }: { w: KpiWidget }) {
       <div className="flex h-full flex-col justify-between px-3.5 pt-2.5 pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="label-strong">{w.title}</div>
-          {sel && <span className="chip chip-on h-[18px] px-1.5 text-[10px]">filtering</span>}
+          <div className="flex items-center gap-1.5">
+            {anomaly && <span className={`chip h-[18px] px-1.5 text-[10px] ${anomaly.tone === "neg" ? "border-neg text-neg" : "border-warn text-warn"}`} title={anomaly.detail}>unusual</span>}
+            {sel && <span className="chip chip-on h-[18px] px-1.5 text-[10px]">filtering</span>}
+          </div>
         </div>
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
