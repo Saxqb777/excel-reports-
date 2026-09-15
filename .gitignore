@@ -42,3 +42,6 @@ next-env.d.ts
 
 # keep the documented example
 !.env.example
+
+# local fixtures contain client data
+fixtures/

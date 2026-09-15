@@ -1,52 +1,41 @@
-import { buildInfo, envChecks, pingDatabase } from "@/lib/env";
+import Link from "next/link";
+import { listProjects } from "@/lib/data/projects";
+import { formatDateTime } from "@/lib/engine/format";
 
 export const dynamic = "force-dynamic";
 
-function Row({ ok, label, detail }: { ok: boolean; label: string; detail: string }) {
+export default async function Home() {
+  const projects = await listProjects();
   return (
-    <div className="grid grid-cols-[14px_220px_1fr] items-baseline gap-4 border-t border-line py-3">
-      <span className={`num ${ok ? "text-pos" : "text-warn"}`}>{ok ? "●" : "○"}</span>
-      <span className="num">{label}</span>
-      <span className="text-ink-2">{detail}</span>
-    </div>
-  );
-}
-
-export default async function Page() {
-  const build = buildInfo();
-  const env = envChecks();
-  const db = await pingDatabase();
-  return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-16">
-      <div className="label mb-2">Meridian · Phase 0 · pipeline check</div>
-      <h1 className="text-2xl font-medium tracking-tight">Deployment is live.</h1>
-      <p className="mt-2 max-w-xl text-ink-2">
-        Every push to the production branch redeploys this page. The rows below turn solid when each
-        environment variable is present in Vercel and the database answers.
-      </p>
-
-      <div className="mt-10">
-        <div className="label mb-3">Build</div>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1 num text-[12px]">
-          <span className="text-ink-3">commit</span><span>{build.sha}</span>
-          <span className="text-ink-3">branch</span><span>{build.branch}</span>
-          <span className="text-ink-3">environment</span><span>{build.env}</span>
-          <span className="text-ink-3">region</span><span>{build.region}</span>
-          <span className="text-ink-3">rendered</span><span>{build.deployedAt}</span>
+    <main className="min-h-screen bg-bg">
+      <header className="flex h-11 items-center justify-between border-b border-line px-4">
+        <span className="label-strong">Meridian</span>
+        <div className="flex items-center gap-3">
+          <span className="label">{projects.length} project{projects.length === 1 ? "" : "s"}</span>
+          <Link href="/new" className="btn btn-accent h-7 px-3 py-0 text-[11px] leading-7">New project</Link>
         </div>
-      </div>
-
-      <div className="mt-10">
-        <div className="label mb-1">Readiness</div>
-        {env.map((c) => (
-          <Row key={c.key} ok={c.present} label={c.key} detail={c.present ? c.purpose : `Missing · ${c.purpose}`} />
-        ))}
-        <Row ok={db.ok} label="Database ping" detail={db.ok ? `${db.detail} · ${db.ms} ms` : db.detail} />
-      </div>
-
-      <p className="mt-10 text-ink-3">
-        JSON version at <span className="num">/api/health</span>.
-      </p>
+      </header>
+      {projects.length === 0 ? (
+        <div className="px-6 py-24 text-ink-2">No projects yet. <Link href="/new" className="text-accent underline-offset-2 hover:underline">Create the first one</Link> by uploading a workbook.</div>
+      ) : (
+        <ul className="grid grid-cols-1 gap-px bg-line md:grid-cols-2 xl:grid-cols-3">
+          {projects.map((p) => (
+            <li key={p.id} className="bg-bg">
+              <Link href={`/p/${p.slug}`} className="block p-5 transition-colors hover:bg-bg-hover">
+                <div className="flex items-center gap-2.5">
+                  <span className="num flex h-5 min-w-5 items-center justify-center px-1 text-[10px] font-semibold" style={{ background: p.theme.primary, color: "#fff" }}>{(p.theme.monogram ?? p.name.slice(0, 2)).toUpperCase()}</span>
+                  <span className="text-[14px] font-semibold text-ink">{p.name}</span>
+                  {p.clientName && <span className="text-[12px] text-ink-3">{p.clientName}</span>}
+                </div>
+                {p.description && <p className="mt-2 text-[12.5px] text-ink-2">{p.description}</p>}
+                <div className="num mt-4 text-[11px] text-ink-3">
+                  {p.upload ? <>v{p.upload.versionNo} · {p.upload.rowCount} rows · {formatDateTime(p.upload.uploadedAt)} · {p.upload.uploadedBy}</> : "No upload yet"}
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </main>
   );
 }
