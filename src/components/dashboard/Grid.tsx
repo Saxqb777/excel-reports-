@@ -13,12 +13,14 @@ function phoneLayout(page: Page, hidden: Set<string>): RglLayout {
   const items = page.grid.filter((g) => !hidden.has(g.i)).slice().sort((a, b) => a.y - b.y || a.x - b.x);
   const out: LayoutItem[] = [];
   let y = 0, kpiCol = 0;
-  for (const g of items) {
-    const w = page.widgets.find((x) => x.id === g.i);
-    const t = w?.type;
+  const typeOf = (g: { i: string } | undefined) => (g ? page.widgets.find((x) => x.id === g.i)?.type : undefined);
+  for (let n = 0; n < items.length; n++) {
+    const g = items[n];
+    const t = typeOf(g);
     if (t === "kpi") {
-      out.push({ i: g.i, x: kpiCol, y, w: 1, h: 4, static: true });
-      if (kpiCol === 1) { kpiCol = 0; y += 4; } else kpiCol = 1;
+      const alone = kpiCol === 0 && typeOf(items[n + 1]) !== "kpi";
+      out.push({ i: g.i, x: kpiCol, y, w: alone ? 2 : 1, h: 4, static: true });
+      if (kpiCol === 1 || alone) { kpiCol = 0; y += 4; } else kpiCol = 1;
       continue;
     }
     if (kpiCol === 1) { kpiCol = 0; y += 4; }

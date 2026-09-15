@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(props: PageProps<"/s/[token]">) {
   const { token } = await props.params;
   const project = await getProjectByShareToken(token);
-  return { title: project ? `${project.name} · ${project.clientName ?? "Meridian"}` : "Meridian", robots: { index: false } };
+  return { title: project ? `${project.name} · Reports and analytics` : "Reports and analytics", robots: { index: false } };
 }
 
 export default async function SharePage(props: PageProps<"/s/[token]">) {

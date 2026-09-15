@@ -21,6 +21,7 @@ This file is the running record of confirmed decisions. Any future session start
 - No admin password (user decision). ADMIN_PASSWORD env var is optional: set it to require a login later.
 - Share links: public token per project, optional per-project password.
 - Region: Vercel functions in fra1, Neon in aws-eu-central-1 (closest sensible pair to UAE).
+- Agthia decisions (2026-09-15, later): the client is spelled "Agthia" (the live project was created as "Aghtia" and corrected in the database: name, slug `/p/agthia`, theme name). No "Median turnaround" KPI: the overview has five KPI tiles (RFQs received 3 cols, Quoted rate 3, Win rate 2, Awaiting client 2, Not yet quoted 2); the Quote turnaround dots chart on the Pipeline page stays. Share links present as "Reports and analytics" (browser title and footer), Meridian branding only on the internal pages.
 - Data rules for Agthia: quote dates in 2028 treated as 2026 typos and flagged; Won/Lost column trusted, conflicting remarks flagged; "Air/sea" kept as "Multimodal"; origins and destinations normalised to city and country with an editable mapping; lane type (Import, Export, Domestic, Cross-trade) and business unit derived; count-based metrics now, money metrics light up automatically when a value column appears.
 
 ## Conventions

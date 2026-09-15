@@ -105,7 +105,6 @@ export const AGTHIA_LAYOUT: Layout = {
         { id: "kpi_rfqs", type: "kpi", title: "RFQs received", metric: { agg: "count" }, good: "up", sparkline: { dateField: "date_received", unit: "week" } },
         { id: "kpi_quoted", type: "kpi", title: "Quoted rate", metric: { agg: "rate", numerator: { field: "quotation_status", op: "eq", value: "Quoted" }, format: "percent" }, good: "up", secondary: { metric: { agg: "count", filter: { field: "quotation_status", op: "eq", value: "Pending" } }, label: "still pending" }, onClick: { field: "quotation_status", op: "eq", value: "Quoted" } },
         { id: "kpi_win", type: "kpi", title: "Win rate", metric: { agg: "rate", numerator: { field: "outcome", op: "eq", value: "Won" }, denominator: DECIDED, format: "percent" }, good: "up", secondary: { metric: { agg: "count", filter: DECIDED }, label: "decided" }, onClick: DECIDED },
-        { id: "kpi_turnaround", type: "kpi", title: "Median turnaround", metric: { agg: "median", field: "turnaround_days", format: "days" }, good: "down", sparkline: { dateField: "date_received", unit: "week" } },
         { id: "kpi_open", type: "kpi", title: "Awaiting client", metric: { agg: "count", filter: { and: [{ field: "quotation_status", op: "eq", value: "Quoted" }, OPEN_FILTER] } }, good: "none", secondary: { metric: { agg: "max", field: "age_days", filter: { and: [{ field: "quotation_status", op: "eq", value: "Quoted" }, OPEN_FILTER] }, format: "days" }, label: "oldest" }, onClick: { and: [{ field: "quotation_status", op: "eq", value: "Quoted" }, OPEN_FILTER] } },
         { id: "kpi_pending", type: "kpi", title: "Not yet quoted", metric: { agg: "count", filter: { field: "quotation_status", op: "eq", value: "Pending" } }, good: "down", secondary: { metric: { agg: "max", field: "age_days", filter: { field: "quotation_status", op: "eq", value: "Pending" }, format: "days" }, label: "oldest" }, onClick: { field: "quotation_status", op: "eq", value: "Pending" } },
         { id: "funnel", type: "funnel", title: "Pipeline", subtitle: "Click a stage to filter", stages: [
@@ -126,8 +125,8 @@ export const AGTHIA_LAYOUT: Layout = {
       ],
       grid: [
         { i: "insights", x: 0, y: 0, w: 12, h: 2, minH: 2 },
-        { i: "kpi_rfqs", x: 0, y: 2, w: 2, h: 3 }, { i: "kpi_quoted", x: 2, y: 2, w: 2, h: 3 }, { i: "kpi_win", x: 4, y: 2, w: 2, h: 3 },
-        { i: "kpi_turnaround", x: 6, y: 2, w: 2, h: 3 }, { i: "kpi_open", x: 8, y: 2, w: 2, h: 3 }, { i: "kpi_pending", x: 10, y: 2, w: 2, h: 3 },
+        { i: "kpi_rfqs", x: 0, y: 2, w: 3, h: 3 }, { i: "kpi_quoted", x: 3, y: 2, w: 3, h: 3 }, { i: "kpi_win", x: 6, y: 2, w: 2, h: 3 },
+        { i: "kpi_open", x: 8, y: 2, w: 2, h: 3 }, { i: "kpi_pending", x: 10, y: 2, w: 2, h: 3 },
         { i: "funnel", x: 0, y: 5, w: 4, h: 7 }, { i: "weekly", x: 4, y: 5, w: 5, h: 7 }, { i: "freight_outcome", x: 9, y: 5, w: 3, h: 7 },
         { i: "actions", x: 0, y: 12, w: 8, h: 9 }, { i: "lanes", x: 8, y: 12, w: 4, h: 4 }, { i: "bu", x: 8, y: 16, w: 4, h: 5 },
       ],

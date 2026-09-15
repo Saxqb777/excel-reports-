@@ -170,7 +170,7 @@ export function DashboardClient(props: DashboardProps) {
               {!props.print && (
                 <footer className="flex h-7 items-center justify-between border-t border-line px-3 text-[14.5px] text-ink-4">
                   <span className="num">{snapshot.n} rows · version {snapshot.version}<span className="hidden sm:inline">{readOnly ? "" : " · drop a workbook anywhere to update"}</span></span>
-                  <span className="label">{props.clientName ? `${props.name} · ` : ""}Meridian</span>
+                  <span className="label">{props.clientName ? `${props.name} · ` : ""}{readOnly ? "Reports and analytics" : "Meridian"}</span>
                 </footer>
               )}
             </div>
