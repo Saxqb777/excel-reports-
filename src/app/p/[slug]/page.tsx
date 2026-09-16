@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getCurrentUpload, getProjectBySlug, getSnapshot } from "@/lib/data/projects";
 import { getIntelligence } from "@/lib/data/intelligence";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
@@ -16,6 +16,7 @@ export default async function ProjectPage(props: PageProps<"/p/[slug]">) {
   const { slug } = await props.params;
   const project = await getProjectBySlug(slug);
   if (!project) notFound();
+  if (project.slug !== slug) redirect(`/p/${project.slug}`);
   const [snapshot, upload] = await Promise.all([getSnapshot(project), getCurrentUpload(project)]);
   if (!snapshot) {
     return (

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { db, hasDatabase, schema } from "@/lib/db/client";
@@ -100,11 +100,17 @@ export async function listProjects(): Promise<(ProjectSummary & { upload: Upload
   return out;
 }
 
+/**
+ * Looks a project up by its slug. A slug that was renamed still resolves through `settings.previousSlugs`,
+ * so old bookmarks keep working; pages compare `project.slug` with the requested one and redirect.
+ */
 export async function getProjectBySlug(slug: string): Promise<ProjectSummary | null> {
   if (fixtureMode()) return readFixtures().find((f) => f.project.slug === slug)?.project ?? null;
   if (!hasDatabase()) return null;
   const rows = await db().select().from(schema.projects).where(eq(schema.projects.slug, slug)).limit(1);
-  return rows[0] ? toSummary(rows[0]) : null;
+  if (rows[0]) return toSummary(rows[0]);
+  const old = await db().select().from(schema.projects).where(sql`${schema.projects.settings} -> 'previousSlugs' @> to_jsonb(${slug}::text)`).limit(1);
+  return old[0] ? toSummary(old[0]) : null;
 }
 
 export async function getProjectById(id: string): Promise<ProjectSummary | null> {

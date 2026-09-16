@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getProjectBySlug, listUploads } from "@/lib/data/projects";
 import { SettingsForm } from "./SettingsForm";
 import { ThemeToggle } from "@/components/dashboard/ThemeToggle";
@@ -10,6 +10,7 @@ export default async function SettingsPage(props: PageProps<"/p/[slug]/settings"
   const { slug } = await props.params;
   const project = await getProjectBySlug(slug);
   if (!project) notFound();
+  if (project.slug !== slug) redirect(`/p/${project.slug}/settings`);
   const uploads = await listUploads(project.id);
   return (
     <main className="min-h-screen bg-bg">
