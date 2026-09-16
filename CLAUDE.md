@@ -54,6 +54,8 @@ This file is the running record of confirmed decisions. Any future session start
 - The name stays Meridian.
 
 ## Gotchas
+- Renaming a project slug: keep the old one in `settings.previousSlugs`; `getProjectBySlug` falls back to it and the pages redirect (the 2026-09-16 "site not live" report was 19 visits to the old `/p/aghtia`).
+- Vercel Authentication was set to protect production `.vercel.app` domains (`all_except_custom_domains`), which shows a Vercel login page to anyone not signed into the owner's Vercel account. Set to previews only on 2026-09-16 so share links and phones work. Neither the sandbox nor WebFetch can reach vercel.app; live checks go through the Vercel MCP, which bypasses protection and so cannot detect a login wall.
 - Hooks must sit above any early `return null` (the History drawer once declared `useState` after `if (!open) return null` and crashed with React #310 on open).
 - Never put a CSS animation that ends on `transform` directly on a react-grid-layout item: the animation outranks the inline transform RGL uses for positioning. Animate an inner wrapper.
 - Export needs `serverExternalPackages` for `@sparticuz/chromium` and `puppeteer-core`, plus `outputFileTracingIncludes` for the chromium binaries. Locally set `CHROME_PATH` to a Chromium binary and `NEXT_PUBLIC_APP_URL` to the local origin.
