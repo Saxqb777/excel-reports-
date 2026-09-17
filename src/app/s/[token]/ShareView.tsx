@@ -21,7 +21,8 @@ export function shareMetadata(project: ProjectSummary | null, host: string | nul
   const title = `${project.name} · Reports and analytics`;
   const description = `${project.clientName ? `${project.clientName} · ` : ""}live reports and analytics, updated with every new version of the sheet.`;
   const origin = originFor(host);
-  const image = `${origin ?? ""}/og/${project.shareToken}`;
+  // The version in the URL lets caches and chat apps pick up a fresh card after every upload.
+  const image = `${origin ?? ""}/og/${project.shareToken}?v=${encodeURIComponent(project.currentUploadId ?? "0")}`;
   return {
     title, description, robots: { index: false },
     openGraph: { title, description, type: "website", siteName: project.clientName ?? project.name, images: [{ url: image, width: 1200, height: 630, alt: title }] },

@@ -78,7 +78,7 @@ export async function GET(_req: NextRequest, ctx: RouteContext<"/og/[token]">) {
     {
       width: 1200, height: 630,
       fonts: [{ name: "Source Sans 3", data: f400, weight: 400, style: "normal" }, { name: "Source Sans 3", data: f700, weight: 700, style: "normal" }],
-      headers: { "Cache-Control": "public, max-age=300, s-maxage=300, stale-while-revalidate=3600" },
+      headers: { "Cache-Control": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800" },
     },
   );
 }
