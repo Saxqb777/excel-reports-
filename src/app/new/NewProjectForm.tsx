@@ -108,7 +108,7 @@ export function NewProjectForm() {
       {error && <div className="border border-neg px-3 py-2 text-[14.5px] text-ink"><span className="text-neg">Problem.</span> {error}</div>}
       <div className="flex items-center gap-3">
         <button type="submit" className="btn btn-accent" disabled={busy || !preview}>{busy && preview ? "Creating…" : "Create dashboard"}</button>
-        <span className="text-[14px] text-ink-3">{preview ? "Review the fields above, then create." : "Drop a file to see what Meridian proposes."}</span>
+        <span className="text-[14px] text-ink-3">{preview ? "Review the fields above, then create." : "Drop a file to see the proposed dashboard."}</span>
       </div>
     </form>
   );

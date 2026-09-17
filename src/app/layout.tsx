@@ -6,7 +6,7 @@ import "@fontsource/source-sans-3/700.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Meridian",
+  title: "Reports and analytics",
   description: "Executive dashboards from Excel.",
 };
 

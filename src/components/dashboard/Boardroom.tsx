@@ -72,7 +72,7 @@ export function Boardroom({ pages, theme, name, clientName, upload, intelligence
       </main>
       <footer className="flex h-7 items-center justify-between px-5 text-[14.5px] text-ink-4">
         <span>Space pauses · arrows move · Esc or double-click exits</span>
-        <span className="label">Meridian</span>
+        <span className="label">Reports and analytics</span>
       </footer>
     </div>
   );

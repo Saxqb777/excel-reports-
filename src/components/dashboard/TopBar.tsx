@@ -15,7 +15,7 @@ export function TopBar({ theme, name, clientName, pages, activePage, onPage, upl
     <header className="shrink-0 border-b border-line bg-bg">
     <div className="flex h-11 items-center justify-between px-3">
       <div className="flex min-w-0 items-center gap-3">
-        {homeHref && <Link href={homeHref} className="label hover:text-ink" aria-label="All projects">Meridian</Link>}
+        {homeHref && <Link href={homeHref} className="label hover:text-ink" aria-label="All projects">Reports and analytics</Link>}
         {homeHref && <span className="h-4 w-px bg-line" />}
         <div className="flex items-center gap-2.5">
           {theme.logoUrl ? (

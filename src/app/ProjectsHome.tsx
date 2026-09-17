@@ -12,7 +12,7 @@ export async function ProjectsHome() {
   return (
     <main className="min-h-screen bg-bg">
       <header className="flex h-11 items-center justify-between border-b border-line px-4">
-        <span className="label-strong">Meridian</span>
+        <span className="label-strong">Reports and analytics</span>
         <div className="flex items-center gap-3">
           <span className="label hidden sm:inline">{projects.length} project{projects.length === 1 ? "" : "s"}</span>
           <ThemeToggle compact />

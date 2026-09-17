@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata() {
   const host = (await headers()).get("host");
   const owned = await getProjectByDomain(host);
-  return owned ? shareMetadata(owned, host) : { title: "Meridian" };
+  return owned ? shareMetadata(owned, host) : { title: "Reports and analytics" };
 }
 
 export default async function Home(props: PageProps<"/">) {
