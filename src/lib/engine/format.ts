@@ -40,10 +40,16 @@ export function formatDate(t: number | null | undefined, style: "short" | "long"
   return `${String(day).padStart(2, "0")} ${mon} ${String(yr).slice(2)}`;
 }
 
+/** Timestamps are shown in Gulf time (UAE), the audience's clock, without a zone suffix. */
+export const DISPLAY_TIME_ZONE = "Asia/Dubai";
+const DT = new Intl.DateTimeFormat("en-GB", { timeZone: DISPLAY_TIME_ZONE, day: "2-digit", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+
 export function formatDateTime(iso: string | Date | null | undefined): string {
   if (!iso) return "–";
   const d = typeof iso === "string" ? new Date(iso) : iso;
-  return `${String(d.getUTCDate()).padStart(2, "0")} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()} · ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`;
+  if (Number.isNaN(d.getTime())) return "–";
+  const p = Object.fromEntries(DT.formatToParts(d).map((x) => [x.type, x.value]));
+  return `${p.day} ${MONTHS[Number(p.month) - 1]} ${p.year} · ${p.hour}:${p.minute}`;
 }
 
 export function formatValue(v: string | number | null | undefined, field?: Field): string {

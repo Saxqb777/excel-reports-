@@ -135,7 +135,7 @@ export const AGTHIA_LAYOUT: Layout = {
       id: "pipeline", title: "Pipeline",
       widgets: [
         { id: "turnaround", type: "dots", title: "Quote turnaround", subtitle: "Days from receipt to quote, one dot per RFQ", valueField: "turnaround_days", labelField: "tracking_no", colorField: "stage", target: 1, targetLabel: "1 day target", format: "days" },
-        { id: "reasons", type: "bar", title: "Reasons for loss", subtitle: "Fill in the sheet column to populate", dimension: "reason_for_loss", metric: { agg: "count", filter: { field: "outcome", op: "eq", value: "Lost" } }, orientation: "horizontal", includeNull: true },
+        { id: "reasons", type: "bar", title: "Reasons for loss", subtitle: "Why quotes were lost", dimension: "reason_for_loss", metric: { agg: "count", filter: { field: "outcome", op: "eq", value: "Lost" } }, orientation: "horizontal", includeNull: true },
         { id: "equipment", type: "bar", title: "Equipment requested", dimension: "equipment", metric: { agg: "count" }, stackBy: "stage", orientation: "horizontal", colorBy: "status" },
         { id: "origins", type: "bar", title: "Top origins", dimension: "origin", metric: { agg: "count" }, orientation: "horizontal", topN: 8 },
         { id: "destinations", type: "bar", title: "Top destinations", dimension: "destination", metric: { agg: "count" }, orientation: "horizontal", topN: 8 },

@@ -50,7 +50,7 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/projects/[id
     // PDF: one landscape sheet per page, rendered at the same width as the screen.
     const { PDFDocument } = await import("pdf-lib");
     const out = await PDFDocument.create();
-    for (const p of project.layout.pages) {
+    for (const p of project.layout.pages.filter((x) => !x.widgets.every((w) => w.type === "quality"))) {
       await page.goto(target(p.id), { waitUntil: "networkidle0", timeout: 45_000 });
       await page.waitForSelector(".react-grid-layout", { timeout: 20_000 });
       await new Promise((r) => setTimeout(r, 700));

@@ -36,8 +36,10 @@ export async function ShareView({ project, searchParams }: { project: ProjectSum
   const [snapshot, upload] = await Promise.all([getSnapshot(project), getCurrentUpload(project)]);
   if (!snapshot) return <main className="mx-auto max-w-xl px-6 py-24 text-ink-2">This dashboard has no data yet.</main>;
   const intelligence = await getIntelligence(project, snapshot).catch(() => null);
+  // Viewers get the reporting pages; the data-quality page is an admin tool.
+  const layout = { ...project.layout, pages: project.layout.pages.filter((p) => !p.widgets.every((w) => w.type === "quality")) };
   const sp = searchParams;
   const board = sp.board === "1";
   const print = sp.print === "1";
-  return <DashboardClient projectId={project.id} name={project.name} clientName={project.clientName} theme={project.theme} layout={project.layout} snapshot={snapshot} upload={upload} intelligence={intelligence} readOnly homeHref={null} boardroom={board} print={print ? { page: typeof sp.page === "string" ? sp.page : undefined, theme: sp.theme === "light" ? "light" : sp.theme === "dark" ? "dark" : undefined } : undefined} />;
+  return <DashboardClient projectId={project.id} name={project.name} clientName={project.clientName} theme={project.theme} layout={layout} snapshot={snapshot} upload={upload} intelligence={intelligence} readOnly homeHref={null} boardroom={board} print={print ? { page: typeof sp.page === "string" ? sp.page : undefined, theme: sp.theme === "light" ? "light" : sp.theme === "dark" ? "dark" : undefined } : undefined} />;
 }

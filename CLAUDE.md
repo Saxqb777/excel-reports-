@@ -7,7 +7,7 @@ This file is the running record of confirmed decisions. Any future session start
 ## Product
 - Web platform of executive dashboards. One Project = one Excel workbook = one dashboard = one theme = one share link.
 - First project: "Agthia" freight quotation pipeline (RFQ tracker, 11 columns, one sheet).
-- Audience for the Agthia dashboard: internal management. Insights are worded frankly.
+- Audience for the Agthia dashboard: the user is on the transporter side (Nexon Logistics); the dashboard is shown to Nexon's CEO. "Awaiting client" means waiting for Agthia, "Not yet quoted" means Nexon has not quoted. Insights are worded frankly. It must look clean: no operational notes, no personal names.
 
 ## Decisions taken (2026-09-15)
 - Design direction A "Terminal": dense monochrome, hairline rules not cards, one accent (project brand colour). Dark and light both designed.
@@ -25,6 +25,7 @@ This file is the running record of confirmed decisions. Any future session start
 - No personal names anywhere (2026-09-17): the uploader name is no longer asked for or shown (top bar says "Updated <date>", banner "New update", history and cards show rows and dates only). `uploads.uploaded_by` is kept as an empty string.
 - Vanity address per project (2026-09-17): `settings.domains` lists hostnames whose root serves that project's shared dashboard (`app/page.tsx` → `ShareView`). The hostname must also be added to the Vercel project (Settings → Domains); Agthia uses `agthia-reports.vercel.app`. No settings UI yet, set via SQL.
 - Link previews (2026-09-17): every share page carries Open Graph and Twitter tags; the image is `/og/<shareToken>` (`next/og` card, 1200×630, first four KPIs, last update, no numbers when password-protected). Fonts are read from `@fontsource/source-sans-3/files` via `outputFileTracingIncludes`.
+- CEO-clean pass (2026-09-17): timestamps in Gulf time (`DISPLAY_TIME_ZONE = "Asia/Dubai"` in `format.ts`, no zone suffix); the Data quality page is hidden on share links and left out of PDF exports (admins still see it); bar charts whose only bucket is "Not set" show "Nothing recorded in the sheet yet."; the Reasons for loss subtitle is "Why quotes were lost". Admin home lives at `/projects` on every hostname (the root of a vanity domain is the client view).
 - Data rules for Agthia: quote dates in 2028 treated as 2026 typos and flagged; Won/Lost column trusted, conflicting remarks flagged; "Air/sea" kept as "Multimodal"; origins and destinations normalised to city and country with an editable mapping; lane type (Import, Export, Domestic, Cross-trade) and business unit derived; count-based metrics now, money metrics light up automatically when a value column appears.
 
 ## Conventions
