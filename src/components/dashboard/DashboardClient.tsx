@@ -157,7 +157,7 @@ export function DashboardClient(props: DashboardProps) {
                   )} />
               )}
               {!props.print && <FilterRow />}
-              {!props.print && intel?.comparedTo ? <UpdateBanner projectId={props.projectId} version={snapshot.version} comparedTo={intel.comparedTo} uploadedBy={upload?.uploadedBy ?? null} uploadedAt={upload?.uploadedAt ?? null} newCount={intel.newIds?.length ?? 0} changedCount={intel.changedIds?.length ?? 0} /> : null}
+              {!props.print && intel?.comparedTo ? <UpdateBanner projectId={props.projectId} version={snapshot.version} comparedTo={intel.comparedTo} uploadedAt={upload?.uploadedAt ?? null} newCount={intel.newIds?.length ?? 0} changedCount={intel.changedIds?.length ?? 0} /> : null}
               {editing && hiddenWidgets.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-1.5">
                   <span className="label">Hidden</span>

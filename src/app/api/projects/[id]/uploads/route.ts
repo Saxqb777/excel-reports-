@@ -22,7 +22,7 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/projects/[i
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof File)) return Response.json({ error: "Attach a workbook as the 'file' field" }, { status: 400 });
-  const uploadedBy = String(form.get("uploadedBy") ?? "").trim() || "Unknown";
+  const uploadedBy = String(form.get("uploadedBy") ?? "").trim();
   const confirm = String(form.get("confirm") ?? "") === "1";
   let mapping: HeaderMapping | undefined;
   const rawMapping = form.get("mapping");

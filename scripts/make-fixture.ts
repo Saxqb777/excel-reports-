@@ -20,12 +20,12 @@ async function main() {
   const fixture = {
     project: {
       id: "prj_agthia", slug: "agthia", name: "Agthia RFQ pipeline", clientName: "Agthia Group", description: "Freight quotation pipeline for the Agthia account.",
-      theme: { name: "Agthia", primary: "#4d8dff", mode: "dark", logoUrl: null, monogram: "AG" }, layout: res.layout, schemaMap: res.schema, settings: {},
+      theme: { name: "Agthia", primary: "#4d8dff", mode: "dark", logoUrl: null, monogram: "AG" }, layout: res.layout, schemaMap: res.schema, settings: { domains: ["agthia-reports.vercel.app"] },
       shareToken: "fixture", shareEnabled: true, hasSharePassword: false, currentUploadId: "upl_fixture", updatedAt: now, createdAt: now,
     },
-    upload: { id: "upl_fixture", versionNo: 2, fileName: file.split("/").pop(), fileSize: buf.length, uploadedBy: "Saaqib", uploadedAt: now, rowCount: res.snapshot.n, excludedCount: res.snapshot.excluded.length, status: "ready", sheetName: res.workbook.sheets[res.workbook.primary].name, headers: res.workbook.sheets[res.workbook.primary].headers },
+    upload: { id: "upl_fixture", versionNo: 2, fileName: file.split("/").pop(), fileSize: buf.length, uploadedBy: "", uploadedAt: now, rowCount: res.snapshot.n, excludedCount: res.snapshot.excluded.length, status: "ready", sheetName: res.workbook.sheets[res.workbook.primary].name, headers: res.workbook.sheets[res.workbook.primary].headers },
     snapshot: { ...res.snapshot, version: 2 },
-    previousUpload: { id: "upl_fixture_prev", versionNo: 1, fileName: file.split("/").pop(), fileSize: buf.length, uploadedBy: "Saaqib", uploadedAt: earlier, rowCount: keep, excludedCount: res.snapshot.excluded.length, status: "ready", sheetName: res.workbook.sheets[res.workbook.primary].name, headers: res.workbook.sheets[res.workbook.primary].headers },
+    previousUpload: { id: "upl_fixture_prev", versionNo: 1, fileName: file.split("/").pop(), fileSize: buf.length, uploadedBy: "", uploadedAt: earlier, rowCount: keep, excludedCount: res.snapshot.excluded.length, status: "ready", sheetName: res.workbook.sheets[res.workbook.primary].name, headers: res.workbook.sheets[res.workbook.primary].headers },
     previousSnapshot,
   };
   mkdirSync(outDir, { recursive: true });

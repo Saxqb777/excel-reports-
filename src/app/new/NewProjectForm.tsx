@@ -15,13 +15,11 @@ export function NewProjectForm() {
   const [fields, setFields] = useState<PreviewField[]>([]);
   const [name, setName] = useState("");
   const [clientName, setClientName] = useState("");
-  const [uploadedBy, setUploadedBy] = useState("");
   const [primary, setPrimary] = useState("#4d8dff");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [over, setOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => { try { setUploadedBy(localStorage.getItem("meridian-user") ?? ""); } catch {} }, []);
 
   const pick = async (f: File | null) => {
     setFile(f); setPreview(null); setError(null);
@@ -39,10 +37,9 @@ export function NewProjectForm() {
     e.preventDefault();
     if (!file || !preview) return setError("Choose a workbook first.");
     setBusy(true); setError(null);
-    try { localStorage.setItem("meridian-user", uploadedBy); } catch {}
     const overrides = fields.filter((f) => { const o = preview.fields.find((x) => x.id === f.id)!; return o.label !== f.label || o.role !== f.role; }).map((f) => ({ id: f.id, label: f.label, role: f.role }));
     const fd = new FormData();
-    fd.set("file", file); fd.set("name", name); fd.set("clientName", clientName); fd.set("uploadedBy", uploadedBy); fd.set("primary", primary); fd.set("overrides", JSON.stringify(overrides));
+    fd.set("file", file); fd.set("name", name); fd.set("clientName", clientName); fd.set("primary", primary); fd.set("overrides", JSON.stringify(overrides));
     const res = await fetch("/api/projects", { method: "POST", body: fd });
     const json = await res.json();
     if (!res.ok) { setError(json.error ?? "Upload failed"); setBusy(false); return; }
@@ -106,7 +103,6 @@ export function NewProjectForm() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="block"><span className="label">Project name</span><input className="field mt-1 w-full" value={name} onChange={(e) => setName(e.target.value)} placeholder="Agthia RFQ pipeline" required /></label>
         <label className="block"><span className="label">Client</span><input className="field mt-1 w-full" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Agthia Group" /></label>
-        <label className="block"><span className="label">Your name</span><input className="field mt-1 w-full" value={uploadedBy} onChange={(e) => setUploadedBy(e.target.value)} placeholder="Shown as the uploader" required /></label>
         <label className="block"><span className="label">Brand colour</span><div className="mt-1 flex items-center gap-2"><input type="color" value={primary} onChange={(e) => setPrimary(e.target.value)} className="h-7 w-10 cursor-pointer border border-line bg-bg p-0.5" aria-label="Brand colour" /><span className="num text-[14.5px] text-ink-2">{primary}</span></div></label>
       </div>
       {error && <div className="border border-neg px-3 py-2 text-[14.5px] text-ink"><span className="text-neg">Problem.</span> {error}</div>}

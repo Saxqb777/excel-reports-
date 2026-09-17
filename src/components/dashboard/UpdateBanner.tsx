@@ -4,11 +4,11 @@ import { formatDateTime } from "@/lib/engine/format";
 import { useDashboard } from "@/lib/ui/dashboard-state";
 
 /**
- * "Your transporter updated the sheet" strip. Shown until the reviewer dismisses it for this version, remembered per
+ * "The sheet was updated" strip. Shown until the reviewer dismisses it for this version, remembered per
  * browser, so every new upload announces itself and can be reviewed in one click (tables switch to changed rows only).
  */
-export function UpdateBanner({ projectId, version, comparedTo, uploadedBy, uploadedAt, newCount, changedCount }: {
-  projectId: string; version: number; comparedTo: number | null; uploadedBy: string | null; uploadedAt: string | null; newCount: number; changedCount: number;
+export function UpdateBanner({ projectId, version, comparedTo, uploadedAt, newCount, changedCount }: {
+  projectId: string; version: number; comparedTo: number | null; uploadedAt: string | null; newCount: number; changedCount: number;
 }) {
   const { state, dispatch } = useDashboard();
   const key = `meridian-seen:${projectId}`;
@@ -28,7 +28,7 @@ export function UpdateBanner({ projectId, version, comparedTo, uploadedBy, uploa
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-accent-wash px-3.5 py-2.5 text-[14.5px]" role="status" style={{ boxShadow: "inset 3px 0 0 var(--accent)" }}>
       <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-accent" aria-hidden />
       <span className="min-w-[240px] flex-1">
-        <span className="font-semibold text-ink">New update{uploadedBy ? ` from ${uploadedBy}` : ""}</span>
+        <span className="font-semibold text-ink">New update</span>
         <span className="text-ink-2">{uploadedAt ? ` · ${formatDateTime(uploadedAt)}` : ""} · version {version}</span>
         <span className="text-ink-2">{changes > 0 ? ` · ${parts} since version ${comparedTo}` : ` · no row changes since version ${comparedTo}`}</span>
       </span>

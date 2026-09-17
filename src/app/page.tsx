@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { getSnapshot, listProjects } from "@/lib/data/projects";
+import { headers } from "next/headers";
+import { getProjectByDomain, getSnapshot, listProjects } from "@/lib/data/projects";
+import { ShareView, shareMetadata } from "./s/[token]/ShareView";
 import { formatDateTime } from "@/lib/engine/format";
 import { MiniDashboard } from "@/components/dashboard/MiniDashboard";
 import { ThemeToggle } from "@/components/dashboard/ThemeToggle";
@@ -7,7 +9,17 @@ import { ProjectCardMenu } from "@/components/dashboard/ProjectCardMenu";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+/** On a project's own hostname (settings.domains) the root is that project's shared dashboard, not the Meridian home. */
+export async function generateMetadata() {
+  const host = (await headers()).get("host");
+  const owned = await getProjectByDomain(host);
+  return owned ? shareMetadata(owned, host) : { title: "Meridian" };
+}
+
+export default async function Home(props: PageProps<"/">) {
+  const host = (await headers()).get("host");
+  const owned = await getProjectByDomain(host);
+  if (owned) return <ShareView project={owned} searchParams={await props.searchParams} />;
   const projects = await listProjects();
   const withData = await Promise.all(projects.map(async (p) => ({ ...p, snapshot: await getSnapshot(p).catch(() => null) })));
   return (
@@ -46,7 +58,7 @@ export default async function Home() {
                     {p.description && <p className="mt-1 truncate text-[14.5px] text-ink-2">{p.description}</p>}
                   </div>
                   <div className="num shrink-0 text-[14px] leading-relaxed text-ink-3 sm:text-right">
-                    {p.upload ? <><div><span className="text-ink-2">v{p.upload.versionNo}</span> · {p.upload.rowCount} rows</div><div>{formatDateTime(p.upload.uploadedAt)}</div><div>by {p.upload.uploadedBy}</div></> : "No upload yet"}
+                    {p.upload ? <><div><span className="text-ink-2">v{p.upload.versionNo}</span> · {p.upload.rowCount} rows</div><div>{formatDateTime(p.upload.uploadedAt)}</div></> : "No upload yet"}
                   </div>
                 </div>
               </Link>

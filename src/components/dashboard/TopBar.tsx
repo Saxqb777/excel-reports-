@@ -39,7 +39,7 @@ export function TopBar({ theme, name, clientName, pages, activePage, onPage, upl
       <div className="hidden items-center gap-2 lg:flex">
         {upload && (
           <div className="num hidden text-right text-[14px] leading-tight text-ink-3 xl:block" title={upload.fileName}>
-            <div><span className="text-ink-2">Updated by {upload.uploadedBy}</span> · {formatDateTime(upload.uploadedAt)}</div>
+            <div><span className="text-ink-2">Updated</span> {formatDateTime(upload.uploadedAt)}</div>
             <div>Version {upload.versionNo} · {upload.rowCount} rows</div>
           </div>
         )}
@@ -50,7 +50,7 @@ export function TopBar({ theme, name, clientName, pages, activePage, onPage, upl
         <button type="button" className="btn h-7 px-2.5 py-0 text-[14px]" onClick={() => setMenu((m) => !m)} aria-expanded={menu} aria-haspopup="menu">Menu</button>
         {menu && (
           <div role="menu" className="absolute right-0 top-9 z-[45] flex w-64 flex-col gap-2 border border-line bg-bg-elev p-3 shadow-[var(--shadow-pop)] [&_a]:w-full [&_button]:w-full [&_button]:justify-start" onClick={(e) => { if ((e.target as HTMLElement).closest("button,a")) setTimeout(() => setMenu(false), 50); }}>
-            {upload && <div className="num text-[14px] leading-tight text-ink-3"><div><span className="text-ink-2">v{upload.versionNo}</span> · {formatDateTime(upload.uploadedAt)}</div><div>by {upload.uploadedBy} · {upload.rowCount} rows</div></div>}
+            {upload && <div className="num text-[14px] leading-tight text-ink-3"><div><span className="text-ink-2">v{upload.versionNo}</span> · {formatDateTime(upload.uploadedAt)}</div><div>{upload.rowCount} rows</div></div>}
             {actions}
             <ThemeToggle defaultMode={theme.mode} scope={scope} />
           </div>

@@ -43,7 +43,7 @@ export function HistoryDrawer({ projectId, currentUploadId, open, onClose, onRes
                       <span className="num text-[14px] font-medium text-ink">v{u.versionNo} {current && <span className="label ml-1 text-accent">live</span>}</span>
                       <span className="num text-[14px] text-ink-3">{formatDateTime(u.uploadedAt)}</span>
                     </div>
-                    <div className="num mt-0.5 text-[14px] text-ink-2">{u.rowCount} rows · {u.excludedCount} excluded · by {u.uploadedBy}</div>
+                    <div className="num mt-0.5 text-[14px] text-ink-2">{u.rowCount} rows · {u.excludedCount} excluded</div>
                     <div className="num mt-0.5 truncate text-[14px] text-ink-3" title={u.fileName}>{u.fileName} · {(u.fileSize / 1024).toFixed(1)} KB</div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {!current && <button type="button" className="btn h-6 px-2 py-0 text-[14px]" disabled={busy === u.id} onClick={() => restore(u)}>{busy === u.id ? "Restoring…" : "Restore this version"}</button>}

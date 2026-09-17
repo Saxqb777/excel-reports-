@@ -82,6 +82,16 @@ export function getFixturePreviousSnapshot(projectId: string): Snapshot | null {
   return readFixtures().find((f) => f.project.id === projectId)?.previousSnapshot ?? null;
 }
 
+/** A project served at the root of its own hostname (settings.domains), e.g. agthia-reports.vercel.app → the share view. */
+export async function getProjectByDomain(host: string | null): Promise<ProjectSummary | null> {
+  const h = (host ?? "").toLowerCase().split(":")[0];
+  if (!h) return null;
+  if (fixtureMode()) return readFixtures().find((f) => (f.project.settings.domains as string[] | undefined)?.includes(h))?.project ?? null;
+  if (!hasDatabase()) return null;
+  const rows = await db().select().from(schema.projects).where(sql`${schema.projects.settings} -> 'domains' @> to_jsonb(${h}::text)`).limit(1);
+  return rows[0] ? toSummary(rows[0]) : null;
+}
+
 // ---------- Queries ----------
 
 export async function listProjects(): Promise<(ProjectSummary & { upload: UploadSummary | null })[]> {

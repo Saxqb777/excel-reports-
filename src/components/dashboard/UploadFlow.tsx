@@ -14,17 +14,14 @@ export function UploadFlow({ projectId, onDone, children }: Props) {
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [askName, setAskName] = useState<File | null>(null);
-  const [name, setName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const depth = useRef(0);
-  useEffect(() => { try { setName(localStorage.getItem("meridian-user") ?? ""); } catch {} }, []);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 5000); return () => clearTimeout(t); }, [toast]);
 
-  const send = useCallback(async (file: File, uploadedBy: string, confirm: boolean, map?: Record<string, string>) => {
+  const send = useCallback(async (file: File, confirm: boolean, map?: Record<string, string>) => {
     setBusy(true); setError(null);
     const fd = new FormData();
-    fd.set("file", file); fd.set("uploadedBy", uploadedBy);
+    fd.set("file", file);
     if (confirm) fd.set("confirm", "1");
     if (map) fd.set("mapping", JSON.stringify(map));
     const res = await fetch(`/api/projects/${projectId}/uploads`, { method: "POST", body: fd });
@@ -39,9 +36,8 @@ export function UploadFlow({ projectId, onDone, children }: Props) {
 
   const start = useCallback((file: File) => {
     if (!/\.(xlsx|xlsm|xls|csv)$/i.test(file.name)) { setError("Drop an Excel or CSV file."); return; }
-    if (!name.trim()) { setAskName(file); return; }
-    void send(file, name.trim(), false);
-  }, [name, send]);
+    void send(file, false);
+  }, [send]);
 
   useEffect(() => {
     const onEnter = (e: DragEvent) => { if (!e.dataTransfer?.types.includes("Files")) return; depth.current++; setDragging(true); };
@@ -68,16 +64,6 @@ export function UploadFlow({ projectId, onDone, children }: Props) {
       {busy && (
         <div className="fixed inset-x-0 top-0 z-[70] h-[2px] overflow-hidden bg-line"><div className="h-full w-1/3 animate-[slide_1.1s_linear_infinite] bg-accent" /></div>
       )}
-      {askName && (
-        <Modal title="Who is uploading?" onClose={() => setAskName(null)}>
-          <p className="text-[14px] text-ink-2">Shown next to the version as the uploader.</p>
-          <input autoFocus className="field mt-3 w-full" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) { try { localStorage.setItem("meridian-user", name.trim()); } catch {} const f = askName; setAskName(null); void send(f, name.trim(), false); } }} />
-          <div className="mt-4 flex justify-end gap-2">
-            <button type="button" className="btn" onClick={() => setAskName(null)}>Cancel</button>
-            <button type="button" className="btn btn-accent" disabled={!name.trim()} onClick={() => { try { localStorage.setItem("meridian-user", name.trim()); } catch {} const f = askName; setAskName(null); void send(f, name.trim(), false); }}>Continue</button>
-          </div>
-        </Modal>
-      )}
       {pending && (
         <Modal title="The columns changed" onClose={() => setPending(null)} wide>
           <SchemaDiffView diff={pending.diff} mapping={mapping} setMapping={setMapping} />
@@ -85,7 +71,7 @@ export function UploadFlow({ projectId, onDone, children }: Props) {
             <span className="text-[14px] text-ink-3">Confirming records the decisions in the project&rsquo;s schema, so future uploads with the same headers load without asking.</span>
             <div className="flex shrink-0 gap-2">
               <button type="button" className="btn" onClick={() => setPending(null)}>Cancel</button>
-              <button type="button" className="btn btn-accent" disabled={busy} onClick={() => void send(pending.file, name.trim() || "Unknown", true, mapping)}>{busy ? "Loading…" : "Confirm and load"}</button>
+              <button type="button" className="btn btn-accent" disabled={busy} onClick={() => void send(pending.file, true, mapping)}>{busy ? "Loading…" : "Confirm and load"}</button>
             </div>
           </div>
         </Modal>

@@ -84,7 +84,7 @@ export function SettingsForm({ project, uploads }: { project: ProjectSummary; up
             {uploads.map((u) => (
               <li key={u.id} className="flex items-center justify-between gap-3 py-1.5">
                 <span className="num text-ink">v{u.versionNo} {u.id === project.currentUploadId && <span className="label ml-1 text-accent">live</span>}</span>
-                <span className="num text-ink-3">{u.rowCount} rows · {u.uploadedBy} · {formatDateTime(u.uploadedAt)}</span>
+                <span className="num text-ink-3">{u.rowCount} rows · {formatDateTime(u.uploadedAt)}</span>
               </li>
             ))}
           </ul>

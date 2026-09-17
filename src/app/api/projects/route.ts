@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   if (!(file instanceof File)) return Response.json({ error: "Attach a workbook as the 'file' field" }, { status: 400 });
   const name = String(form.get("name") ?? "").trim() || file.name.replace(/\.(xlsx|xlsm|xls|csv)$/i, "");
   const clientName = String(form.get("clientName") ?? "").trim() || undefined;
-  const uploadedBy = String(form.get("uploadedBy") ?? "").trim() || "Unknown";
+  const uploadedBy = String(form.get("uploadedBy") ?? "").trim();
   const primary = String(form.get("primary") ?? "").trim() || undefined;
   let overrides: { id: string; label?: string; role?: "id" | "dimension" | "measure" | "date" | "text" | "ignore"; hidden?: boolean }[] | undefined;
   const rawOverrides = form.get("overrides");
