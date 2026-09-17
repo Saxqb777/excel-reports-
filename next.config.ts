@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
     "/og/\\[token\\]": ["./node_modules/@fontsource/source-sans-3/files/source-sans-3-latin-*-normal.woff"],
     "/og/*": ["./node_modules/@fontsource/source-sans-3/files/source-sans-3-latin-*-normal.woff"],
   },
+  // Crawlers that build link previews get metadata in <head> before anything streams (Next's default list plus the chat apps in src/proxy.ts).
+  htmlLimitedBots: /[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Facebot|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight|TelegramBot|Snapchat|Pinterest|Viber|Microsoft Teams|MSTeams|Iframely|Embedly|Google-PageRenderer|YahooMailProxy|Outlook/i,
   experimental: { serverActions: { bodySizeLimit: "10mb" } },
 };
 
