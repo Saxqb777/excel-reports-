@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { getProjectByDomain } from "@/lib/data/projects";
 import { ShareView, shareMetadata } from "./s/[token]/ShareView";
 import { ProjectsHome } from "./ProjectsHome";
+import { DashboardView } from "./p/[slug]/DashboardView";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export async function generateMetadata() {
 export default async function Home(props: PageProps<"/">) {
   const host = (await headers()).get("host");
   const owned = await getProjectByDomain(host);
-  if (owned) return <ShareView project={owned} searchParams={await props.searchParams} />;
+  // settings.rootView = "dashboard" puts the working dashboard at the root instead of the read-only view.
+  if (owned) return owned.settings.rootView === "dashboard" ? <DashboardView project={owned} /> : <ShareView project={owned} searchParams={await props.searchParams} />;
   return <ProjectsHome />;
 }
