@@ -1,15 +1,17 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUpload, getProjectBySlug, getSnapshot } from "@/lib/data/projects";
 import { getIntelligence } from "@/lib/data/intelligence";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
+import { shareMetadata } from "@/app/s/[token]/ShareView";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata(props: PageProps<"/p/[slug]">) {
   const { slug } = await props.params;
   const project = await getProjectBySlug(slug);
-  return { title: project ? `${project.name} · Meridian` : "Meridian" };
+  return shareMetadata(project, (await headers()).get("host"));
 }
 
 export default async function ProjectPage(props: PageProps<"/p/[slug]">) {

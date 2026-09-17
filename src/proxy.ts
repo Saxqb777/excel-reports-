@@ -15,7 +15,9 @@ export function proxy(req: NextRequest) {
   if (pathname === "/") { url.pathname = "/preview"; return NextResponse.rewrite(url); }
   const m = pathname.match(/^\/s\/([^/]+)\/?$/);
   if (m) { url.pathname = `/preview/${m[1]}`; return NextResponse.rewrite(url); }
+  const p = pathname.match(/^\/p\/([^/]+)\/?$/);
+  if (p) { url.pathname = `/preview/p/${p[1]}`; return NextResponse.rewrite(url); }
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/", "/s/:token"] };
+export const config = { matcher: ["/", "/s/:token", "/p/:slug"] };
