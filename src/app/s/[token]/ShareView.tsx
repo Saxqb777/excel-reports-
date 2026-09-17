@@ -19,7 +19,7 @@ function originFor(host: string | null): string | null {
 export function shareMetadata(project: ProjectSummary | null, host: string | null): Metadata {
   if (!project) return { title: "Reports and analytics", robots: { index: false } };
   const title = `${project.name} · Reports and analytics`;
-  const description = `${project.clientName ? `${project.clientName} · ` : ""}live reports and analytics, updated with every new version of the sheet.`;
+  const description = `${project.clientName ? `${project.clientName} · ` : ""}Live reports and analytics, updated with every new version of the sheet.`;
   const origin = originFor(host);
   // The version in the URL lets caches and chat apps pick up a fresh card after every upload.
   const image = `${origin ?? ""}/og/${project.shareToken}?v=${encodeURIComponent(project.currentUploadId ?? "0")}`;

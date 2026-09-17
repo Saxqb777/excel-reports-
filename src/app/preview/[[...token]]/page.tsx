@@ -26,7 +26,7 @@ export default async function PreviewPage(props: PageProps<"/preview/[[...token]
   if (!project || !project.shareEnabled) notFound();
   return (
     <main className="mx-auto max-w-xl px-6 py-24">
-      <div className="label mb-2">{project.clientName ?? "Reports and analytics"}</div>
+      <div className="label mb-2">Reports and analytics</div>
       <h1 className="text-xl font-semibold text-ink">{project.name}</h1>
       <p className="mt-2 text-ink-2">Live reports and analytics, updated with every new version of the sheet.</p>
       <a href={href} className="btn btn-accent mt-6 inline-block">Open the live dashboard</a>
