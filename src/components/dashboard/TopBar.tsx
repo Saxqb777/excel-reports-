@@ -6,7 +6,7 @@ import type { UploadSummary } from "@/lib/data/projects";
 import { formatDateTime } from "@/lib/engine/format";
 import { ThemeToggle } from "./ThemeToggle";
 
-export function TopBar({ theme, name, clientName, pages, activePage, onPage, upload, actions, homeHref = "/", scope }: { theme: Theme; name: string; clientName?: string | null; pages: { id: string; title: string }[]; activePage: string; onPage: (id: string) => void; upload: UploadSummary | null; actions?: ReactNode; homeHref?: string | null; scope?: string }) {
+export function TopBar({ theme, name, clientName, pages, activePage, onPage, upload, actions, homeHref = "/projects", scope }: { theme: Theme; name: string; clientName?: string | null; pages: { id: string; title: string }[]; activePage: string; onPage: (id: string) => void; upload: UploadSummary | null; actions?: ReactNode; homeHref?: string | null; scope?: string }) {
   const monogram = theme.monogram ?? name.split(/\s+/).map((s) => s[0]).join("").slice(0, 2).toUpperCase();
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

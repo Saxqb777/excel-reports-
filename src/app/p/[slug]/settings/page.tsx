@@ -15,7 +15,7 @@ export default async function SettingsPage(props: PageProps<"/p/[slug]/settings"
   return (
     <main className="min-h-screen bg-bg">
       <header className="flex h-11 items-center justify-between border-b border-line px-4">
-        <div className="flex min-w-0 items-center gap-3"><Link href="/" className="label hidden hover:text-ink sm:inline">Meridian</Link><span className="hidden h-4 w-px bg-line sm:block" /><Link href={`/p/${project.slug}`} className="truncate text-[14px] font-semibold text-ink hover:text-accent">{project.name}</Link><span className="label shrink-0">Settings</span></div>
+        <div className="flex min-w-0 items-center gap-3"><Link href="/projects" className="label hidden hover:text-ink sm:inline">Meridian</Link><span className="hidden h-4 w-px bg-line sm:block" /><Link href={`/p/${project.slug}`} className="truncate text-[14px] font-semibold text-ink hover:text-accent">{project.name}</Link><span className="label shrink-0">Settings</span></div>
         <div className="flex shrink-0 items-center gap-2"><ThemeToggle compact /><Link href={`/p/${project.slug}`} className="btn h-7 whitespace-nowrap px-3 py-0 text-[14px] leading-7"><span className="sm:hidden">Back</span><span className="hidden sm:inline">Back to dashboard</span></Link></div>
       </header>
       <SettingsForm project={project} uploads={uploads} />

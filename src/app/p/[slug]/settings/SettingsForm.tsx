@@ -43,7 +43,7 @@ export function SettingsForm({ project, uploads }: { project: ProjectSummary; up
     setBusy(true); setStatus(null);
     try {
       const res = await fetch(`/api/projects/${project.id}?confirm=yes`, { method: "DELETE" });
-      if (res.ok) { window.location.assign("/"); return; }
+      if (res.ok) { window.location.assign("/projects"); return; }
       setStatus((await res.json().catch(() => ({}))).error ?? `Delete failed (${res.status}).`);
     } catch (e) {
       setStatus(e instanceof Error ? e.message : "Delete failed.");

@@ -8,7 +8,7 @@ export default function NewProjectPage() {
   return (
     <main className="min-h-screen bg-bg">
       <header className="flex h-11 items-center justify-between border-b border-line px-4">
-        <Link href="/" className="label hover:text-ink">Meridian</Link>
+        <Link href="/projects" className="label hover:text-ink">Meridian</Link>
         <div className="flex items-center gap-2"><span className="label">New project</span><ThemeToggle compact /></div>
       </header>
       <div className="mx-auto max-w-2xl px-6 py-12">

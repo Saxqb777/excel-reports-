@@ -24,7 +24,7 @@ export default async function ProjectPage(props: PageProps<"/p/[slug]">) {
         <div className="label mb-2">{project.name}</div>
         <h1 className="text-xl font-medium">No data yet.</h1>
         <p className="mt-2 text-ink-2">Upload the first workbook to build this dashboard.</p>
-        <Link href="/" className="btn mt-6 inline-block">Back to projects</Link>
+        <Link href="/projects" className="btn mt-6 inline-block">Back to projects</Link>
       </main>
     );
   }
