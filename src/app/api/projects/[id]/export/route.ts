@@ -18,7 +18,8 @@ export async function GET(req: NextRequest, ctx: RouteContext<"/api/projects/[id
   const theme = url.searchParams.get("theme") === "light" ? "light" : "dark";
   const pageId = url.searchParams.get("page") ?? project.layout.pages[0]?.id ?? "overview";
   const width = Math.min(2560, Math.max(1024, Number(url.searchParams.get("width") ?? 1600)));
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? `${url.protocol}//${url.host}`;
+  // Render through the address the admin is using, so exports keep working whatever the domain is called; env only as a fallback.
+  const origin = url.host ? `${url.protocol}//${url.host}` : (process.env.NEXT_PUBLIC_APP_URL ?? "");
   const target = (p: string) => `${origin}/s/${project.shareToken}?print=1&page=${encodeURIComponent(p)}&theme=${theme}`;
 
   let browser: import("puppeteer-core").Browser | null = null;
