@@ -30,7 +30,7 @@ export function HeatmapTile({ w }: { w: HeatmapWidget }) {
       for (const i of is) sub[i] = 1;
       cells[k] = computeMetric(snapshot, sub, w.metric) ?? 0;
     }
-    const orderBy = (set: Set<string>, order?: string[]) => { const o = [...(order ?? [])].filter((x) => set.has(x)); for (const x of set) if (!o.includes(x)) o.push(x); return o; };
+    const orderBy = (set: Set<string>, order?: string[]) => { const o = [...(order ?? [])]; for (const x of set) if (!o.includes(x)) o.push(x); return o; };
     return { rows: orderBy(rows, rf?.order), cols: orderBy(cols, cf?.order), cells };
   }, [snapshot, mask, w, rf, cf]);
   const sel = isSelected(w.id);

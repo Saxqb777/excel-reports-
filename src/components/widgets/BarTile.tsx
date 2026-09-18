@@ -12,7 +12,7 @@ export function BarTile({ w }: { w: BarWidget }) {
   const mask = maskFor(w.id);
   const dim = fields.get(w.dimension);
   const stackField = w.stackBy ? fields.get(w.stackBy) : undefined;
-  const rows = useMemo(() => groupBy(snapshot, mask, w.dimension, w.metric, { topN: w.topN, sort: w.sort ?? (dim?.order ? "order" : "value"), order: dim?.order, stackBy: w.stackBy, includeNull: w.includeNull, nullLabel: "Not set" }), [snapshot, mask, w, dim]);
+  const rows = useMemo(() => groupBy(snapshot, mask, w.dimension, w.metric, { topN: w.topN, sort: w.sort ?? (dim?.order ? "order" : "value"), order: dim?.order, stackBy: w.stackBy, includeNull: w.includeNull, nullLabel: "Not set", fillOrder: Boolean(dim?.order) }), [snapshot, mask, w, dim]);
   const stackKeys = useMemo(() => {
     if (!w.stackBy) return undefined;
     const present = new Set<string>();
@@ -38,7 +38,7 @@ export function BarTile({ w }: { w: BarWidget }) {
       <div className="flex h-full flex-col">
         {stackKeys && stackKeys.length > 1 && <div className="shrink-0 pb-1.5"><Legend keys={stackKeys} colorBy={w.colorBy ?? "status"} /></div>}
         <div className="min-h-0 flex-1">
-          {rows.length === 0 ? <Empty /> : rows.every((r) => r.key === "Not set") ? <Empty text="Nothing recorded in the sheet yet." /> : (
+          {rows.length === 0 ? <Empty /> : rows.filter((r) => r.value > 0).every((r) => r.key === "Not set") && rows.some((r) => r.value > 0) ? <Empty text="Nothing recorded in the sheet yet." /> : (
             <HBars rows={rows} stackKeys={stackKeys} colorBy={w.colorBy ?? (w.stackBy ? "status" : "single")} format={w.metric.format ?? "integer"} currency={w.metric.currency}
               selected={sel ? { key: sel.values[0], stack: selectedStack } : null} onSelect={onSelect} />
           )}

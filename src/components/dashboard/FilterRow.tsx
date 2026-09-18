@@ -43,7 +43,7 @@ export function FilterRow() {
       {selects.map((s) => {
         const f = fields.get(s.field);
         const opts = options[s.field] ?? [];
-        const ordered = f?.order ? [...f.order.map((o) => opts.find((x) => x.value === o)).filter((x): x is { value: string; count: number } => Boolean(x)), ...opts.filter((o) => !f.order!.includes(o.value))] : opts;
+        const ordered = f?.order ? [...f.order.map((o) => opts.find((x) => x.value === o) ?? { value: o, count: 0 }), ...opts.filter((o) => !f.order!.includes(o.value))] : opts;
         const current = state.controls[s.field]?.[0] ?? "";
         return (
           <Select key={s.field} label={s.label ?? f?.label ?? s.field} value={current} options={ordered.map((o) => ({ value: o.value, label: o.value, count: o.count }))} onChange={(v) => dispatch({ type: "control", field: s.field, values: v ? [v] : [] })} />

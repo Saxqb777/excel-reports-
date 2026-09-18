@@ -85,7 +85,7 @@ export function computeMetric(snapshot: Pick<Snapshot, "columns" | "n">, mask: U
 
 export interface GroupRow { key: string; value: number; count: number; stacks?: Record<string, number> }
 
-export interface GroupOptions { topN?: number; sort?: "value" | "key" | "order"; order?: string[]; stackBy?: string; includeNull?: boolean; nullLabel?: string }
+export interface GroupOptions { topN?: number; sort?: "value" | "key" | "order"; order?: string[]; stackBy?: string; includeNull?: boolean; nullLabel?: string; /** Also list every value in `order` that has no rows, as a zero row. */ fillOrder?: boolean }
 
 export function groupBy(snapshot: Pick<Snapshot, "columns" | "n">, mask: Uint8Array, dimension: string, metric: MetricSpec, opts: GroupOptions = {}): GroupRow[] {
   const { columns, n } = snapshot;
@@ -117,6 +117,10 @@ export function groupBy(snapshot: Pick<Snapshot, "columns" | "n">, mask: Uint8Ar
       row.stacks = stacks;
     }
     rows.push(row);
+  }
+  if (opts.fillOrder && opts.order) {
+    const present = new Set(rows.map((r) => r.key.toLowerCase()));
+    for (const k of opts.order) if (!present.has(k.toLowerCase())) rows.push({ key: k, value: 0, count: 0, ...(stackCol ? { stacks: {} } : {}) });
   }
   const sort = opts.sort ?? "value";
   if (sort === "value") rows.sort((a, b) => b.value - a.value || a.key.localeCompare(b.key));
