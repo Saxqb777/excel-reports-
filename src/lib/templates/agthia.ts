@@ -27,11 +27,18 @@ const PLACE_MAP: Record<string, string> = {
   "different loaction": "Multiple locations, UAE", "various": "Multiple locations, UAE",
 };
 
+/** Agthia's legal entities, in the order the business wants them listed. New entities typed into the sheet appear after these. */
+export const AGTHIA_ENTITIES = ["Agthia Group PJSC", "Al Ain Food & Beverages PJSC", "Grand Mills", "Al Foah Company LLC", "BMB Group", "Al Faysal Bakery"];
+const ENTITY_HEADER = /^(company|agthia company entit|entit(y|ies)|business unit)/i;
+const ENTITY_ALIASES = ["Company", "Agthia company entities", "Entity", "Business unit"];
+
 export function agthiaSchema(inferred: SchemaMap): SchemaMap {
   const bySource = new Map(inferred.fields.map((f) => [normKey(f.source ?? ""), f] as const));
   const pick = (h: string): Field | undefined => bySource.get(normKey(h));
   const fields: Field[] = [];
   const add = (f: Field | undefined, patch: Partial<Field>) => { if (f) fields.push({ ...f, ...patch }); };
+  // A real entity column in the sheet beats the keyword guess below.
+  const entityColumn = inferred.fields.find((f) => f.source && ENTITY_HEADER.test(f.source.trim()));
 
   add(pick("Tracking No."), { id: "tracking_no", label: "Tracking no.", role: "id" });
   add(pick("Request Description"), { id: "request_description", label: "Request", role: "text", semantic: "description" });
@@ -44,6 +51,7 @@ export function agthiaSchema(inferred: SchemaMap): SchemaMap {
   add(pick("Won/Lost"), { id: "outcome", label: "Outcome", role: "dimension", semantic: "outcome", allowedValues: ["Won", "Lost", "Open"], valueMap: { "won": "Won", "win": "Won", "lost": "Lost", "loss": "Lost", "open": "Open" }, order: ["Won", "Lost", "Open"] });
   add(pick("Reason for Loss"), { id: "reason_for_loss", label: "Reason for loss", role: "dimension", semantic: "reason", allowedValues: ["High Price", "Transit Time", "Competitor", "No Response", "Service Limitation", "Customer Cancelled", "Others"] });
   add(pick("Remarks/Latest updates"), { id: "remarks", label: "Latest update", role: "text", semantic: "remarks" });
+  add(entityColumn, { id: "company", label: "Agthia entity", role: "dimension", semantic: "business_unit", order: AGTHIA_ENTITIES, aliases: ENTITY_ALIASES.filter((a) => normKey(a) !== normKey(entityColumn?.source ?? "")) });
 
   // Any extra columns the sheet gains later are kept with their inferred definition.
   for (const f of inferred.fields) if (!fields.some((x) => normKey(x.source ?? "") === normKey(f.source ?? ""))) fields.push(f);
@@ -56,12 +64,6 @@ export function agthiaSchema(inferred: SchemaMap): SchemaMap {
     { id: "age_days", label: "Days open", source: null, type: "number", role: "measure", semantic: "age", format: "days",
       derived: { kind: "ageDays", from: "date_received", when: { or: [{ field: "outcome", op: "isNull" }, { field: "outcome", op: "eq", value: "Open" }] } } },
     { id: "lane_type", label: "Lane", source: null, type: "string", role: "dimension", semantic: "lane", order: ["Domestic", "Import", "Export", "Cross-trade"], derived: { kind: "laneType", origin: "origin", destination: "destination", home: [] } },
-    { id: "business_unit", label: "Business unit", source: null, type: "string", role: "dimension", semantic: "business_unit",
-      derived: { kind: "keyword", from: ["request_description", "origin", "destination", "remarks"], rules: [
-        { value: "Al Foah", match: ["al foah", "al saad", "dates project"] },
-        { value: "Grand Mills", match: ["grand mills", "gmff", "mina zayed"] },
-        { value: "Water", match: ["water", "hana", "al ain water", "5-gallon", "bottle"] },
-      ], fallback: "Agthia general" } },
     { id: "equipment", label: "Equipment", source: null, type: "string", role: "dimension",
       derived: { kind: "keyword", from: ["request_description"], rules: [
         { value: "Reefer trailer", match: ["reefer", "chiller", "+18"] },
@@ -73,6 +75,14 @@ export function agthiaSchema(inferred: SchemaMap): SchemaMap {
       ], fallback: "Other" } },
     { id: "week_received", label: "Week received", source: null, type: "date", role: "date", semantic: "period", format: "date", derived: { kind: "period", from: "date_received", unit: "week" } },
   );
+
+  // Without a real entity column, guess the business unit from the request text.
+  if (!entityColumn) fields.push({ id: "business_unit", label: "Business unit", source: null, type: "string", role: "dimension", semantic: "business_unit",
+    derived: { kind: "keyword", from: ["request_description", "origin", "destination", "remarks"], rules: [
+      { value: "Al Foah", match: ["al foah", "al saad", "dates project"] },
+      { value: "Grand Mills", match: ["grand mills", "gmff", "mina zayed"] },
+      { value: "Water", match: ["water", "hana", "al ain water", "5-gallon", "bottle"] },
+    ], fallback: "Agthia general" } });
 
   // Stage combines status and outcome: computed as keyword over outcome, then status fills the rest.
   const stage = fields.find((f) => f.id === "stage")!;
@@ -161,3 +171,17 @@ export const AGTHIA_LAYOUT: Layout = {
     },
   ],
 };
+
+/** The curated layout, with business-unit visuals bound to the sheet's entity column when the schema has one. */
+export function agthiaLayout(schema: SchemaMap): Layout {
+  const entity = schema.fields.find((f) => !f.derived && (f.id === "company" || f.semantic === "business_unit"));
+  if (!entity) return AGTHIA_LAYOUT;
+  const text = JSON.stringify(AGTHIA_LAYOUT)
+    .replaceAll('"business_unit"', JSON.stringify(entity.id))
+    .replaceAll('"Business unit by lane"', '"Agthia entities by lane"')
+    .replaceAll('"Business unit"', '"Agthia entities"');
+  const layout = JSON.parse(text) as Layout;
+  for (const f of layout.filters) if (f.field === entity.id) f.label = "Entity";
+  for (const page of layout.pages) for (const w of page.widgets) if (w.type === "table" && w.id === "register" && !w.columns.includes(entity.id)) w.columns.splice(1, 0, entity.id);
+  return layout;
+}

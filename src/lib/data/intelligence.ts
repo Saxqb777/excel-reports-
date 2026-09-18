@@ -1,7 +1,7 @@
 import { and, desc, eq, lt } from "drizzle-orm";
 import { db, hasDatabase, schema } from "@/lib/db/client";
 import type { Snapshot } from "@/lib/schema/types";
-import { getFixturePreviousSnapshot, type ProjectSummary } from "./projects";
+import { getFixturePreviousSnapshot, rebuildSnapshot, schemaHash, type ProjectSummary } from "./projects";
 import { computeInsights, topInsights, type Insight } from "@/lib/intelligence/insights";
 import { computeAnomalies, kpiValues, type Anomaly, type MetricHistoryPoint } from "@/lib/intelligence/anomalies";
 
@@ -25,9 +25,12 @@ export async function getIntelligence(project: ProjectSummary, snapshot: Snapsho
   const cur = await db().select({ insights: schema.uploads.insights, anomalies: schema.uploads.anomalies }).from(schema.uploads).where(eq(schema.uploads.id, snapshot.uploadId)).limit(1);
   const cached = cur[0]?.insights as (Intelligence & { key?: string }) | null | undefined;
   if (cached && cached.key === key) return cached;
-  const prevRows = await db().select({ id: schema.uploads.id, versionNo: schema.uploads.versionNo, snapshot: schema.uploads.snapshot })
-    .from(schema.uploads).where(and(eq(schema.uploads.projectId, project.id), lt(schema.uploads.versionNo, snapshot.version))).orderBy(desc(schema.uploads.versionNo)).limit(24);
-  const previous = (prevRows[0]?.snapshot as Snapshot | null) ?? null;
+  const prevRows = await db().select().from(schema.uploads)
+    .where(and(eq(schema.uploads.projectId, project.id), lt(schema.uploads.versionNo, snapshot.version))).orderBy(desc(schema.uploads.versionNo)).limit(24);
+  // The version we compare with must be built with the current schema, otherwise a merged or renamed column reads as a change.
+  const wanted = schemaHash(project.schemaMap);
+  let previous = (prevRows[0]?.snapshot as (Snapshot & { schemaHash?: string }) | null) ?? null;
+  if (prevRows[0] && (!previous || previous.schemaHash !== wanted)) previous = await rebuildSnapshot(prevRows[0], project.schemaMap);
   const history: MetricHistoryPoint[] = prevRows.filter((r) => r.snapshot).map((r) => ({ version: r.versionNo, values: kpiValues(r.snapshot as Snapshot, project.layout) }));
   const result = compute(project, snapshot, previous, history);
   await db().update(schema.uploads).set({ insights: { ...result, key }, anomalies: { items: result.anomalies } }).where(eq(schema.uploads.id, snapshot.uploadId));

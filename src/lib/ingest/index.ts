@@ -4,7 +4,7 @@ import { parseWorkbook } from "@/lib/excel/parse";
 import { diffSchema, inferSchema } from "@/lib/schema/infer";
 import { buildSnapshot } from "@/lib/schema/normalize";
 import type { ParsedWorkbook, SchemaMap, Snapshot } from "@/lib/schema/types";
-import { AGTHIA_LAYOUT, agthiaSchema, matchesAgthia } from "@/lib/templates/agthia";
+import { agthiaLayout, agthiaSchema, matchesAgthia } from "@/lib/templates/agthia";
 import { proposeLayout } from "@/lib/dashboard/propose";
 import type { Layout } from "@/lib/dashboard/types";
 
@@ -24,7 +24,7 @@ export async function ingestNew(buffer: Buffer, fileName: string, uploadId = nan
   const inferred = inferSchema(sheet);
   const isAgthia = matchesAgthia(sheet.headers);
   const schema = isAgthia ? agthiaSchema(inferred) : inferred;
-  const layout = isAgthia ? AGTHIA_LAYOUT : proposeLayout(schema);
+  const layout = isAgthia ? agthiaLayout(schema) : proposeLayout(schema);
   const snapshot = buildSnapshot(schema, sheet, { uploadId, version: 1 });
   return { workbook, schema, layout, snapshot, sha256: sha256(buffer), template: isAgthia ? "agthia" : "generic" };
 }
