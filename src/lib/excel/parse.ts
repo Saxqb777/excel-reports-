@@ -143,12 +143,35 @@ function buildSheet(name: string, grid: { v: RawCell; k: CellKind }[][], validat
   return { name, headerRow: headerRow + 1, headers: keptHeaders, rows, stats: keptStats, validations: vmap, totalRowsInSheet: grid.length };
 }
 
+/**
+ * ExcelJS trips on two things other tools write: relationship targets as absolute paths (`/xl/tables/table1.xml`,
+ * written by openpyxl and some exporters) and chart or table parts it cannot reconcile. Load normally; on failure retry
+ * with the relationship targets made relative, then once more with tables, drawings and charts stripped. The cells
+ * are what matters for a dashboard.
+ */
+async function loadWorkbook(buf: Buffer): Promise<ExcelJS.Workbook> {
+  const attempt = async (b: Buffer) => { const wb = new ExcelJS.Workbook(); await wb.xlsx.load(b as unknown as ArrayBuffer); return wb; };
+  try { return await attempt(buf); } catch (first) {
+    const JSZip = (await import("jszip")).default;
+    const zip = await JSZip.loadAsync(buf);
+    const patch = async (test: (name: string) => boolean, fn: (xml: string) => string) => {
+      for (const name of Object.keys(zip.files)) if (test(name)) zip.file(name, fn(await zip.file(name)!.async("string")));
+    };
+    await patch((n) => /^xl\/worksheets\/_rels\//.test(n), (xml) => xml.replace(/Target="\/xl\//g, 'Target="../'));
+    try { return await attempt(await zip.generateAsync({ type: "nodebuffer" })); } catch {
+      for (const name of Object.keys(zip.files)) if (/^xl\/(tables|drawings|charts)\//.test(name)) zip.remove(name);
+      await patch((n) => /^xl\/worksheets\/sheet\d+\.xml$/.test(n), (xml) => xml.replace(/<tableParts[\s\S]*?<\/tableParts>/g, "").replace(/<drawing [^>]*\/>/g, "").replace(/<legacyDrawing [^>]*\/>/g, ""));
+      await patch((n) => /^xl\/worksheets\/_rels\//.test(n), (xml) => xml.replace(/<Relationship [^>]*(table|drawing)[^>]*\/>/g, ""));
+      try { return await attempt(await zip.generateAsync({ type: "nodebuffer" })); } catch { throw first; }
+    }
+  }
+}
+
 export async function parseWorkbook(buffer: ArrayBuffer | Buffer, fileName: string): Promise<ParsedWorkbook> {
   const lower = fileName.toLowerCase();
   if (lower.endsWith(".csv") || lower.endsWith(".tsv") || lower.endsWith(".txt")) return parseCsv(buffer, fileName);
-  const wb = new ExcelJS.Workbook();
   const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
-  await wb.xlsx.load(buf as unknown as ArrayBuffer);
+  const wb = await loadWorkbook(buf);
   const sheets: ParsedSheet[] = [];
   for (const ws of wb.worksheets) {
     if (ws.state && ws.state !== "visible") continue;
