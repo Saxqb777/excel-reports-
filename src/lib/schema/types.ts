@@ -22,6 +22,7 @@ export type FilterExpr =
 export type DerivedSpec =
   | { kind: "diffDays"; from: string; to: string }
   | { kind: "ageDays"; from: string; when?: FilterExpr }
+  | { kind: "daysUntil"; from: string }
   | { kind: "keyword"; from: string[]; rules: { value: string; match: string[] }[]; fallback: string | null }
   | { kind: "laneType"; origin: string; destination: string; home: string[] }
   | { kind: "coalesce"; fields: string[] }

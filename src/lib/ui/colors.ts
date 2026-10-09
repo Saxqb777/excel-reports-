@@ -10,9 +10,9 @@ export const seqVar = (step: number) => `var(--seq-${Math.max(1, Math.min(7, ste
 export function statusTone(value: string): Tone {
   const v = value.toLowerCase();
   if (/\b(won|win|closed won|approved|complete|completed|delivered|success|active|paid)\b/.test(v)) return "pos";
-  if (/\b(lost|loss|rejected|cancel|cancelled|failed|overdue|declined|churn)\b/.test(v)) return "neg";
-  if (/\b(pending|waiting|on hold|hold|late|not yet|todo|backlog|draft)\b/.test(v)) return "warn";
-  if (/\b(quoted|open|awaiting|in progress|progress|submitted|sent|review)\b/.test(v)) return "accent";
+  if (/\b(lost|loss|rejected|cancel|cancelled|failed|overdue|declined|churn|returned)\b/.test(v)) return "neg";
+  if (/\b(pending|waiting|on hold|hold|late|not yet|todo|backlog|draft|planned|booked|not shipped)\b/.test(v)) return "warn";
+  if (/\b(quoted|open|awaiting|in progress|progress|submitted|sent|review|transit|loaded|loading|shipped|on the water|in port)\b/.test(v)) return "accent";
   return "neutral";
 }
 

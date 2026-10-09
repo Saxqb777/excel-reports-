@@ -1,10 +1,14 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { notFound } from "next/navigation";
+import { getProjectByDomain } from "@/lib/data/projects";
 import { NewProjectForm } from "./NewProjectForm";
 import { ThemeToggle } from "@/components/dashboard/ThemeToggle";
 
 export const metadata = { title: "New project · Reports and analytics" };
 
-export default function NewProjectPage() {
+export default async function NewProjectPage() {
+  if (await getProjectByDomain((await headers()).get("host"))) notFound();
   return (
     <main className="min-h-screen bg-bg">
       <header className="flex h-11 items-center justify-between border-b border-line px-4">

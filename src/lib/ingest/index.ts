@@ -5,6 +5,7 @@ import { diffSchema, inferSchema } from "@/lib/schema/infer";
 import { buildSnapshot } from "@/lib/schema/normalize";
 import type { ParsedWorkbook, SchemaMap, Snapshot } from "@/lib/schema/types";
 import { agthiaLayout, agthiaSchema, matchesAgthia } from "@/lib/templates/agthia";
+import { matchesShipments, shipmentsLayout, shipmentsSchema } from "@/lib/templates/shipments";
 import { proposeLayout } from "@/lib/dashboard/propose";
 import type { Layout } from "@/lib/dashboard/types";
 
@@ -14,7 +15,7 @@ export interface IngestResult {
   layout: Layout | null;
   snapshot: Snapshot;
   sha256: string;
-  template: "agthia" | "generic";
+  template: "agthia" | "shipments" | "generic";
 }
 
 /** First upload for a project: infer schema, apply a curated template when the sheet matches, propose a layout. */
@@ -22,11 +23,11 @@ export async function ingestNew(buffer: Buffer, fileName: string, uploadId = nan
   const workbook = await parseWorkbook(buffer, fileName);
   const sheet = workbook.sheets[workbook.primary];
   const inferred = inferSchema(sheet);
-  const isAgthia = matchesAgthia(sheet.headers);
-  const schema = isAgthia ? agthiaSchema(inferred) : inferred;
-  const layout = isAgthia ? agthiaLayout(schema) : proposeLayout(schema);
+  const template: IngestResult["template"] = matchesAgthia(sheet.headers) ? "agthia" : matchesShipments(sheet.headers) ? "shipments" : "generic";
+  const schema = template === "agthia" ? agthiaSchema(inferred) : template === "shipments" ? shipmentsSchema(inferred) : inferred;
+  const layout = template === "agthia" ? agthiaLayout(schema) : template === "shipments" ? shipmentsLayout(schema) : proposeLayout(schema);
   const snapshot = buildSnapshot(schema, sheet, { uploadId, version: 1 });
-  return { workbook, schema, layout, snapshot, sha256: sha256(buffer), template: isAgthia ? "agthia" : "generic" };
+  return { workbook, schema, layout, snapshot, sha256: sha256(buffer), template };
 }
 
 /** Re-upload against a known schema. Returns the diff so the caller can ask for confirmation when headers changed. */

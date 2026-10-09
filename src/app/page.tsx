@@ -17,6 +17,6 @@ export default async function Home(props: PageProps<"/">) {
   const host = (await headers()).get("host");
   const owned = await getProjectByDomain(host);
   // settings.rootView = "dashboard" puts the working dashboard at the root instead of the read-only view.
-  if (owned) return owned.settings.rootView === "dashboard" ? <DashboardView project={owned} /> : <ShareView project={owned} searchParams={await props.searchParams} />;
+  if (owned) return owned.settings.rootView === "dashboard" ? <DashboardView project={owned} homeHref={null} /> : <ShareView project={owned} searchParams={await props.searchParams} />;
   return <ProjectsHome />;
 }

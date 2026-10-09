@@ -21,7 +21,7 @@ export async function createProjectFromWorkbook(input: CreateProjectInput) {
   if (input.overrides?.length) {
     const fields = res.schema.fields.map((f) => { const o = input.overrides!.find((x) => x.id === f.id); return o ? { ...f, ...(o.label ? { label: o.label } : {}), ...(o.role ? { role: o.role } : {}), ...(o.hidden !== undefined ? { hidden: o.hidden } : {}) } : f; });
     res.schema = { ...res.schema, fields };
-    if (res.template !== "agthia") res.layout = proposeLayout(res.schema);
+    if (res.template === "generic") res.layout = proposeLayout(res.schema);
     res.snapshot = buildSnapshot(res.schema, sheet, { uploadId, version: 1 });
   }
   const base = slugify(input.name).replace(/_/g, "-") || "project";

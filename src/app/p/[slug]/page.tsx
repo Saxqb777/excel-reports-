@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { getProjectBySlug } from "@/lib/data/projects";
+import { getProjectByDomain, getProjectBySlug } from "@/lib/data/projects";
 import { shareMetadata } from "@/app/s/[token]/ShareView";
 import { DashboardView } from "./DashboardView";
 
@@ -17,5 +17,8 @@ export default async function ProjectPage(props: PageProps<"/p/[slug]">) {
   const project = await getProjectBySlug(slug);
   if (!project) notFound();
   if (project.slug !== slug) redirect(`/p/${project.slug}`);
-  return <DashboardView project={project} />;
+  // On a hostname that belongs to one project, no other project exists.
+  const owned = await getProjectByDomain((await headers()).get("host"));
+  if (owned && owned.id !== project.id) notFound();
+  return <DashboardView project={project} homeHref={owned ? null : "/projects"} />;
 }

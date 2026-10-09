@@ -165,6 +165,9 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
         if (spec.when && !rowMatches(columns, i, spec.when)) continue;
         out[i] = Math.max(0, Math.floor((now - (a[i] as number)) / DAY));
       }
+    } else if (spec.kind === "daysUntil") {
+      const a = getCol(spec.from);
+      for (let i = 0; i < n; i++) if (typeof a[i] === "number") out[i] = Math.floor(((a[i] as number) - now) / DAY);
     } else if (spec.kind === "keyword") {
       const cols = spec.from.map(getCol);
       for (let i = 0; i < n; i++) out[i] = keyword(cols.map((c) => (typeof c[i] === "string" ? (c[i] as string) : null)), spec.rules, spec.fallback);
@@ -203,6 +206,7 @@ function topoOrder(derived: Field[]): Field[] {
     switch (s.kind) {
       case "diffDays": return [s.from, s.to];
       case "ageDays": return [s.from];
+      case "daysUntil": return [s.from];
       case "keyword": return s.from;
       case "laneType": return [s.origin, s.destination];
       case "coalesce": return s.fields;
