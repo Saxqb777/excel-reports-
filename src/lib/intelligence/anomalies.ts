@@ -62,7 +62,7 @@ export function computeAnomalies({ current, history, schema, layout }: { current
 
   // Row-level outliers on measures.
   const idField = schema.idField;
-  for (const f of current.fields.filter((x) => x.role === "measure" && x.type === "number")) {
+  for (const f of current.fields.filter((x) => x.role === "measure" && x.type === "number" && x.derived?.kind !== "daysUntil")) {
     const col = current.columns[f.id] ?? [];
     const vals: number[] = [];
     for (const v of col) if (typeof v === "number") vals.push(v);

@@ -221,12 +221,12 @@ function parseCsv(buffer: ArrayBuffer | Buffer, fileName: string): ParsedWorkboo
   return { fileName, sheets: [sheet], primary: 0 };
 }
 
-/** Parse ISO, dd/mm/yyyy, dd-mm-yyyy, mm/dd/yyyy (when unambiguous), d MMM yyyy. Returns epoch ms at UTC midnight. */
+/** Parse ISO, dd/mm/yyyy, dd-mm-yyyy, mm/dd/yyyy (when unambiguous), d MMM yyyy, each with an optional time. Returns epoch ms at UTC midnight. */
 export function parseLooseDate(s: string): number | null {
   const t = s.trim();
   let m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ].*)?$/.exec(t);
   if (m) return Date.UTC(+m[1], +m[2] - 1, +m[3]);
-  m = /^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/.exec(t);
+  m = /^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})(?:[ T]\d{1,2}:\d{2}(?::\d{2})?\s*(?:[ap]m)?)?$/i.exec(t);
   if (m) {
     let a = +m[1], b = +m[2];
     const y = m[3].length === 2 ? 2000 + +m[3] : +m[3];

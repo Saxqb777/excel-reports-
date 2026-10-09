@@ -150,6 +150,7 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
 
   const n = rowRefs.length;
   const getCol = (id: string) => columns[id] ?? new Array<ColumnValue>(n).fill(null);
+  fixSwappedDates(base, sources, sheet, columns, rowRefs, fixes);
   const home = schema.home ?? ["UAE", "United Arab Emirates", "Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Al Ain", "Jebel Ali", "JAFZA", "Kizad", "Mussafah", "Fujairah", "RAK", "Ras Al Khaimah", "Umm Al Quwain"];
   const order = topoOrder(derived);
   for (const f of order) {
@@ -167,7 +168,7 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
       }
     } else if (spec.kind === "daysUntil") {
       const a = getCol(spec.from);
-      for (let i = 0; i < n; i++) if (typeof a[i] === "number") out[i] = Math.floor(((a[i] as number) - now) / DAY);
+      for (let i = 0; i < n; i++) if (typeof a[i] === "number") out[i] = Math.trunc(((a[i] as number) - now) / DAY);
     } else if (spec.kind === "keyword") {
       const cols = spec.from.map(getCol);
       for (let i = 0; i < n; i++) out[i] = keyword(cols.map((c) => (typeof c[i] === "string" ? (c[i] as string) : null)), spec.rules, spec.fallback);
@@ -190,6 +191,15 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
     } else if (spec.kind === "period") {
       const a = getCol(spec.from);
       for (let i = 0; i < n; i++) if (typeof a[i] === "number") out[i] = periodStart(a[i] as number, spec.unit);
+    } else if (spec.kind === "pendingCount" || spec.kind === "pendingList") {
+      const cols = spec.fields.map(getCol);
+      const labels = spec.fields.map((id) => fields.find((x) => x.id === id)?.label ?? id);
+      const done = new Set(spec.done.map(normKey));
+      for (let i = 0; i < n; i++) {
+        const pending: string[] = [];
+        cols.forEach((c, k) => { const v = c[i]; if (v === null || !done.has(normKey(v))) pending.push(labels[k]); });
+        out[i] = spec.kind === "pendingCount" ? pending.length : pending.length ? pending.join(", ") : null;
+      }
     }
     columns[f.id] = out;
   }
@@ -197,6 +207,41 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
   const variantsOut: Record<string, Record<string, string[]>> = {};
   for (const [fid, m] of Object.entries(variants)) variantsOut[fid] = Object.fromEntries(Object.entries(m).map(([k, v]) => [k, [...v].sort()]));
   return { uploadId: opts.uploadId, version: opts.version, builtAt: new Date(now).toISOString(), fields, n, columns, rowRefs, excluded, fixes, variants: variantsOut };
+}
+
+/**
+ * A date typed day-first ("4/10") on a machine whose Excel reads month-first lands as 10 April while the rest of the
+ * column was entered as text and read day-first. When a typed date sits far outside the window of the text dates and
+ * swapping day and month brings it inside, it is swapped and flagged.
+ */
+function fixSwappedDates(base: Field[], sources: Map<string, string>, sheet: ParsedSheet, columns: Record<string, ColumnValue[]>, rowRefs: number[], fixes: Fix[]) {
+  const rawByRow = new Map(sheet.rows.map((r) => [r.row, r.cells]));
+  const n = rowRefs.length;
+  for (const f of base) {
+    if (f.type !== "date") continue;
+    const h = sources.get(f.id);
+    if (!h) continue;
+    const col = columns[f.id];
+    const typed: number[] = [], text: number[] = [];
+    for (let i = 0; i < n; i++) {
+      if (typeof col[i] !== "number") continue;
+      const v = rawByRow.get(rowRefs[i])?.[h];
+      if (typeof v === "number" || (typeof v === "string" && /^\d{4}-\d{2}-\d{2}T/.test(v))) typed.push(i); else text.push(i);
+    }
+    if (text.length < 3 || typed.length === 0) continue;
+    const ts = text.map((i) => col[i] as number);
+    const lo = Math.min(...ts) - 45 * DAY, hi = Math.max(...ts) + 45 * DAY;
+    for (const i of typed) {
+      const v = col[i] as number;
+      if (v >= lo && v <= hi) continue;
+      const d = new Date(v);
+      if (d.getUTCDate() > 12) continue;
+      const swapped = Date.UTC(d.getUTCFullYear(), d.getUTCDate() - 1, d.getUTCMonth() + 1);
+      if (swapped < lo || swapped > hi) continue;
+      fixes.push({ row: rowRefs[i], field: f.id, from: d.toISOString().slice(0, 10), to: new Date(swapped).toISOString().slice(0, 10), reason: "Day and month looked swapped (typed day-first, read month-first by Excel); aligned with the rest of the column" });
+      col[i] = swapped;
+    }
+  }
 }
 
 function topoOrder(derived: Field[]): Field[] {
@@ -212,6 +257,8 @@ function topoOrder(derived: Field[]): Field[] {
       case "coalesce": return s.fields;
       case "bucket": return [s.from];
       case "period": return [s.from];
+      case "pendingCount": return s.fields;
+      case "pendingList": return s.fields;
     }
   };
   const out: Field[] = [];

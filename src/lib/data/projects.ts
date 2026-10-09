@@ -162,9 +162,16 @@ export async function getSnapshot(project: ProjectSummary): Promise<Snapshot | n
   if (!u) return null;
   const wanted = schemaHash(project.schemaMap);
   const stored = u.snapshot as (Snapshot & { schemaHash?: string }) | null;
-  if (stored && stored.schemaHash === wanted) return stored;
+  if (stored && stored.schemaHash === wanted && !countdownStale(stored, project.schemaMap)) return stored;
   const rebuilt = await rebuildSnapshot(u, project.schemaMap);
   return rebuilt;
+}
+
+/** Fields counted from today (days until an ETA, age in days) drift; a snapshot that carries them is rebuilt every 12 hours. */
+function countdownStale(snap: Snapshot, schemaMap: SchemaMap): boolean {
+  if (!schemaMap.fields.some((f) => f.derived && (f.derived.kind === "daysUntil" || f.derived.kind === "ageDays"))) return false;
+  const built = Date.parse(snap.builtAt);
+  return !Number.isFinite(built) || Date.now() - built > 12 * 3_600_000;
 }
 
 export async function rebuildSnapshot(u: UploadRow, schemaMap: SchemaMap): Promise<Snapshot> {

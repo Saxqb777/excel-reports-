@@ -5,6 +5,7 @@ import { getProjectById } from "@/lib/data/projects";
 import { proposeLayout } from "@/lib/dashboard/propose";
 import { agthiaLayout } from "@/lib/templates/agthia";
 import { shipmentsLayout } from "@/lib/templates/shipments";
+import { containersLayout } from "@/lib/templates/containers";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export async function POST(_req: NextRequest, ctx: RouteContext<"/api/projects/[
   const project = await getProjectById(id);
   if (!project) return Response.json({ error: "Project not found" }, { status: 404 });
   const template = project.settings.template;
-  const layout = template === "agthia" ? agthiaLayout(project.schemaMap) : template === "shipments" ? shipmentsLayout(project.schemaMap) : proposeLayout(project.schemaMap);
+  const layout = template === "agthia" ? agthiaLayout(project.schemaMap) : template === "shipments" ? shipmentsLayout(project.schemaMap) : template === "containers" ? containersLayout(project.schemaMap) : proposeLayout(project.schemaMap);
   await db().update(schema.projects).set({ layout, updatedAt: new Date() }).where(eq(schema.projects.id, project.id));
   return Response.json({ layout });
 }

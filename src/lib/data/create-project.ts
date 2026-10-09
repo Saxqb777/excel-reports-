@@ -37,7 +37,7 @@ export async function createProjectFromWorkbook(input: CreateProjectInput) {
   const snapshot = { ...res.snapshot, schemaHash: schemaHash(res.schema) };
   await db().insert(schema.projects).values({
     id: projectId, slug, name: input.name, clientName: input.clientName ?? null,
-    description: res.template === "agthia" ? `Freight quotation pipeline for the ${input.clientName ?? input.name} account.` : `Dashboard generated from ${input.fileName}.`,
+    description: res.template === "agthia" ? `Freight quotation pipeline for the ${input.clientName ?? input.name} account.` : res.template === "shipments" ? "Export shipment tracker." : res.template === "containers" ? "Export containers with documents and vessel schedule." : `Dashboard generated from ${input.fileName}.`,
     theme, schemaMap: res.schema, layout: res.layout!, settings: { template: res.template }, currentUploadId: null, shareToken, shareEnabled: true,
   });
   await db().insert(schema.uploads).values({

@@ -72,7 +72,7 @@ export function TableTile({ w, newIds, changedIds, comparedTo }: { w: TableWidge
     const { isNew, isChanged } = marker(rid);
     const text = formatValue(v, c);
     if (c.role === "id" && (isNew || isChanged)) return <span className="flex items-center gap-1.5 whitespace-nowrap"><span className="text-ink">{text}</span>{badge(isNew, isChanged)}</span>;
-    if (c.id === w.statusField && v !== null) return <span className="flex items-center gap-1.5 whitespace-nowrap text-ink"><span className="inline-block h-[7px] w-[7px] rounded-full" style={{ background: toneVar(statusTone(String(v))) }} />{text}</span>;
+    if ((c.id === w.statusField || w.statusFields?.includes(c.id)) && v !== null) return <span className="flex items-center gap-1.5 whitespace-nowrap text-ink"><span className="inline-block h-[7px] w-[7px] rounded-full" style={{ background: toneVar(statusTone(String(v))) }} />{text}</span>;
     if (c.id === w.emphasisField && typeof v === "number") return <span className="flex items-center justify-end gap-2">{emphBar(i)}{text}</span>;
     if (c.role === "text") return <span className={expanded === i ? "" : "truncate-2 block"} title={v === null ? undefined : text}>{v === null ? <span className="text-ink-4">·</span> : text}</span>;
     return v === null ? <span className="text-ink-4">·</span> : text;

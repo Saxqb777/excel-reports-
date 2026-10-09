@@ -27,7 +27,11 @@ export type DerivedSpec =
   | { kind: "laneType"; origin: string; destination: string; home: string[] }
   | { kind: "coalesce"; fields: string[] }
   | { kind: "bucket"; from: string; edges: number[]; labels: string[] }
-  | { kind: "period"; from: string; unit: "week" | "month" };
+  | { kind: "period"; from: string; unit: "week" | "month" }
+  /** How many of `fields` are not marked done (empty counts as not done). */
+  | { kind: "pendingCount"; fields: string[]; done: string[] }
+  /** Labels of the `fields` not marked done, comma-separated; null when all are done. */
+  | { kind: "pendingList"; fields: string[]; done: string[] };
 
 export type FieldFormat = "integer" | "decimal" | "currency" | "percent" | "days" | "date" | "text";
 

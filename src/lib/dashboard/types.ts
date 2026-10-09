@@ -66,6 +66,8 @@ export interface TableWidget extends WidgetBase {
   search?: boolean;
   /** Field rendered as a status pill. */
   statusField?: string;
+  /** Further fields rendered with a status dot (e.g. a document checklist). */
+  statusFields?: string[];
   /** Field whose value drives row emphasis (e.g. age). */
   emphasisField?: string;
   dense?: boolean;
