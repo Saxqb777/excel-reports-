@@ -10,6 +10,16 @@ function numFmt(opts: Intl.NumberFormatOptions): Intl.NumberFormat {
 
 export type ValueFormat = "integer" | "decimal" | "currency" | "percent" | "days" | "date" | "text" | "compact";
 
+/** Compact numbers by hand: Intl's compact notation differs between Node and browser ICU versions ("8.7m" vs "8.7M"), which breaks hydration. */
+function compactNumber(v: number): string {
+  const a = Math.abs(v);
+  const one = numFmt({ maximumFractionDigits: 1 });
+  if (a >= 1e9) return `${one.format(v / 1e9)}B`;
+  if (a >= 1e6) return `${one.format(v / 1e6)}M`;
+  if (a >= 1e3) return `${one.format(v / 1e3)}K`;
+  return numFmt({ maximumFractionDigits: 0 }).format(v);
+}
+
 export function formatNumber(v: number | null | undefined, format: ValueFormat = "integer", currency = "AED", compact = false): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return "–";
   switch (format) {
@@ -17,13 +27,13 @@ export function formatNumber(v: number | null | undefined, format: ValueFormat =
     case "days": return `${numFmt({ maximumFractionDigits: Math.abs(v) < 10 ? 1 : 0 }).format(v)}d`;
     case "currency":
       return compact && Math.abs(v) >= 10000
-        ? `${currency} ${numFmt({ notation: "compact", maximumFractionDigits: 1 }).format(v)}`
+        ? `${currency} ${compactNumber(v)}`
         : `${currency} ${numFmt({ maximumFractionDigits: 0 }).format(v)}`;
     case "decimal": return numFmt({ maximumFractionDigits: 2, minimumFractionDigits: 0 }).format(v);
-    case "compact": return numFmt({ notation: "compact", maximumFractionDigits: 1 }).format(v);
+    case "compact": return compactNumber(v);
     case "date": return formatDate(v);
     default:
-      return compact && Math.abs(v) >= 10000 ? numFmt({ notation: "compact", maximumFractionDigits: 1 }).format(v) : numFmt({ maximumFractionDigits: 0 }).format(v);
+      return compact && Math.abs(v) >= 10000 ? compactNumber(v) : numFmt({ maximumFractionDigits: 0 }).format(v);
   }
 }
 
