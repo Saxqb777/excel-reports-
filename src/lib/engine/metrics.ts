@@ -45,15 +45,21 @@ export function computeMetric(snapshot: Pick<Snapshot, "columns" | "n">, mask: U
     return c;
   }
   if (m.agg === "rate") {
+    // With a field, the rate is over distinct values of that field (containers) rather than rows (container lines).
+    const keyCol = m.field ? columns[m.field] : undefined;
+    const numSet = new Set<ColumnValue>(), denSet = new Set<ColumnValue>();
     let num = 0, den = 0;
     for (let i = 0; i < n; i++) {
       if (!mask[i]) continue;
       if (m.filter && !rowMatches(columns, i, m.filter)) continue;
       const inDen = m.denominator ? rowMatches(columns, i, m.denominator) : true;
       if (!inDen) continue;
-      den++;
-      if (m.numerator && rowMatches(columns, i, m.numerator)) num++;
+      const key = keyCol ? keyCol[i] : null;
+      if (keyCol && key === null) continue;
+      if (keyCol) denSet.add(key); else den++;
+      if (m.numerator && rowMatches(columns, i, m.numerator)) { if (keyCol) numSet.add(key); else num++; }
     }
+    if (keyCol) { num = numSet.size; den = denSet.size; }
     return den === 0 ? null : num / den;
   }
   if (m.agg === "distinct") {
@@ -109,10 +115,16 @@ export function groupBy(snapshot: Pick<Snapshot, "columns" | "n">, mask: Uint8Ar
     const row: GroupRow = { key, value, count: idx.length };
     if (stackCol) {
       const stacks: Record<string, number> = {};
+      const seen: Record<string, Set<ColumnValue>> = {};
       for (const i of idx) {
         if (metric.filter && !rowMatches(columns, i, metric.filter)) continue;
         const s = stackCol[i] === null ? nullLabel : String(stackCol[i]);
-        stacks[s] = (stacks[s] ?? 0) + (metric.agg === "count" ? 1 : (typeof columns[metric.field!]?.[i] === "number" ? (columns[metric.field!][i] as number) : 0));
+        if (metric.agg === "distinct") {
+          const v = columns[metric.field!]?.[i];
+          if (v === null || v === undefined) continue;
+          (seen[s] ??= new Set()).add(v);
+          stacks[s] = seen[s].size;
+        } else stacks[s] = (stacks[s] ?? 0) + (metric.agg === "count" ? 1 : (typeof columns[metric.field!]?.[i] === "number" ? (columns[metric.field!][i] as number) : 0));
       }
       row.stacks = stacks;
     }

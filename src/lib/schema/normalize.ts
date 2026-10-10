@@ -129,6 +129,8 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
     const idValue = idField ? (rec[idField.id] as string | null) : null;
     // Exclusions
     if (nonIdValues === 0) { excluded.push({ row: raw.row, reason: idValue ? "Only the identifier is filled in" : "Empty row", id: idValue }); continue; }
+    // A row with no identifier and only a couple of cells (a totals line under the table, a stray number) is not a record.
+    if (!idValue && nonIdValues <= Math.max(2, Math.floor(base.length * 0.1))) { excluded.push({ row: raw.row, reason: "Almost empty row (looks like a total or a note)", id: idValue }); continue; }
     if (firstText && /^(grand\s+)?(sub)?total\b/i.test(firstText)) { excluded.push({ row: raw.row, reason: "Totals row", id: idValue }); continue; }
     const headerRepeat = base.filter((f) => f.source).every((f) => { const h = sources.get(f.id); return !h || normKey(raw.cells[h]) === normKey(h) || raw.cells[h] === null; });
     if (headerRepeat && base.some((f) => { const h = sources.get(f.id); return h && normKey(raw.cells[h]) === normKey(h); })) { excluded.push({ row: raw.row, reason: "Repeated header row", id: idValue }); continue; }
@@ -151,6 +153,7 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
   const n = rowRefs.length;
   const getCol = (id: string) => columns[id] ?? new Array<ColumnValue>(n).fill(null);
   fixSwappedDates(base, sources, sheet, columns, rowRefs, fixes);
+  fixDateOrder(base, schema.dateChain ?? [], sources, sheet, columns, rowRefs, fixes);
   const home = schema.home ?? ["UAE", "United Arab Emirates", "Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Al Ain", "Jebel Ali", "JAFZA", "Kizad", "Mussafah", "Fujairah", "RAK", "Ras Al Khaimah", "Umm Al Quwain"];
   const order = topoOrder(derived);
   for (const f of order) {
@@ -191,6 +194,12 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
     } else if (spec.kind === "period") {
       const a = getCol(spec.from);
       for (let i = 0; i < n; i++) if (typeof a[i] === "number") out[i] = periodStart(a[i] as number, spec.unit);
+    } else if (spec.kind === "baseRef") {
+      const a = getCol(spec.from);
+      for (let i = 0; i < n; i++) {
+        const v = a[i];
+        out[i] = typeof v === "string" && v.trim() ? v.trim().replace(/[\s_-]+\d{1,2}$/, "") : `Row ${rowRefs[i]}`;
+      }
     } else if (spec.kind === "pendingCount" || spec.kind === "pendingList") {
       const cols = spec.fields.map(getCol);
       const labels = spec.fields.map((id) => fields.find((x) => x.id === id)?.label ?? id);
@@ -244,6 +253,42 @@ function fixSwappedDates(base: Field[], sources: Map<string, string>, sheet: Par
   }
 }
 
+const isTypedDate = (v: RawCell) => typeof v === "number" || (typeof v === "string" && /^\d{4}-\d{2}-\d{2}T/.test(v));
+const swapDayMonth = (t: number) => { const d = new Date(t); return d.getUTCDate() > 12 ? null : Date.UTC(d.getUTCFullYear(), d.getUTCDate() - 1, d.getUTCMonth() + 1); };
+
+/**
+ * Second net for swapped day/month: dates in a row happen in a known order (loading before sailing before arrival).
+ * A typed, ambiguous date that breaks that order with its neighbours, and fits once day and month are swapped, is swapped.
+ */
+function fixDateOrder(base: Field[], chain: string[], sources: Map<string, string>, sheet: ParsedSheet, columns: Record<string, ColumnValue[]>, rowRefs: number[], fixes: Fix[]) {
+  const ids = chain.filter((id) => columns[id] && base.some((f) => f.id === id && f.type === "date" && sources.has(f.id)));
+  if (ids.length < 2) return;
+  const rawByRow = new Map(sheet.rows.map((r) => [r.row, r.cells]));
+  const n = rowRefs.length;
+  for (let i = 0; i < n; i++) {
+    const raw = rawByRow.get(rowRefs[i]);
+    for (let pass = 0; pass < 3; pass++) {
+      let changed = false;
+      for (let k = 0; k < ids.length; k++) {
+        const v = columns[ids[k]][i];
+        if (typeof v !== "number" || !isTypedDate(raw?.[sources.get(ids[k])!] ?? null)) continue;
+        let prev: number | null = null, next: number | null = null;
+        for (let j = k - 1; j >= 0 && prev === null; j--) { const p = columns[ids[j]][i]; if (typeof p === "number") prev = p; }
+        for (let j = k + 1; j < ids.length && next === null; j++) { const q = columns[ids[j]][i]; if (typeof q === "number") next = q; }
+        const broken = (prev !== null && v < prev) || (next !== null && v > next);
+        if (!broken) continue;
+        const swapped = swapDayMonth(v);
+        if (swapped === null || swapped === v) continue;
+        if ((prev !== null && swapped < prev) || (next !== null && swapped > next)) continue;
+        fixes.push({ row: rowRefs[i], field: ids[k], from: new Date(v).toISOString().slice(0, 10), to: new Date(swapped).toISOString().slice(0, 10), reason: "Day and month looked swapped: out of order with the row's other dates, in order once swapped" });
+        columns[ids[k]][i] = swapped;
+        changed = true;
+      }
+      if (!changed) break;
+    }
+  }
+}
+
 function topoOrder(derived: Field[]): Field[] {
   const byId = new Map(derived.map((f) => [f.id, f]));
   const deps = (f: Field): string[] => {
@@ -259,6 +304,7 @@ function topoOrder(derived: Field[]): Field[] {
       case "period": return [s.from];
       case "pendingCount": return s.fields;
       case "pendingList": return s.fields;
+      case "baseRef": return [s.from];
     }
   };
   const out: Field[] = [];

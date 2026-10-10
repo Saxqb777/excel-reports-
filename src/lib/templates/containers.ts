@@ -1,11 +1,13 @@
 import type { Field, FilterExpr, SchemaMap } from "@/lib/schema/types";
 import { normKey } from "@/lib/schema/types";
 import type { Layout, Page, Widget } from "@/lib/dashboard/types";
+import type { MetricSpec } from "@/lib/engine/metrics";
 
 /**
- * Curated layout for an export container tracker: one row per container with the sales order, product, vessel,
- * loading and sailing dates, a status and a Done/Pending checklist of export documents.
- * Matched by headers (the Bait Al Tamour tracker); works for any sheet using the same column names.
+ * Curated layout for an export container tracker: one row per container line (a container carrying several products is
+ * split into "ABCD1234567", "ABCD1234567-1", "ABCD1234567-2"), with the sales order, product, vessel, loading and sailing
+ * dates, a status and a Done/Pending checklist of export documents. Everything the viewer sees counts physical containers,
+ * never split lines. Matched by headers (the Bait Al Tamour tracker); works for any sheet using the same column names.
  */
 
 /** Export documents tracked per container, each a Done / Pending column in the sheet. */
@@ -22,35 +24,46 @@ const DOCS: { id: string; label: string; headers: string[] }[] = [
   { id: "doc_bl", label: "B/L issued", headers: ["bl", "b/l", "bill of lading"] },
 ];
 const DOC_DONE = ["Done", "Yes", "Completed", "Complete", "OK", "Received", "Issued"];
-const DOC_VALUE_MAP: Record<string, string> = { yes: "Done", ok: "Done", completed: "Done", complete: "Done", received: "Done", issued: "Done", y: "Done", no: "Pending", n: "Pending", "not yet": "Pending", "in progress": "Pending", pending: "Pending", "-": "Pending" };
+const DOC_VALUE_MAP: Record<string, string> = { yes: "Done", ok: "Done", completed: "Done", complete: "Done", received: "Done", issued: "Done", y: "Done", no: "Pending", n: "Pending", "not yet": "Pending", "in progress": "Pending", "under preparation": "Pending", pending: "Pending", "-": "Pending" };
 
-export const CONTAINER_STATUSES = ["Loading", "On the way to port", "In Sajja depot", "At port", "Sailing", "Arrived", "Delivered"];
+/** The sheet's own status vocabulary (its "Lisit" sheet), in process order. */
+export const CONTAINER_STATUSES = [
+  "Planned", "Gate Out", "On the Way Loading", "Waiting for Loading", "Under Loading",
+  "On the way to Sajja", "Staging in Sajja", "On the Way to KCT", "Under Clearance", "Gate In KCT",
+  "Container Onboarded in Vessel", "Sailing", "Arrived", "Delivered",
+];
 const STATUS_VALUE_MAP: Record<string, string> = {
-  "on the way loading": "Loading", "under loading": "Loading", "loading": "Loading",
-  "on the way to port": "On the way to port", "to port": "On the way to port",
-  "container in sajja": "In Sajja depot", "in sajja": "In Sajja depot", "sajja": "In Sajja depot",
-  "in kct": "At port", "kct": "At port", "in port": "At port", "gate in": "At port",
-  "sailed": "Sailing", "on board": "Sailing", "in transit": "Sailing",
+  "stagging in sajja": "Staging in Sajja", "container in sajja": "Staging in Sajja", "in sajja": "Staging in Sajja",
+  "on the way to port": "On the Way to KCT", "to port": "On the Way to KCT", "on the way to kct": "On the Way to KCT",
+  "in kct": "Gate In KCT", "gate in": "Gate In KCT", "in port": "Gate In KCT",
+  "onboarded": "Container Onboarded in Vessel", "on board": "Container Onboarded in Vessel", "loaded on vessel": "Container Onboarded in Vessel",
+  "sailed": "Sailing", "in transit": "Sailing",
   "discharged": "Arrived", "reached": "Arrived",
 };
-export const STAGES = ["Loading", "On the way to port", "In depot", "Sailing", "Arrived"];
+export const STAGES = ["Planned", "Loading", "To port", "At port", "On vessel", "Arrived"];
 
 /** ERP item descriptions folded into customer-facing product names. Unknown descriptions show as typed. */
 const PRODUCT_NAMES: Record<string, string> = {
   "dc fardh pch 500gm*16 india": "Fardh 500 g pouch × 16",
+  "dc fardh pch 250gm*20 india": "Fardh 250 g pouch × 20",
   "dc khenzi pch 500gm*16 ind": "Khenaizi 500 g pouch × 16",
+  "dc khenzi pch 500gm*16 ind 18m": "Khenaizi 500 g pouch × 16 (18 months)",
   "dc khenaizi retail t/b box 5kg": "Khenaizi 5 kg box",
   "dc khenaizi retail t/b box": "Khenaizi 5 kg box",
   "dc bouman thrmo 500gm*16 in": "Bouman 500 g thermo × 16",
+  "dc bouman thrmo 500gm*16 ind": "Bouman 500 g thermo × 16",
   "dc neghal t/b box 5kg": "Neghal 5 kg box",
   "emirates deluxe fardh 500gx16": "Emirates Deluxe Fardh 500 g × 16",
+  "emirates deluxe fardh 500gx14": "Emirates Deluxe Fardh 500 g × 14",
   "emirates premium 10x800g-ind": "Emirates Premium 800 g × 10",
   "emirates premium 10x800g-in": "Emirates Premium 800 g × 10",
   "barhi thrmo 500gm*16 ind": "Barhi 500 g thermo × 16",
   "dc khlas tub 750gm*12 india": "Khalas 750 g tub × 12",
 };
 
+const CURRENCY = "AED";
 type Spec = { headers: string[]; patch: Partial<Field> & { id: string } };
+const money = (id: string, label: string, aggregate?: Field["aggregate"]): Partial<Field> & { id: string } => ({ id, label, type: "number", role: "measure", semantic: "amount", format: "currency", currency: CURRENCY, ...(aggregate ? { aggregate } : {}) });
 const SPECS: Spec[] = [
   { headers: ["s.no", "s no", "sl no", "sr no", "#"], patch: { id: "s_no", role: "ignore" } },
   { headers: ["so order number", "so number", "sales order", "sales order number"], patch: { id: "sales_order", label: "Sales order", type: "string", role: "dimension" } },
@@ -60,6 +73,12 @@ const SPECS: Spec[] = [
   { headers: ["sku description", "item description", "product"], patch: { id: "product", label: "Product", type: "string", role: "dimension", semantic: "description", valueMap: PRODUCT_NAMES } },
   { headers: ["order qty", "qty", "quantity", "cartons"], patch: { id: "cartons", label: "Cartons", type: "number", role: "measure", semantic: "quantity", format: "integer" } },
   { headers: ["net weight ( mt )", "net weight (mt)", "net weight mt", "net weight"], patch: { id: "net_weight_mt", label: "Net weight (MT)", type: "number", role: "measure", semantic: "quantity", format: "decimal" } },
+  { headers: ["gross weight (mt)", "gross weight ( mt )", "gross weight mt", "gross weight"], patch: { id: "gross_weight_mt", label: "Gross weight (MT)", type: "number", role: "measure", semantic: "quantity", format: "decimal" } },
+  { headers: ["per ton cost", "price per ton", "rate per mt"], patch: money("price_per_mt", `Price per MT (${CURRENCY})`, "avg") },
+  { headers: ["material cost", "goods value"], patch: money("material_value", `Goods value (${CURRENCY})`) },
+  { headers: ["loading charge", "loading charges"], patch: money("loading_charge", `Loading charge (${CURRENCY})`) },
+  { headers: ["actual erp invoice", "invoice value", "invoice amount"], patch: money("invoice_value", `Invoice value (${CURRENCY})`) },
+  { headers: ["per carton", "price per carton"], patch: money("price_per_carton", `Price per carton (${CURRENCY})`, "avg") },
   { headers: ["erp invoice"], patch: { id: "erp_invoice", label: "ERP invoice", type: "string", role: "text", hidden: true } },
   { headers: ["manual inv number", "invoice number", "invoice no"], patch: { id: "invoice_number", label: "Invoice no.", type: "string", role: "text" } },
   { headers: ["dpw booking number", "dp world booking"], patch: { id: "dpw_booking", label: "DP World booking", type: "string", role: "text", hidden: true } },
@@ -72,6 +91,7 @@ const SPECS: Spec[] = [
   { headers: ["pol", "port of loading"], patch: { id: "pol", label: "Port of loading", type: "string", role: "dimension", semantic: "origin" } },
   { headers: ["pod", "port of discharge"], patch: { id: "pod", label: "Port of discharge", type: "string", role: "dimension", semantic: "destination" } },
   { headers: ["seal number", "seal no"], patch: { id: "seal_number", label: "Seal", type: "string", role: "text", hidden: true } },
+  { headers: ["transporter", "trucking company", "haulier"], patch: { id: "transporter", label: "Transporter", type: "string", role: "dimension", hidden: true } },
   { headers: ["truck number", "truck no"], patch: { id: "truck_number", role: "ignore" } },
   { headers: ["driver name", "driver"], patch: { id: "driver_name", role: "ignore" } },
   { headers: ["driver mobile number", "driver mobile", "driver phone"], patch: { id: "driver_mobile", role: "ignore" } },
@@ -103,6 +123,9 @@ export function matchesContainers(headers: string[]): boolean {
   return ["container_number", "status", "vessel", "eta", "loading_date"].every((id) => ids.has(id)) && docs >= 3;
 }
 
+/** Dates in the order they happen for one container; a typed date out of this order is probably day/month swapped. */
+const DATE_CHAIN = ["stock_ready_date", "loading_date", "factory_gate_out", "gate_in", "cut_off", "ets", "eta"];
+
 export function containersSchema(inferred: SchemaMap): SchemaMap {
   const fields: Field[] = [];
   const taken = new Set<string>();
@@ -120,80 +143,89 @@ export function containersSchema(inferred: SchemaMap): SchemaMap {
   const has = (id: string) => fields.some((f) => f.id === id);
   const docIds = DOCS.map((d) => d.id).filter(has);
   fields.push(
+    // One physical container can be split into several lines ("-1", "-2"): this is the key everything counts by.
+    { id: "container_id", label: "Container (physical)", source: null, type: "string", role: "text", hidden: true, derived: { kind: "baseRef", from: "container_number" } },
     { id: "stage", label: "Stage", source: null, type: "string", role: "dimension", semantic: "status", order: STAGES,
       derived: { kind: "keyword", from: ["status"], rules: [
         { value: "Arrived", match: ["arrived", "delivered", "discharged", "reached"] },
-        { value: "Sailing", match: ["sailing", "sailed", "on board", "departed", "in transit"] },
-        { value: "At port", match: ["at port", "in port", "kct", "gate in"] },
-        { value: "In depot", match: ["sajja", "depot", "yard"] },
-        { value: "On the way to port", match: ["to port"] },
-        { value: "Loading", match: ["loading", "stuffing", "factory", "ready"] },
+        { value: "On vessel", match: ["onboarded", "on board", "sailing", "sailed", "departed", "in transit"] },
+        { value: "At port", match: ["gate in kct", "under clearance", "in kct", "at port", "in port", "gate in"] },
+        { value: "To port", match: ["sajja", "to kct", "to port", "staging", "stagging", "depot", "yard"] },
+        { value: "Planned", match: ["planned", "gate out", "on the way loading", "waiting for loading", "not started"] },
+        { value: "Loading", match: ["loading", "stuffing", "factory"] },
       ], fallback: null } },
   );
-  if (has("eta")) fields.push({ id: "days_to_arrival", label: "Days to arrival", source: null, type: "number", role: "measure", format: "days", derived: { kind: "daysUntil", from: "eta" } });
-  if (has("loading_date") && has("ets")) fields.push({ id: "loading_to_sailing_days", label: "Loading to sailing (days)", source: null, type: "number", role: "measure", format: "days", derived: { kind: "diffDays", from: "loading_date", to: "ets" } });
-  if (has("ets") && has("eta")) fields.push({ id: "transit_days", label: "Transit (days)", source: null, type: "number", role: "measure", format: "days", derived: { kind: "diffDays", from: "ets", to: "eta" } });
+  if (has("eta")) fields.push({ id: "days_to_arrival", label: "Days to arrival", source: null, type: "number", role: "measure", format: "days", aggregate: "min", derived: { kind: "daysUntil", from: "eta" } });
+  if (has("loading_date") && has("ets")) fields.push({ id: "loading_to_sailing_days", label: "Loading to sailing (days)", source: null, type: "number", role: "measure", format: "days", aggregate: "max", derived: { kind: "diffDays", from: "loading_date", to: "ets" } });
+  if (has("ets") && has("eta")) fields.push({ id: "transit_days", label: "Transit (days)", source: null, type: "number", role: "measure", format: "days", aggregate: "max", derived: { kind: "diffDays", from: "ets", to: "eta" } });
   if (docIds.length) {
     fields.push(
-      { id: "docs_pending", label: "Documents pending", source: null, type: "number", role: "measure", format: "integer", derived: { kind: "pendingCount", fields: docIds, done: DOC_DONE } },
+      { id: "docs_pending", label: "Documents pending", source: null, type: "number", role: "measure", format: "integer", aggregate: "max", derived: { kind: "pendingCount", fields: docIds, done: DOC_DONE } },
       { id: "docs_pending_list", label: "Pending documents", source: null, type: "string", role: "text", derived: { kind: "pendingList", fields: docIds, done: DOC_DONE } },
       { id: "docs_status", label: "Documents", source: null, type: "string", role: "dimension", semantic: "status", order: ["Complete", "Pending"], derived: { kind: "bucket", from: "docs_pending", edges: [1], labels: ["Complete", "Pending"] } },
     );
   }
-  return { ...inferred, fields, idField: has("container_number") ? "container_number" : inferred.idField, primaryDate: has("loading_date") ? "loading_date" : inferred.primaryDate };
+  return { ...inferred, fields, idField: has("container_number") ? "container_number" : inferred.idField, primaryDate: has("loading_date") ? "loading_date" : inferred.primaryDate, dateChain: DATE_CHAIN.filter(has) };
 }
 
-const sailing: FilterExpr = { field: "stage", op: "eq", value: "Sailing" };
+const onVessel: FilterExpr = { field: "stage", op: "eq", value: "On vessel" };
 const arrived: FilterExpr = { field: "stage", op: "eq", value: "Arrived" };
-const beforeSailing: FilterExpr = { field: "stage", op: "nin", value: ["Sailing", "Arrived"] };
-const inDepot: FilterExpr = { field: "stage", op: "eq", value: "In depot" };
-const pastEta: FilterExpr = { and: [sailing, { field: "days_to_arrival", op: "lt", value: 0 }] };
+const beforeVessel: FilterExpr = { field: "stage", op: "nin", value: ["On vessel", "Arrived"] };
+const toLoad: FilterExpr = { field: "stage", op: "in", value: ["Planned", "Loading"] };
+const pastEta: FilterExpr = { and: [onVessel, { field: "days_to_arrival", op: "lt", value: 0 }] };
 const docsComplete: FilterExpr = { field: "docs_status", op: "eq", value: "Complete" };
 const docsPending: FilterExpr = { field: "docs_pending", op: "gt", value: 0 };
+/** Physical containers, not container lines. */
+const containers = (filter?: FilterExpr): MetricSpec => ({ agg: "distinct", field: "container_id", format: "integer", ...(filter ? { filter } : {}) });
+const share = (numerator: FilterExpr): MetricSpec => ({ agg: "rate", field: "container_id", numerator, format: "percent" });
+const aed = (field: string, filter?: FilterExpr): MetricSpec => ({ agg: "sum", field, format: "currency", currency: CURRENCY, ...(filter ? { filter } : {}) });
 
 export function containersLayout(schema: SchemaMap): Layout {
   const has = (id: string) => schema.fields.some((f) => f.id === id);
   const docIds = DOCS.map((d) => d.id).filter(has);
+  const table = (w: Omit<Extract<Widget, { type: "table" }>, "type" | "groupBy" | "rowLabel">): Widget => ({ type: "table", groupBy: "container_id", rowLabel: "containers", ...w, columns: w.columns.filter(has) });
   const overviewWidgets: Widget[] = [
     { id: "insights", type: "insights", title: "What changed since the last update" },
-    { id: "kpi_containers", type: "kpi", title: "Containers", metric: { agg: "count" }, good: "up", secondary: { metric: { agg: "distinct", field: "sales_order", format: "integer" }, label: "sales orders" } },
+    { id: "kpi_containers", type: "kpi", title: "Containers", metric: containers(), good: "up", secondary: { metric: containers(toLoad), label: "still to load" } },
     { id: "kpi_tonnage", type: "kpi", title: "Net weight (MT)", metric: { agg: "sum", field: "net_weight_mt", format: "decimal" }, good: "up", secondary: { metric: { agg: "sum", field: "cartons", format: "integer" }, label: "cartons" } },
-    { id: "kpi_before", type: "kpi", title: "Before sailing", metric: { agg: "count", filter: beforeSailing }, good: "none", onClick: beforeSailing, secondary: { metric: { agg: "count", filter: inDepot }, label: "in depot" } },
-    { id: "kpi_sailing", type: "kpi", title: "Sailing", metric: { agg: "count", filter: sailing }, good: "none", onClick: sailing, secondary: { metric: { agg: "count", filter: pastEta }, label: "past ETA" } },
-    { id: "kpi_arrived", type: "kpi", title: "Arrived", metric: { agg: "count", filter: arrived }, good: "up", onClick: arrived, secondary: { metric: { agg: "rate", numerator: arrived, format: "percent" }, label: "of all containers" } },
-    { id: "kpi_docs", type: "kpi", title: "Documents complete", metric: { agg: "count", filter: docsComplete }, good: "up", onClick: docsComplete, secondary: { metric: { agg: "rate", numerator: docsComplete, format: "percent" }, label: "of all containers" } },
-    { id: "pipeline", type: "bar", title: "Where every container stands", subtitle: "Containers by stage, click to filter", dimension: "stage", metric: { agg: "count" }, sort: "order", colorBy: "status", orientation: "horizontal" },
-    { id: "loading", type: "line", title: "Loading days", subtitle: "Containers loaded per day", dateField: "loading_date", unit: "day", series: [{ label: "Containers", metric: { agg: "count" }, kind: "bar" }] },
-    { id: "vessels", type: "bar", title: "Vessels", subtitle: "Containers by vessel and stage", dimension: "vessel", metric: { agg: "count" }, stackBy: "stage", colorBy: "categorical", orientation: "horizontal", topN: 8 },
-    { id: "products", type: "bar", title: "Products", subtitle: "Net weight (MT) by product", dimension: "product", metric: { agg: "sum", field: "net_weight_mt", format: "decimal" }, colorBy: "single", orientation: "horizontal", topN: 10 },
-    { id: "orders", type: "bar", title: "Sales orders", subtitle: "Containers by sales order and stage", dimension: "sales_order", metric: { agg: "count" }, stackBy: "stage", colorBy: "categorical", orientation: "horizontal", topN: 8 },
-    { id: "docs", type: "bar", title: "Document readiness", subtitle: "Containers with every export document done", dimension: "docs_status", metric: { agg: "count" }, sort: "order", colorBy: "status", orientation: "horizontal" },
-    { id: "docs_pending", type: "table", title: "Containers with pending documents", subtitle: "What is still missing, per container", columns: ["container_number", "product", "vessel", "status", "docs_pending", "docs_pending_list"].filter(has), filter: docsPending, sort: { field: "docs_pending", dir: "desc" }, statusField: "status", emphasisField: "docs_pending", pageSize: 10 },
+    ...(has("invoice_value") ? [{ id: "kpi_value", type: "kpi", title: "Invoice value", metric: aed("invoice_value"), good: "up", secondary: { metric: { agg: "avg", field: "price_per_mt", format: "currency", currency: CURRENCY }, label: "per MT" } } as Widget] : []),
+    { id: "kpi_vessel", type: "kpi", title: "On the vessel", metric: containers(onVessel), good: "none", onClick: onVessel, secondary: { metric: containers(pastEta), label: "past ETA" } },
+    { id: "kpi_arrived", type: "kpi", title: "Arrived", metric: containers(arrived), good: "up", onClick: arrived, secondary: { metric: share(arrived), label: "of all containers" } },
+    { id: "kpi_docs", type: "kpi", title: "Documents complete", metric: containers(docsComplete), good: "up", onClick: docsComplete, secondary: { metric: share(docsComplete), label: "of all containers" } },
+    { id: "pipeline", type: "bar", title: "Where every container stands", subtitle: "Containers by stage, click to filter", dimension: "stage", metric: containers(), sort: "order", colorBy: "status", orientation: "horizontal" },
+    { id: "loading", type: "line", title: "Loading days", subtitle: "Containers loaded per day", dateField: "loading_date", unit: "day", series: [{ label: "Containers", metric: containers(), kind: "bar" }] },
+    { id: "vessels", type: "bar", title: "Vessels", subtitle: "Containers by vessel and stage", dimension: "vessel", metric: containers(), stackBy: "stage", colorBy: "categorical", orientation: "horizontal", topN: 8 },
+    { id: "products", type: "bar", title: "Products", subtitle: "Net weight (MT) by product", dimension: "product", metric: { agg: "sum", field: "net_weight_mt", format: "decimal" }, colorBy: "single", orientation: "horizontal", topN: 12 },
+    { id: "orders", type: "bar", title: "Sales orders", subtitle: "Containers by sales order and stage", dimension: "sales_order", metric: containers(), stackBy: "stage", colorBy: "categorical", orientation: "horizontal", topN: 8 },
+    { id: "docs", type: "bar", title: "Document readiness", subtitle: "Containers with every export document done", dimension: "docs_status", metric: containers(), sort: "order", colorBy: "status", orientation: "horizontal" },
+    table({ id: "docs_pending", title: "Containers with pending documents", subtitle: "What is still missing, per container", columns: ["container_number", "product", "vessel", "status", "docs_pending", "docs_pending_list"], filter: docsPending, sort: { field: "docs_pending", dir: "desc" }, statusField: "status", emphasisField: "docs_pending", pageSize: 10 }),
   ];
+  const kpiIds = ["kpi_containers", "kpi_tonnage", ...(has("invoice_value") ? ["kpi_value"] : []), "kpi_vessel", "kpi_arrived", "kpi_docs"];
+  const widths = kpiIds.length === 6 ? [2, 2, 2, 2, 2, 2] : [3, 3, 2, 2, 2];
+  let x = 0;
+  const kpiGrid = kpiIds.map((i, k) => { const g = { i, x, y: 2, w: widths[k], h: 3 }; x += widths[k]; return g; });
   const overview: Page = { id: "overview", title: "Overview", widgets: overviewWidgets, grid: [
     { i: "insights", x: 0, y: 0, w: 12, h: 2, minH: 2 },
-    { i: "kpi_containers", x: 0, y: 2, w: 2, h: 3 }, { i: "kpi_tonnage", x: 2, y: 2, w: 2, h: 3 }, { i: "kpi_before", x: 4, y: 2, w: 2, h: 3 },
-    { i: "kpi_sailing", x: 6, y: 2, w: 2, h: 3 }, { i: "kpi_arrived", x: 8, y: 2, w: 2, h: 3 }, { i: "kpi_docs", x: 10, y: 2, w: 2, h: 3 },
+    ...kpiGrid,
     { i: "pipeline", x: 0, y: 5, w: 4, h: 7 }, { i: "loading", x: 4, y: 5, w: 8, h: 7 },
-    { i: "products", x: 0, y: 12, w: 6, h: 10 }, { i: "vessels", x: 6, y: 12, w: 6, h: 4 }, { i: "orders", x: 6, y: 16, w: 6, h: 6 },
-    { i: "docs", x: 0, y: 22, w: 4, h: 6 }, { i: "docs_pending", x: 4, y: 22, w: 8, h: 6 },
+    { i: "products", x: 0, y: 12, w: 6, h: 11 }, { i: "vessels", x: 6, y: 12, w: 6, h: 5 }, { i: "orders", x: 6, y: 17, w: 6, h: 6 },
+    { i: "docs", x: 0, y: 23, w: 4, h: 6 }, { i: "docs_pending", x: 4, y: 23, w: 8, h: 6 },
   ] };
 
   const vessels: Page = { id: "vessels", title: "Vessels and arrivals", widgets: [
-    { id: "sailing", type: "table", title: "Sailing now", subtitle: "On board, by arrival date; a negative day count means the ETA has passed", columns: ["container_number", "product", "vessel", "bl_number", "ets", "eta", "days_to_arrival", "status"].filter(has), filter: sailing, sort: { field: "eta", dir: "asc" }, statusField: "status", emphasisField: "days_to_arrival", pageSize: 30 },
-    { id: "waiting", type: "table", title: "Waiting to sail", subtitle: "Loaded, in the depot or on the way to the port", columns: ["container_number", "product", "sales_order", "loading_date", "vessel", "gate_in", "cut_off", "ets", "status"].filter(has), filter: beforeSailing, sort: { field: "loading_date", dir: "desc" }, statusField: "status", pageSize: 30 },
-    { id: "dwell", type: "dots", title: "Loading to departure", subtitle: "Days between loading and the vessel's sailing date, one dot per container", valueField: "loading_to_sailing_days", labelField: "container_number", colorField: "vessel", format: "days" },
+    table({ id: "sailing", title: "On the vessel", subtitle: "Loaded on board, by arrival date; a negative day count means the ETA has passed", columns: ["container_number", "product", "vessel", "bl_number", "ets", "eta", "days_to_arrival", "status"], filter: onVessel, sort: { field: "eta", dir: "asc" }, statusField: "status", pageSize: 30 }),
+    table({ id: "waiting", title: "Waiting to sail", subtitle: "Planned, loading, on the way to the port or at the port", columns: ["container_number", "product", "sales_order", "loading_date", "vessel", "gate_in", "cut_off", "ets", "status"], filter: beforeVessel, sort: { field: "loading_date", dir: "desc" }, statusField: "status", pageSize: 30 }),
+    table({ id: "arrived", title: "Arrived", subtitle: "Discharged at the destination port", columns: ["container_number", "product", "vessel", "ets", "eta", "bl_number", "status"], filter: arrived, sort: { field: "eta", dir: "desc" }, statusField: "status", pageSize: 30 }),
   ], grid: [
-    { i: "sailing", x: 0, y: 0, w: 12, h: 8 }, { i: "waiting", x: 0, y: 8, w: 12, h: 7 }, { i: "dwell", x: 0, y: 15, w: 12, h: 6 },
+    { i: "sailing", x: 0, y: 0, w: 12, h: 8 }, { i: "waiting", x: 0, y: 8, w: 12, h: 8 }, { i: "arrived", x: 0, y: 16, w: 12, h: 8 },
   ] };
 
   const documents: Page = { id: "documents", title: "Documents", widgets: [
-    { id: "checklist", type: "table", title: "Document checklist", subtitle: "Done or pending per container", columns: ["container_number", "vessel", "status", ...docIds].filter(has), sort: { field: "docs_pending", dir: "desc" }, statusField: "status", statusFields: docIds, search: true, pageSize: 60, dense: true },
+    table({ id: "checklist", title: "Document checklist", subtitle: "Done or pending per container", columns: ["container_number", "vessel", "status", ...docIds], sort: { field: "docs_pending", dir: "desc" }, statusField: "status", statusFields: docIds, search: true, pageSize: 60, dense: true }),
   ], grid: [{ i: "checklist", x: 0, y: 0, w: 12, h: 18 }] };
 
-  const registerCols = ["container_number", "product", "sku", "cartons", "net_weight_mt", "sales_order", "loading_date", "vessel", "ets", "eta", "bl_number", "status", "docs_status"].filter(has);
   const register: Page = { id: "register", title: "Register", widgets: [
-    { id: "register", type: "table", title: "All containers", columns: registerCols, sort: { field: "loading_date", dir: "desc" }, statusField: "status", statusFields: ["docs_status"], search: true, pageSize: 60 },
+    table({ id: "register", title: "All containers", subtitle: "A container carrying several products is one line; its products are listed together", columns: ["container_number", "product", "cartons", "net_weight_mt", "invoice_value", "sales_order", "loading_date", "vessel", "ets", "eta", "bl_number", "status", "docs_status"], sort: { field: "loading_date", dir: "desc" }, statusField: "status", statusFields: ["docs_status"], search: true, pageSize: 60 }),
   ], grid: [{ i: "register", x: 0, y: 0, w: 12, h: 18 }] };
   const quality: Page = { id: "quality", title: "Data quality", widgets: [{ id: "quality", type: "quality", title: "Data quality" }], grid: [{ i: "quality", x: 0, y: 0, w: 12, h: 16 }] };
 

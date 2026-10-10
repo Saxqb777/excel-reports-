@@ -12,7 +12,7 @@ export function statusTone(value: string): Tone {
   if (/\b(won|win|closed won|approved|complete|completed|delivered|success|active|paid|done|arrived|discharged|released)\b/.test(v)) return "pos";
   if (/\b(lost|loss|rejected|cancel|cancelled|failed|overdue|declined|churn|returned)\b/.test(v)) return "neg";
   if (/\b(pending|waiting|on hold|hold|late|not yet|todo|backlog|draft|planned|booked|not shipped)\b/.test(v)) return "warn";
-  if (/\b(quoted|open|awaiting|in progress|progress|submitted|sent|review|transit|loaded|loading|shipped|on the water|in port|at port|sailing|sailed|on board|departed|on the way)\b/.test(v)) return "accent";
+  if (/\b(quoted|open|awaiting|in progress|progress|submitted|sent|review|transit|loaded|loading|shipped|on the water|in port|at port|sailing|sailed|on board|onboarded|on vessel|departed|on the way|under clearance|gate in)\b/.test(v)) return "accent";
   return "neutral";
 }
 

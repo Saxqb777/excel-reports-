@@ -68,6 +68,10 @@ export interface TableWidget extends WidgetBase {
   statusField?: string;
   /** Further fields rendered with a status dot (e.g. a document checklist). */
   statusFields?: string[];
+  /** Roll rows sharing this field's value into one line (container lines → containers): measures sum, differing texts are listed. */
+  groupBy?: string;
+  /** Word for the row count in the footer, e.g. "containers". */
+  rowLabel?: string;
   /** Field whose value drives row emphasis (e.g. age). */
   emphasisField?: string;
   dense?: boolean;

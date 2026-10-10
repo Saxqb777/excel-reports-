@@ -31,7 +31,9 @@ export type DerivedSpec =
   /** How many of `fields` are not marked done (empty counts as not done). */
   | { kind: "pendingCount"; fields: string[]; done: string[] }
   /** Labels of the `fields` not marked done, comma-separated; null when all are done. */
-  | { kind: "pendingList"; fields: string[]; done: string[] };
+  | { kind: "pendingList"; fields: string[]; done: string[] }
+  /** The reference without a trailing split suffix ("VSBU9012540-2" → "VSBU9012540"); rows without one get "Row n" so each still counts once. */
+  | { kind: "baseRef"; from: string };
 
 export type FieldFormat = "integer" | "decimal" | "currency" | "percent" | "days" | "date" | "text";
 
@@ -54,6 +56,8 @@ export interface Field {
   /** Explicit display order for ordinal dimensions. */
   order?: string[];
   derived?: DerivedSpec;
+  /** How rows are combined when a table rolls several up into one (default: measures sum, dates take the earliest). */
+  aggregate?: "sum" | "avg" | "min" | "max";
   hidden?: boolean;
   description?: string;
   /** The user confirmed this column may be absent from uploads; its absence no longer asks for confirmation. */
@@ -68,6 +72,8 @@ export interface SchemaMap {
   primaryDate?: string;
   /** Home-country tokens used by lane derivation, editable per project. */
   home?: string[];
+  /** Date fields in the order they happen in a row (loading before sailing before arrival); used to spot day/month swaps. */
+  dateChain?: string[];
 }
 
 /** Column-level statistics captured from a parsed sheet. */
