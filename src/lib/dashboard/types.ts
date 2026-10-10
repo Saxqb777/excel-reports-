@@ -84,11 +84,24 @@ export interface HeatmapWidget extends WidgetBase {
   metric: MetricSpec;
 }
 
+/** A table over a secondary sheet (e.g. the vessel schedule), optionally with a column counting matching rows of the main table. */
+export interface AuxTableWidget extends WidgetBase {
+  type: "auxTable";
+  sheet: string;
+  columns?: string[];
+  sort?: { field: string; dir: "asc" | "desc" };
+  statusField?: string;
+  pageSize?: number;
+  rowLabel?: string;
+  /** Count distinct `distinct` values of main-table rows whose `snapshotField` joins the sheet row's `keyColumn`; shown after `after`. */
+  countColumn?: { label: string; keyColumn: string; snapshotField: string; distinct: string; after?: string };
+}
+
 export interface InsightsWidget extends WidgetBase { type: "insights" }
 export interface QualityWidget extends WidgetBase { type: "quality" }
 export interface TextWidget extends WidgetBase { type: "text"; body: string }
 
-export type Widget = KpiWidget | BarWidget | LineWidget | FunnelWidget | DotsWidget | TableWidget | HeatmapWidget | InsightsWidget | QualityWidget | TextWidget;
+export type Widget = KpiWidget | BarWidget | LineWidget | FunnelWidget | DotsWidget | TableWidget | AuxTableWidget | HeatmapWidget | InsightsWidget | QualityWidget | TextWidget;
 
 export interface GridItem { i: string; x: number; y: number; w: number; h: number; minW?: number; minH?: number }
 

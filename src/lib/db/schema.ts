@@ -1,6 +1,6 @@
 import { boolean, customType, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import type { Layout, Theme } from "@/lib/dashboard/types";
-import type { SchemaMap, Snapshot } from "@/lib/schema/types";
+import type { AuxSheet, SchemaMap, Snapshot } from "@/lib/schema/types";
 
 const bytea = customType<{ data: Buffer; driverData: string }>({
   dataType() { return "bytea"; },
@@ -48,6 +48,8 @@ export const uploads = pgTable("uploads", {
   headers: jsonb("headers").$type<string[]>().notNull().default([]),
   schemaSnapshot: jsonb("schema_snapshot").$type<SchemaMap>().notNull(),
   snapshot: jsonb("snapshot").$type<Snapshot>(),
+  /** Secondary sheets of the workbook, normalised by the template (small lookup tables such as a vessel schedule). */
+  sheets: jsonb("sheets").$type<Record<string, AuxSheet>>(),
   quality: jsonb("quality").$type<Record<string, unknown>>(),
   insights: jsonb("insights").$type<Record<string, unknown>>(),
   anomalies: jsonb("anomalies").$type<Record<string, unknown>>(),

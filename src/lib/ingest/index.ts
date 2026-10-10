@@ -3,10 +3,10 @@ import { nanoid } from "nanoid";
 import { parseWorkbook } from "@/lib/excel/parse";
 import { diffSchema, inferSchema } from "@/lib/schema/infer";
 import { buildSnapshot } from "@/lib/schema/normalize";
-import type { ParsedWorkbook, SchemaMap, Snapshot } from "@/lib/schema/types";
+import type { AuxSheet, ParsedWorkbook, SchemaMap, Snapshot } from "@/lib/schema/types";
 import { agthiaLayout, agthiaSchema, matchesAgthia } from "@/lib/templates/agthia";
 import { matchesShipments, shipmentsLayout, shipmentsSchema } from "@/lib/templates/shipments";
-import { containersLayout, containersSchema, matchesContainers } from "@/lib/templates/containers";
+import { containersAux, containersLayout, containersSchema, matchesContainers } from "@/lib/templates/containers";
 import { proposeLayout } from "@/lib/dashboard/propose";
 import type { Layout } from "@/lib/dashboard/types";
 
@@ -17,6 +17,13 @@ export interface IngestResult {
   snapshot: Snapshot;
   sha256: string;
   template: "agthia" | "shipments" | "containers" | "generic";
+  /** Secondary sheets the template knows how to read (empty for generic sheets). */
+  aux: Record<string, AuxSheet>;
+}
+
+/** Secondary sheets a template keeps alongside the main table. */
+export function auxSheetsFor(template: string | undefined, workbook: ParsedWorkbook): Record<string, AuxSheet> {
+  return template === "containers" ? containersAux(workbook) : {};
 }
 
 /** First upload for a project: infer schema, apply a curated template when the sheet matches, propose a layout. */
@@ -28,7 +35,7 @@ export async function ingestNew(buffer: Buffer, fileName: string, uploadId = nan
   const schema = template === "agthia" ? agthiaSchema(inferred) : template === "shipments" ? shipmentsSchema(inferred) : template === "containers" ? containersSchema(inferred) : inferred;
   const layout = template === "agthia" ? agthiaLayout(schema) : template === "shipments" ? shipmentsLayout(schema) : template === "containers" ? containersLayout(schema) : proposeLayout(schema);
   const snapshot = buildSnapshot(schema, sheet, { uploadId, version: 1 });
-  return { workbook, schema, layout, snapshot, sha256: sha256(buffer), template };
+  return { workbook, schema, layout, snapshot, sha256: sha256(buffer), template, aux: auxSheetsFor(template, workbook) };
 }
 
 /** Re-upload against a known schema. Returns the diff so the caller can ask for confirmation when headers changed. */

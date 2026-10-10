@@ -116,7 +116,14 @@ export type ColumnValue = number | string | null;
 export interface Exclusion { row: number; reason: string; id?: string | null }
 export interface Fix { row: number; field: string; from: string; to: string; reason: string }
 
+/** A column of a secondary sheet kept alongside the main table (a vessel timetable, a price list). */
+export interface AuxColumn { id: string; label: string; type: FieldType; format?: FieldFormat; hidden?: boolean }
+/** A small secondary sheet, normalised by a template at ingest time and stored with the upload. */
+export interface AuxSheet { id: string; label: string; columns: AuxColumn[]; rows: Record<string, ColumnValue>[] }
+
 export interface Snapshot {
+  /** Secondary sheets of the same workbook, attached when the snapshot is read. */
+  aux?: Record<string, AuxSheet>;
   uploadId: string;
   version: number;
   builtAt: string;
@@ -136,6 +143,9 @@ export const normKey = (v: unknown): string =>
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
+
+/** Key for matching the same thing written two ways ("AN YANG /V.2626" and "AN YANG" + "2626"): letters and digits only, voyage markers dropped. */
+export const joinKey = (v: unknown): string => normKey(v).replace(/\bv\.?\s*(?=\d)/g, "").replace(/[^a-z0-9]/g, "");
 
 export const cleanText = (v: unknown): string =>
   String(v ?? "")

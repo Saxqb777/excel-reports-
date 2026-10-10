@@ -26,7 +26,7 @@ async function main() {
       shareToken: `fixture-${slug}`, shareEnabled: true, hasSharePassword: false, currentUploadId: "upl_fixture", updatedAt: now, createdAt: now,
     },
     upload: { id: `upl_fixture_${slug}`, versionNo: 2, fileName: file.split("/").pop(), fileSize: buf.length, uploadedBy: "", uploadedAt: now, rowCount: res.snapshot.n, excludedCount: res.snapshot.excluded.length, status: "ready", sheetName: res.workbook.sheets[res.workbook.primary].name, headers: res.workbook.sheets[res.workbook.primary].headers },
-    snapshot: { ...res.snapshot, uploadId: `upl_fixture_${slug}`, version: 2 },
+    snapshot: { ...res.snapshot, aux: res.aux, uploadId: `upl_fixture_${slug}`, version: 2 },
     previousUpload: { id: `upl_fixture_${slug}_prev`, versionNo: 1, fileName: file.split("/").pop(), fileSize: buf.length, uploadedBy: "", uploadedAt: earlier, rowCount: keep, excludedCount: res.snapshot.excluded.length, status: "ready", sheetName: res.workbook.sheets[res.workbook.primary].name, headers: res.workbook.sheets[res.workbook.primary].headers },
     previousSnapshot,
   };

@@ -43,7 +43,7 @@ export async function createProjectFromWorkbook(input: CreateProjectInput) {
   await db().insert(schema.uploads).values({
     id: uploadId, projectId, versionNo: 1, fileName: input.fileName, fileSize: input.buffer.length, fileSha256: res.sha256,
     storageKind: stored.kind, storageRef: stored.ref, fileBytes: stored.bytes, uploadedBy: input.uploadedBy, sheetName: sheet.name,
-    rowCount: snapshot.n, excludedCount: snapshot.excluded.length, headers: sheet.headers, schemaSnapshot: res.schema, snapshot, status: "ready",
+    rowCount: snapshot.n, excludedCount: snapshot.excluded.length, headers: sheet.headers, schemaSnapshot: res.schema, snapshot, status: "ready", sheets: res.aux,
   });
   const rows = sheet.rows.map((r) => ({ uploadId, rowNo: r.row, cells: r.cells }));
   for (let i = 0; i < rows.length; i += 500) await db().insert(schema.uploadRows).values(rows.slice(i, i + 500));

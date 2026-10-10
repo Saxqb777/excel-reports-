@@ -1,5 +1,6 @@
-import type { Field, FilterExpr, SchemaMap } from "@/lib/schema/types";
-import { normKey } from "@/lib/schema/types";
+import type { AuxSheet, Field, FilterExpr, ParsedWorkbook, SchemaMap } from "@/lib/schema/types";
+import { cleanText, joinKey, normKey } from "@/lib/schema/types";
+import { toDate, toNumber } from "@/lib/schema/normalize";
 import type { Layout, Page, Widget } from "@/lib/dashboard/types";
 import type { MetricSpec } from "@/lib/engine/metrics";
 
@@ -168,6 +169,59 @@ export function containersSchema(inferred: SchemaMap): SchemaMap {
   return { ...inferred, fields, idField: has("container_number") ? "container_number" : inferred.idField, primaryDate: has("loading_date") ? "loading_date" : inferred.primaryDate, dateChain: DATE_CHAIN.filter(has) };
 }
 
+/**
+ * The workbook's "Vessel Schedule" sheet: one row per vessel call at the port (arrival, berthing, service, voyage) with
+ * how many containers are booked, placed or pending on it, plus a small side block of where each vessel is right now.
+ */
+export function containersAux(workbook: ParsedWorkbook): Record<string, AuxSheet> {
+  const sheet = workbook.sheets.find((s) => /schedule|sailing/i.test(s.name) && s.headers.some((h) => /vessel/i.test(h)));
+  if (!sheet) return {};
+  const col = (names: string[]) => sheet.headers.find((h) => names.includes(normKey(h)));
+  const hVessel = col(["vessel", "vessel name"]), hVoyage = col(["voyage", "voy", "voyage no"]), hService = col(["service", "loop"]);
+  const hEta = col(["kct eta", "eta", "port eta", "arrival"]), hEtb = col(["kct etb", "etb", "berthing", "berth"]), hEtd = col(["etd", "ets", "departure", "sailing"]);
+  const hImo = col(["imo"]), hBooked = col(["booking confirmed", "confirmed", "booked"]), hPlaced = col(["booking placed", "placed"]), hPending = col(["booking pending", "pending"]);
+  const hStatus = col(["current vessel status", "vessel status", "status"]);
+  if (!hVessel || !hEta) return {};
+  // Side block: a row whose cells read "Vessel", "IMO", "Remarks" starts a second small table of vessel positions.
+  const remarks = new Map<string, string>();
+  let side: { v: string; r: string } | null = null;
+  for (const row of sheet.rows) {
+    const entries = Object.entries(row.cells);
+    if (!side) {
+      const v = entries.find(([h, x]) => h !== hVessel && normKey(x) === "vessel")?.[0];
+      const r = entries.find(([, x]) => normKey(x) === "remarks")?.[0];
+      if (v && r) side = { v, r };
+      continue;
+    }
+    const name = row.cells[side.v], rem = row.cells[side.r];
+    if (typeof name === "string" && name.trim() && rem !== null && rem !== undefined && String(rem).trim()) remarks.set(normKey(name), cleanText(rem));
+  }
+  const date = (cells: Record<string, unknown>, h?: string) => { if (!h) return null; const t = toDate((cells[h] ?? null) as string | number | boolean | null); return t !== null && t > Date.UTC(2000, 0, 1) ? t : null; };
+  const num = (cells: Record<string, unknown>, h?: string) => (h ? toNumber((cells[h] ?? null) as string | number | boolean | null) : null);
+  const text = (cells: Record<string, unknown>, h?: string) => { if (!h) return null; const t = cleanText(cells[h] ?? ""); return t || null; };
+  const rows = sheet.rows
+    .filter((r) => typeof r.cells[hVessel] === "string" && (r.cells[hVessel] as string).trim())
+    .map((r) => {
+      const vessel = cleanText(r.cells[hVessel]);
+      const voyage = text(r.cells, hVoyage) ?? "";
+      return {
+        vessel, voyage: voyage || null, service: text(r.cells, hService), imo: text(r.cells, hImo),
+        kct_eta: date(r.cells, hEta), kct_etb: date(r.cells, hEtb), etd: date(r.cells, hEtd),
+        booked: num(r.cells, hBooked), placed: num(r.cells, hPlaced), pending: num(r.cells, hPending),
+        status: text(r.cells, hStatus), remarks: remarks.get(normKey(vessel)) ?? null,
+        key: joinKey(`${vessel} ${voyage}`),
+      };
+    });
+  const columns: AuxSheet["columns"] = [
+    { id: "vessel", label: "Vessel", type: "string" }, { id: "voyage", label: "Voyage", type: "string" }, { id: "service", label: "Service", type: "string" },
+    { id: "kct_eta", label: "Arrives Khorfakkan", type: "date", format: "date" }, { id: "kct_etb", label: "Berths", type: "date", format: "date" }, { id: "etd", label: "Departs", type: "date", format: "date" },
+    { id: "booked", label: "Booked", type: "number", format: "integer" }, { id: "placed", label: "Placed", type: "number", format: "integer" }, { id: "pending", label: "Pending", type: "number", format: "integer" },
+    { id: "status", label: "Vessel status", type: "string" }, { id: "remarks", label: "Where the vessel is", type: "string" },
+    { id: "imo", label: "IMO", type: "string", hidden: true }, { id: "key", label: "Join key", type: "string", hidden: true },
+  ];
+  return { vessel_schedule: { id: "vessel_schedule", label: sheet.name, columns, rows } };
+}
+
 const onVessel: FilterExpr = { field: "stage", op: "eq", value: "On vessel" };
 const arrived: FilterExpr = { field: "stage", op: "eq", value: "Arrived" };
 const beforeVessel: FilterExpr = { field: "stage", op: "nin", value: ["On vessel", "Arrived"] };
@@ -213,12 +267,27 @@ export function containersLayout(schema: SchemaMap): Layout {
   ] };
 
   const vessels: Page = { id: "vessels", title: "Vessels and arrivals", widgets: [
+    { id: "schedule", type: "auxTable", title: "Vessel schedule", subtitle: "GT Line calls at Khorfakkan from the workbook's schedule sheet, with the containers of this plan on each", sheet: "vessel_schedule",
+      columns: ["vessel", "voyage", "service", "kct_eta", "kct_etb", "booked", "placed", "pending", "status", "remarks"], sort: { field: "kct_eta", dir: "asc" }, statusField: "status", rowLabel: "sailings", pageSize: 30,
+      countColumn: { label: "Our containers", keyColumn: "key", snapshotField: "vessel", distinct: "container_id", after: "service" } },
     table({ id: "sailing", title: "On the vessel", subtitle: "Loaded on board, by arrival date; a negative day count means the ETA has passed", columns: ["container_number", "product", "vessel", "bl_number", "ets", "eta", "days_to_arrival", "status"], filter: onVessel, sort: { field: "eta", dir: "asc" }, statusField: "status", pageSize: 30 }),
-    table({ id: "waiting", title: "Waiting to sail", subtitle: "Planned, loading, on the way to the port or at the port", columns: ["container_number", "product", "sales_order", "loading_date", "vessel", "gate_in", "cut_off", "ets", "status"], filter: beforeVessel, sort: { field: "loading_date", dir: "desc" }, statusField: "status", pageSize: 30 }),
-    table({ id: "arrived", title: "Arrived", subtitle: "Discharged at the destination port", columns: ["container_number", "product", "vessel", "ets", "eta", "bl_number", "status"], filter: arrived, sort: { field: "eta", dir: "desc" }, statusField: "status", pageSize: 30 }),
+    table({ id: "waiting", title: "Waiting to sail", subtitle: "Planned, loading, on the way to the port or at the port", columns: ["container_number", "product", "sales_order", "stock_ready_date", "loading_date", "vessel", "gate_in", "cut_off", "ets", "status"], filter: beforeVessel, sort: { field: "loading_date", dir: "desc" }, statusField: "status", pageSize: 30 }),
+    table({ id: "arrived", title: "Arrived", subtitle: "Discharged at the destination port", columns: ["container_number", "product", "vessel", "ets", "eta", "bl_number", "bl_date", "status"], filter: arrived, sort: { field: "eta", dir: "desc" }, statusField: "status", pageSize: 30 }),
   ], grid: [
-    { i: "sailing", x: 0, y: 0, w: 12, h: 8 }, { i: "waiting", x: 0, y: 8, w: 12, h: 8 }, { i: "arrived", x: 0, y: 16, w: 12, h: 8 },
+    { i: "schedule", x: 0, y: 0, w: 12, h: 9 }, { i: "sailing", x: 0, y: 9, w: 12, h: 8 }, { i: "waiting", x: 0, y: 17, w: 12, h: 8 }, { i: "arrived", x: 0, y: 25, w: 12, h: 8 },
   ] };
+
+  const value: Page | null = has("invoice_value") ? { id: "value", title: "Value", widgets: [
+    { id: "value_product", type: "bar", title: "Invoice value by product", subtitle: `${CURRENCY}, all containers in the plan`, dimension: "product", metric: aed("invoice_value"), colorBy: "single", orientation: "horizontal", topN: 12 },
+    { id: "value_order", type: "bar", title: "Invoice value by sales order", subtitle: "Split by stage", dimension: "sales_order", metric: aed("invoice_value"), stackBy: "stage", colorBy: "categorical", orientation: "horizontal", topN: 8 },
+    { id: "value_vessel", type: "bar", title: "Invoice value by vessel", subtitle: "Split by stage", dimension: "vessel", metric: aed("invoice_value"), stackBy: "stage", colorBy: "categorical", orientation: "horizontal", topN: 8 },
+    { id: "price_product", type: "bar", title: "Price per MT by product", subtitle: `Average ${CURRENCY} per metric ton`, dimension: "product", metric: { agg: "avg", field: "price_per_mt", format: "currency", currency: CURRENCY }, colorBy: "single", orientation: "horizontal", topN: 12 },
+    ...(has("transporter") ? [{ id: "transporters", type: "bar", title: "Trucking", subtitle: "Containers by transporter and stage", dimension: "transporter", metric: containers(), stackBy: "stage", colorBy: "categorical", orientation: "horizontal" } as Widget] : []),
+  ], grid: [
+    { i: "value_product", x: 0, y: 0, w: 6, h: 10 }, { i: "price_product", x: 6, y: 0, w: 6, h: 10 },
+    { i: "value_order", x: 0, y: 10, w: 6, h: 6 }, { i: "value_vessel", x: 6, y: 10, w: 6, h: 6 },
+    ...(has("transporter") ? [{ i: "transporters", x: 0, y: 16, w: 12, h: 5 }] : []),
+  ] } : null;
 
   const documents: Page = { id: "documents", title: "Documents", widgets: [
     table({ id: "checklist", title: "Document checklist", subtitle: "Done or pending per container", columns: ["container_number", "vessel", "status", ...docIds], sort: { field: "docs_pending", dir: "desc" }, statusField: "status", statusFields: docIds, search: true, pageSize: 60, dense: true }),
@@ -239,5 +308,5 @@ export function containersLayout(schema: SchemaMap): Layout {
     { kind: "select", field: "docs_status", label: "Documents" },
     { kind: "search", field: "container_number", label: "Search" },
   ].filter((f) => has(f.field)) as Layout["filters"];
-  return { version: 1, dateField: "loading_date", filters, pages: [overview, vessels, documents, register, quality] };
+  return { version: 1, dateField: "loading_date", filters, pages: [overview, vessels, ...(value ? [value] : []), documents, register, quality] };
 }

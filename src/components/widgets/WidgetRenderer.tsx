@@ -7,6 +7,7 @@ import { FunnelTile } from "./FunnelTile";
 import { DotsTile } from "./DotsTile";
 import { HeatmapTile } from "./HeatmapTile";
 import { TableTile } from "./TableTile";
+import { AuxTableTile } from "./AuxTableTile";
 import { InsightsTile, type Insight } from "./InsightsTile";
 import type { Anomaly } from "@/lib/intelligence/anomalies";
 import { QualityTile } from "./QualityTile";
@@ -23,6 +24,7 @@ export function WidgetRenderer({ w, insights, anomalies, comparedTo, previousKpi
     case "dots": return <DotsTile w={w} />;
     case "heatmap": return <HeatmapTile w={w} />;
     case "table": return <TableTile w={w} newIds={newIds} changedIds={changedIds} comparedTo={comparedTo} />;
+    case "auxTable": return <AuxTableTile w={w} />;
     case "insights": return <InsightsTile w={w} insights={insights} comparedTo={comparedTo} />;
     case "quality": return <QualityTile w={w} anomalies={anomalies} />;
     case "text": return <Tile title={w.title}><div className="text-[14px] text-ink-2 whitespace-pre-wrap">{w.body}</div></Tile>;

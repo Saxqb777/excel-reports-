@@ -162,9 +162,9 @@ export async function getSnapshot(project: ProjectSummary): Promise<Snapshot | n
   if (!u) return null;
   const wanted = schemaHash(project.schemaMap);
   const stored = u.snapshot as (Snapshot & { schemaHash?: string }) | null;
-  if (stored && stored.schemaHash === wanted && !countdownStale(stored, project.schemaMap)) return stored;
-  const rebuilt = await rebuildSnapshot(u, project.schemaMap);
-  return rebuilt;
+  const aux = u.sheets ?? undefined;
+  const snap = stored && stored.schemaHash === wanted && !countdownStale(stored, project.schemaMap) ? stored : await rebuildSnapshot(u, project.schemaMap);
+  return aux && Object.keys(aux).length ? { ...snap, aux } : snap;
 }
 
 /** Fields counted from today (days until an ETA, age in days) drift; a snapshot that carries them is rebuilt every 12 hours. */

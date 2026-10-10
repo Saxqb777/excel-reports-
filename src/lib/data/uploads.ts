@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import { and, desc, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db/client";
 import { parseWorkbook } from "@/lib/excel/parse";
+import { auxSheetsFor } from "@/lib/ingest";
 import { diffSchema, inferField, buildValueMap, type SchemaDiff } from "@/lib/schema/infer";
 import { buildSnapshot } from "@/lib/schema/normalize";
 import type { Field, ParsedSheet, SchemaMap } from "@/lib/schema/types";
@@ -107,6 +108,7 @@ export async function addUpload(input: AddUploadInput): Promise<AddUploadResult>
     id: uploadId, projectId: project.id, versionNo, fileName: input.fileName, fileSize: input.buffer.length, fileSha256: sha256(input.buffer),
     storageKind: stored.kind, storageRef: stored.ref, fileBytes: stored.bytes, uploadedBy: input.uploadedBy, sheetName: sheet.name,
     rowCount: snapshot.n, excludedCount: snapshot.excluded.length, headers: sheet.headers, schemaSnapshot: schemaMap, snapshot, status: "ready",
+    sheets: auxSheetsFor(typeof project.settings.template === "string" ? project.settings.template : undefined, workbook),
   });
   const rows = sheet.rows.map((r) => ({ uploadId, rowNo: r.row, cells: r.cells }));
   for (let i = 0; i < rows.length; i += 500) await db().insert(schema.uploadRows).values(rows.slice(i, i + 500));
