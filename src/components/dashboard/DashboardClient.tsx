@@ -13,6 +13,7 @@ import { FilterRow } from "./FilterRow";
 import { UpdateBanner } from "./UpdateBanner";
 import { Grid } from "./Grid";
 import { UploadFlow } from "./UploadFlow";
+import { UnlockHost } from "./UnlockPrompt";
 import { HistoryDrawer } from "./HistoryDrawer";
 import { AskPanel } from "./AskPanel";
 import { SharePanel } from "./SharePanel";
@@ -36,6 +37,8 @@ export interface DashboardProps {
   /** View-only surfaces (share links) hide upload, history, editing and Ask. */
   readOnly?: boolean;
   share?: { token: string; enabled: boolean; hasPassword: boolean };
+  /** An update password is set and this browser has not entered it: the Update data button asks for it first. */
+  updateLocked?: boolean;
   boardroom?: boolean;
   print?: { page?: string; theme?: "dark" | "light" };
 }
@@ -125,7 +128,7 @@ export function DashboardClient(props: DashboardProps) {
   return (
     <TooltipProvider>
       <DashboardProvider snapshot={snapshot} layout={layout}>
-        <UploadFlow projectId={props.projectId} onDone={() => void refresh()}>
+        <UploadFlow projectId={props.projectId} locked={props.updateLocked} onDone={() => void refresh()}>
           {({ openPicker, busy }) => (
             <div className={`flex min-h-screen flex-col bg-bg transition-opacity duration-300 ${reloading || busy ? "opacity-80" : ""} ${props.print ? "print-mode" : ""}`} data-print={props.print ? "1" : undefined}>
               {!props.print && (
@@ -152,7 +155,10 @@ export function DashboardClient(props: DashboardProps) {
                       {share && <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setShareOpen(true)}>Share</button>}
                       <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setHistoryOpen(true)}>History</button>
                       {props.slug && <Link href={`/p/${props.slug}/settings`} className="btn h-7 px-2 py-0 text-[14px] leading-7">Settings</Link>}
-                      <button type="button" className="btn btn-accent h-7 px-2 py-0 text-[14px]" onClick={openPicker} disabled={busy}>{busy ? "Loading…" : "Update data"}</button>
+                      <button type="button" className="btn btn-accent h-7 px-2 py-0 text-[14px]" onClick={openPicker} disabled={busy} title={props.updateLocked ? "Password protected" : undefined}>
+                        {props.updateLocked && <svg aria-hidden width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" className="mr-1 inline-block align-[-1px]"><rect x="3" y="7" width="10" height="7" rx="1" /><path d="M5 7V5a3 3 0 0 1 6 0v2" /></svg>}
+                        {busy ? "Loading…" : "Update data"}
+                      </button>
                     </>
                   )} />
               )}
@@ -176,6 +182,7 @@ export function DashboardClient(props: DashboardProps) {
             </div>
           )}
         </UploadFlow>
+        {!readOnly && <UnlockHost />}
         {!readOnly && <HistoryDrawer projectId={props.projectId} currentUploadId={upload?.id ?? null} open={historyOpen} onClose={() => setHistoryOpen(false)} refreshKey={refreshKey} onRestored={() => { setHistoryOpen(false); void refresh(); }} />}
         {!readOnly && <AskPanel projectId={props.projectId} open={askOpen} onClose={() => setAskOpen(false)} onPin={pinWidget} />}
         {!readOnly && share && <SharePanel projectId={props.projectId} token={share.token} enabled={share.enabled} hasPassword={share.hasPassword} open={shareOpen} onClose={() => setShareOpen(false)} onChanged={(s) => setShare({ ...share, ...s })} />}

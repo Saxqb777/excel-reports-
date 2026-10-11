@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { getProjectById, listUploads } from "@/lib/data/projects";
 import { addUpload, type HeaderMapping } from "@/lib/data/uploads";
 import { hasDatabase } from "@/lib/db/client";
+import { hasUpdateAccess, lockedResponse } from "@/lib/share/auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -19,6 +20,7 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/projects/[i
   const { id } = await ctx.params;
   const project = await getProjectById(id);
   if (!project) return Response.json({ error: "Project not found" }, { status: 404 });
+  if (!(await hasUpdateAccess(project.id))) return lockedResponse();
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof File)) return Response.json({ error: "Attach a workbook as the 'file' field" }, { status: 400 });

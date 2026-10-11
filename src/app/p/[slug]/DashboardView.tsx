@@ -2,10 +2,11 @@ import Link from "next/link";
 import { getCurrentUpload, getSnapshot, type ProjectSummary } from "@/lib/data/projects";
 import { getIntelligence } from "@/lib/data/intelligence";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
+import { hasUpdateAccess } from "@/lib/share/auth";
 
 /** The working dashboard (upload, edit, ask, history, settings). Served at /p/<slug>, and at "/" on a domain whose project sets settings.rootView = "dashboard". */
 export async function DashboardView({ project, homeHref = "/projects" }: { project: ProjectSummary; homeHref?: string | null }) {
-  const [snapshot, upload] = await Promise.all([getSnapshot(project), getCurrentUpload(project)]);
+  const [snapshot, upload, unlocked] = await Promise.all([getSnapshot(project), getCurrentUpload(project), hasUpdateAccess(project.id)]);
   if (!snapshot) {
     return (
       <main className="mx-auto max-w-xl px-6 py-24">
@@ -17,5 +18,5 @@ export async function DashboardView({ project, homeHref = "/projects" }: { proje
     );
   }
   const intelligence = await getIntelligence(project, snapshot).catch((e) => { console.error(e); return null; });
-  return <DashboardClient homeHref={homeHref} projectId={project.id} slug={project.slug} name={project.name} clientName={project.clientName} theme={project.theme} layout={project.layout} snapshot={snapshot} upload={upload} intelligence={intelligence} share={{ token: project.shareToken, enabled: project.shareEnabled, hasPassword: project.hasSharePassword }} />;
+  return <DashboardClient homeHref={homeHref} projectId={project.id} slug={project.slug} name={project.name} clientName={project.clientName} theme={project.theme} layout={project.layout} snapshot={snapshot} upload={upload} intelligence={intelligence} share={{ token: project.shareToken, enabled: project.shareEnabled, hasPassword: project.hasSharePassword }} updateLocked={project.hasUpdateLock && !unlocked} />;
 }

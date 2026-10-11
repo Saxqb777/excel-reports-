@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import type { UploadSummary } from "@/lib/data/projects";
 import { formatDateTime } from "@/lib/engine/format";
+import { guardedFetch } from "./UnlockPrompt";
 
 export function HistoryDrawer({ projectId, currentUploadId, open, onClose, onRestored, refreshKey }: { projectId: string; currentUploadId: string | null; open: boolean; onClose: () => void; onRestored: (u: UploadSummary) => void; refreshKey: number }) {
   const [uploads, setUploads] = useState<UploadSummary[] | null>(null);
@@ -17,16 +18,17 @@ export function HistoryDrawer({ projectId, currentUploadId, open, onClose, onRes
   if (!open) return null;
   const remove = async (u: UploadSummary) => {
     setBusy(u.id);
-    const res = await fetch(`/api/projects/${projectId}/uploads/${u.id}`, { method: "DELETE" });
+    const res = await guardedFetch(projectId, `/api/projects/${projectId}/uploads/${u.id}`, { method: "DELETE" });
     setBusy(null); setArmed(null);
     if (res.ok) { setUploads((list) => (list ?? []).filter((x) => x.id !== u.id)); onRestored(u); }
     else alert((await res.json().catch(() => ({}))).error ?? "Could not delete this version.");
   };
   const restore = async (u: UploadSummary) => {
     setBusy(u.id);
-    const res = await fetch(`/api/projects/${projectId}/uploads/${u.id}/activate`, { method: "POST" });
+    const res = await guardedFetch(projectId, `/api/projects/${projectId}/uploads/${u.id}/activate`, { method: "POST" });
     setBusy(null);
     if (res.ok) onRestored(u);
+    else alert((await res.json().catch(() => ({}))).error ?? "Could not restore this version.");
   };
   return (
     <div className="fixed inset-0 z-[65]" onClick={onClose}>

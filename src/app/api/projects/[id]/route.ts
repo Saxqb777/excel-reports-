@@ -1,9 +1,9 @@
 import type { NextRequest } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { db, schema } from "@/lib/db/client";
+import { db, hasDatabase, schema } from "@/lib/db/client";
 import { getProjectById } from "@/lib/data/projects";
-import { hashPassword } from "@/lib/share/auth";
+import { hashPassword, hasUpdateAccess, lockedResponse, setUpdatePassword } from "@/lib/share/auth";
 import type { Layout, Theme } from "@/lib/dashboard/types";
 import type { SchemaMap } from "@/lib/schema/types";
 
@@ -17,6 +17,8 @@ const PatchZ = z.object({
   layout: z.custom<Layout>((v) => typeof v === "object" && v !== null && Array.isArray((v as Layout).pages)).optional(),
   schemaFields: z.array(z.object({ id: z.string(), label: z.string().min(1).max(80).optional(), role: z.enum(["id", "dimension", "measure", "date", "text", "ignore"]).optional(), hidden: z.boolean().optional() })).optional(),
   share: z.object({ enabled: z.boolean().optional(), password: z.string().max(200).nullable().optional() }).optional(),
+  /** Set (string) or remove (null) the update password; needs the unlock cookie when a lock is already on. */
+  updateLock: z.object({ password: z.string().min(4).max(200).nullable() }).optional(),
 });
 
 export async function GET(_req: NextRequest, ctx: RouteContext<"/api/projects/[id]">) {
@@ -50,15 +52,24 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/projects/[
     if (b.share.enabled !== undefined) set.shareEnabled = b.share.enabled;
     if (b.share.password !== undefined) set.sharePasswordHash = b.share.password ? hashPassword(b.share.password) : null;
   }
+  let lockCookie: string | null = null;
+  if (b.updateLock) {
+    if (!hasDatabase()) return Response.json({ error: "The update lock needs a database." }, { status: 400 });
+    if (project.hasUpdateLock && !(await hasUpdateAccess(project.id))) return lockedResponse();
+    lockCookie = await setUpdatePassword(project.id, b.updateLock.password);
+  }
   await db().update(schema.projects).set(set).where(eq(schema.projects.id, project.id));
   const updated = await getProjectById(project.id);
-  return Response.json({ project: updated });
+  const res = Response.json({ project: updated });
+  if (lockCookie) res.headers.append("Set-Cookie", lockCookie);
+  return res;
 }
 
 export async function DELETE(req: NextRequest, ctx: RouteContext<"/api/projects/[id]">) {
   const { id } = await ctx.params;
   const project = await getProjectById(id);
   if (!project) return Response.json({ error: "Project not found" }, { status: 404 });
+  if (!(await hasUpdateAccess(project.id))) return lockedResponse();
   const body = (await req.json().catch(() => ({}))) as { confirm?: string };
   const confirm = body.confirm ?? new URL(req.url).searchParams.get("confirm") ?? "";
   if (confirm !== "yes" && confirm.trim().toLowerCase() !== project.name.trim().toLowerCase()) return Response.json({ error: "Confirm the deletion first." }, { status: 400 });

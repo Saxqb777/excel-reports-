@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import type { ProjectSummary, UploadSummary } from "@/lib/data/projects";
 import type { Field, FieldRole } from "@/lib/schema/types";
 import { formatDateTime } from "@/lib/engine/format";
+import { guardedFetch, UnlockHost } from "@/components/dashboard/UnlockPrompt";
 
 const ROLES: FieldRole[] = ["id", "dimension", "measure", "date", "text", "ignore"];
 
@@ -20,13 +21,18 @@ export function SettingsForm({ project, uploads }: { project: ProjectSummary; up
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [armed, setArmed] = useState(false);
+  const [lockPassword, setLockPassword] = useState("");
 
   const patch = async (body: Record<string, unknown>, ok: string) => {
     setBusy(true); setStatus(null);
-    const res = await fetch(`/api/projects/${project.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const res = await guardedFetch(project.id, `/api/projects/${project.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     setBusy(false);
     setStatus(res.ok ? ok : `Could not save (${res.status}).`);
     if (res.ok) router.refresh();
+  };
+  const saveLock = async (password: string | null) => {
+    await patch({ updateLock: { password } }, password ? "Update lock set. This browser stays unlocked; every other one is asked for the password." : "Update lock removed.");
+    setLockPassword("");
   };
   const saveIdentity = () => patch({ name, clientName: clientName || null, description: description || null, theme: { primary, mode, monogram: monogram || undefined } }, "Saved. The dashboard uses the new identity on next load.");
   const saveSchema = () => patch({ schemaFields: fields.map((f) => ({ id: f.id, label: f.label, role: f.role, hidden: f.hidden ?? false })) }, "Schema saved. The snapshot rebuilds automatically.");
@@ -42,7 +48,7 @@ export function SettingsForm({ project, uploads }: { project: ProjectSummary; up
   const del = async () => {
     setBusy(true); setStatus(null);
     try {
-      const res = await fetch(`/api/projects/${project.id}?confirm=yes`, { method: "DELETE" });
+      const res = await guardedFetch(project.id, `/api/projects/${project.id}?confirm=yes`, { method: "DELETE" });
       if (res.ok) { window.location.assign("/projects"); return; }
       setStatus((await res.json().catch(() => ({}))).error ?? `Delete failed (${res.status}).`);
     } catch (e) {
@@ -52,6 +58,7 @@ export function SettingsForm({ project, uploads }: { project: ProjectSummary; up
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
+      <UnlockHost />
       {status && <div role="status" className="mb-4 border border-line bg-bg-elev px-3 py-2 text-[14.5px] text-ink">{status}</div>}
       <div className="grid grid-cols-1 gap-px bg-line lg:grid-cols-2">
         <section className="bg-bg p-5">
@@ -112,6 +119,16 @@ export function SettingsForm({ project, uploads }: { project: ProjectSummary; up
             </table>
           </div>
           <div className="mt-4"><button type="button" className="btn btn-accent" disabled={busy} onClick={saveSchema}>Save fields</button></div>
+        </section>
+
+        <section className="bg-bg p-5 lg:col-span-2">
+          <h2 className="label-strong mb-1">Update lock</h2>
+          <p className="mb-3 text-[14px] text-ink-3">{project.hasUpdateLock ? "A password is asked for before anyone can update the data, restore or delete a version, delete the project or change this lock. Viewing stays open." : "Optional. Ask for a password before anyone with the link can update the data, restore or delete a version, or delete the project. Viewing stays open."}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input type="password" className="field w-60" placeholder={project.hasUpdateLock ? "New password" : "Set a password"} value={lockPassword} onChange={(e) => setLockPassword(e.target.value)} aria-label="Update password" autoComplete="new-password" />
+            <button type="button" className="btn btn-accent" disabled={busy || lockPassword.length < 4} onClick={() => void saveLock(lockPassword)}>{project.hasUpdateLock ? "Change" : "Set"}</button>
+            {project.hasUpdateLock && <button type="button" className="btn" disabled={busy} onClick={() => void saveLock(null)}>Remove</button>}
+          </div>
         </section>
 
         <section className="bg-bg p-5 lg:col-span-2">

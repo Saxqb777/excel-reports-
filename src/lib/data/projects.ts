@@ -21,6 +21,8 @@ export interface ProjectSummary {
   shareToken: string;
   shareEnabled: boolean;
   hasSharePassword: boolean;
+  /** An update password is set: uploads, restores, deletes and the lock itself need the unlock cookie. */
+  hasUpdateLock: boolean;
   currentUploadId: string | null;
   updatedAt: string;
   createdAt: string;
@@ -44,11 +46,20 @@ export function schemaHash(s: SchemaMap): string {
   return createHash("sha1").update(JSON.stringify(s)).digest("hex").slice(0, 12);
 }
 
+/** Keys of projects.settings that never leave the server: the cookie-signing secret and the update password hash (read by src/lib/share/auth.ts). */
+const SECRET_SETTINGS = ["shareSecret", "updatePasswordHash"];
+function publicSettings(s: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...s };
+  for (const k of SECRET_SETTINGS) delete out[k];
+  return out;
+}
+
 function toSummary(p: ProjectRow): ProjectSummary {
+  const lock = p.settings.updatePasswordHash;
   return {
     id: p.id, slug: p.slug, name: p.name, clientName: p.clientName, description: p.description,
-    theme: p.theme, layout: p.layout, schemaMap: p.schemaMap, settings: p.settings,
-    shareToken: p.shareToken, shareEnabled: p.shareEnabled, hasSharePassword: Boolean(p.sharePasswordHash),
+    theme: p.theme, layout: p.layout, schemaMap: p.schemaMap, settings: publicSettings(p.settings),
+    shareToken: p.shareToken, shareEnabled: p.shareEnabled, hasSharePassword: Boolean(p.sharePasswordHash), hasUpdateLock: typeof lock === "string" && lock.length > 0,
     currentUploadId: p.currentUploadId, updatedAt: p.updatedAt.toISOString(), createdAt: p.createdAt.toISOString(),
   };
 }
@@ -73,7 +84,10 @@ interface Fixture { project: ProjectSummary; upload: UploadSummary; snapshot: Sn
 
 function readFixtures(): Fixture[] {
   if (!FIXTURE_DIR) return [];
-  return readdirSync(FIXTURE_DIR).filter((f) => f.endsWith(".json")).map((f) => JSON.parse(readFileSync(path.join(FIXTURE_DIR, f), "utf8")) as Fixture);
+  return readdirSync(FIXTURE_DIR).filter((f) => f.endsWith(".json")).map((f) => {
+    const fx = JSON.parse(readFileSync(path.join(FIXTURE_DIR, f), "utf8")) as Fixture;
+    return { ...fx, project: { ...fx.project, hasUpdateLock: Boolean(process.env.MERIDIAN_FIXTURE_LOCK) } };
+  });
 }
 
 /** Fixture mode only: the version before the current one, so insights and change markers can be checked locally. */

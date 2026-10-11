@@ -1,13 +1,17 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DiffPayload } from "@/lib/data/uploads";
+import { Modal } from "./Modal";
+import { guardedFetch, requestUnlock } from "./UnlockPrompt";
+
+export { Modal };
 
 export interface UploadOutcome { uploadId: string; versionNo: number; rows: number; excluded: number; schemaChanged: boolean }
 
-interface Props { projectId: string; onDone: (outcome: UploadOutcome) => void; children: (api: { openPicker: () => void; busy: boolean }) => React.ReactNode }
+interface Props { projectId: string; onDone: (outcome: UploadOutcome) => void; /** The project has an update password and this browser has not entered it yet. */ locked?: boolean; children: (api: { openPicker: () => void; busy: boolean }) => React.ReactNode }
 
 /** Drag-anywhere upload with schema-change confirmation. Wraps the dashboard so the drop zone is the whole page. */
-export function UploadFlow({ projectId, onDone, children }: Props) {
+export function UploadFlow({ projectId, onDone, locked, children }: Props) {
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<{ file: File; diff: DiffPayload } | null>(null);
@@ -24,7 +28,7 @@ export function UploadFlow({ projectId, onDone, children }: Props) {
     fd.set("file", file);
     if (confirm) fd.set("confirm", "1");
     if (map) fd.set("mapping", JSON.stringify(map));
-    const res = await fetch(`/api/projects/${projectId}/uploads`, { method: "POST", body: fd });
+    const res = await guardedFetch(projectId, `/api/projects/${projectId}/uploads`, { method: "POST", body: fd });
     const json = await res.json();
     setBusy(false);
     if (res.status === 409) { setPending({ file, diff: json.diff }); setMapping(Object.fromEntries((json.diff as DiffPayload).added.map((a) => [a.header, "new"]))); return; }
@@ -39,6 +43,9 @@ export function UploadFlow({ projectId, onDone, children }: Props) {
     void send(file, false);
   }, [send]);
 
+  // When the project is locked and this browser has not unlocked it yet, ask for the password before the file picker opens.
+  const openPicker = useCallback(() => { void (async () => { if (locked && !(await requestUnlock(projectId))) return; inputRef.current?.click(); })(); }, [locked, projectId]);
+
   useEffect(() => {
     const onEnter = (e: DragEvent) => { if (!e.dataTransfer?.types.includes("Files")) return; depth.current++; setDragging(true); };
     const onLeave = () => { depth.current = Math.max(0, depth.current - 1); if (depth.current === 0) setDragging(false); };
@@ -51,7 +58,7 @@ export function UploadFlow({ projectId, onDone, children }: Props) {
   return (
     <>
       <input ref={inputRef} type="file" accept=".xlsx,.xlsm,.xls,.csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) start(f); e.target.value = ""; }} />
-      {children({ openPicker: () => inputRef.current?.click(), busy })}
+      {children({ openPicker, busy })}
       {dragging && (
         <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center bg-[color-mix(in_oklab,var(--bg)_82%,transparent)]">
           <div className="border border-accent bg-bg px-8 py-6 text-center">
@@ -90,17 +97,6 @@ export function UploadFlow({ projectId, onDone, children }: Props) {
   );
 }
 
-export function Modal({ title, children, onClose, wide }: { title: string; children: React.ReactNode; onClose: () => void; wide?: boolean }) {
-  useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onClose]);
-  return (
-    <div className="fixed inset-0 z-[75] flex items-center justify-center bg-[color-mix(in_oklab,var(--bg-sunk)_70%,transparent)] p-4" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={title} className={`w-full ${wide ? "max-w-3xl" : "max-w-md"} border border-line bg-bg shadow-[var(--shadow-pop)]`} onClick={(e) => e.stopPropagation()}>
-        <div className="flex h-10 items-center justify-between border-b border-line px-4"><span className="label-strong">{title}</span><button type="button" className="text-ink-3 hover:text-ink" onClick={onClose} aria-label="Close">×</button></div>
-        <div className="p-4">{children}</div>
-      </div>
-    </div>
-  );
-}
 
 function SchemaDiffView({ diff, mapping, setMapping }: { diff: DiffPayload; mapping: Record<string, string>; setMapping: (m: Record<string, string>) => void }) {
   const renamed = diff.matched.filter((m) => m.how !== "exact");

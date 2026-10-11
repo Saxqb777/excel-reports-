@@ -23,7 +23,7 @@ async function main() {
     project: {
       id: `prj_${slug}`, slug, name, clientName: slug === "agthia" ? "Agthia Group" : null, description: `Dashboard for ${name}.`,
       theme: { name, primary, mode: "dark", logoUrl: null, monogram }, layout: res.layout, schemaMap: res.schema, settings: slug === "agthia" ? { domains: ["agthia-reports.vercel.app"], template: res.template } : { template: res.template },
-      shareToken: `fixture-${slug}`, shareEnabled: true, hasSharePassword: false, currentUploadId: "upl_fixture", updatedAt: now, createdAt: now,
+      shareToken: `fixture-${slug}`, shareEnabled: true, hasSharePassword: false, hasUpdateLock: false, currentUploadId: "upl_fixture", updatedAt: now, createdAt: now,
     },
     upload: { id: `upl_fixture_${slug}`, versionNo: 2, fileName: file.split("/").pop(), fileSize: buf.length, uploadedBy: "", uploadedAt: now, rowCount: res.snapshot.n, excludedCount: res.snapshot.excluded.length, status: "ready", sheetName: res.workbook.sheets[res.workbook.primary].name, headers: res.workbook.sheets[res.workbook.primary].headers },
     snapshot: { ...res.snapshot, aux: res.aux, uploadId: `upl_fixture_${slug}`, version: 2 },
