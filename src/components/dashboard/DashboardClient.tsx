@@ -155,7 +155,7 @@ export function DashboardClient(props: DashboardProps) {
                       {share && <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setShareOpen(true)}>Share</button>}
                       <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setHistoryOpen(true)}>History</button>
                       {props.slug && <Link href={`/p/${props.slug}/settings`} className="btn h-7 px-2 py-0 text-[14px] leading-7">Settings</Link>}
-                      <button type="button" className="btn btn-accent h-7 px-2 py-0 text-[14px]" onClick={openPicker} disabled={busy} title={props.updateLocked ? "Password protected" : undefined}>
+                      <button type="button" className="btn btn-accent h-7 whitespace-nowrap px-2 py-0 text-[14px]" onClick={openPicker} disabled={busy} title={props.updateLocked ? "Password protected" : undefined}>
                         {props.updateLocked && <svg aria-hidden width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" className="mr-1 inline-block align-[-1px]"><rect x="3" y="7" width="10" height="7" rx="1" /><path d="M5 7V5a3 3 0 0 1 6 0v2" /></svg>}
                         {busy ? "Loading…" : "Update data"}
                       </button>
