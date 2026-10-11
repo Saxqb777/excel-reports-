@@ -5,7 +5,7 @@ import path from "node:path";
 import { db, hasDatabase, schema } from "@/lib/db/client";
 import type { ProjectRow, UploadRow } from "@/lib/db/schema";
 import type { Layout, Theme } from "@/lib/dashboard/types";
-import type { ParsedSheet, SchemaMap, Snapshot } from "@/lib/schema/types";
+import type { AuxSheet, ParsedSheet, SchemaMap, Snapshot } from "@/lib/schema/types";
 import { buildSnapshot } from "@/lib/schema/normalize";
 
 export interface ProjectSummary {
@@ -169,7 +169,7 @@ export async function listUploads(projectId: string): Promise<UploadSummary[]> {
  * snapshot was built, it is rebuilt from the stored raw rows so mapping edits never require a re-upload.
  */
 export async function getSnapshot(project: ProjectSummary): Promise<Snapshot | null> {
-  if (fixtureMode()) return readFixtures().find((f) => f.project.id === project.id)?.snapshot ?? null;
+  if (fixtureMode()) { const s = readFixtures().find((f) => f.project.id === project.id)?.snapshot ?? null; return s ? withReference(project, s) : null; }
   if (!project.currentUploadId) return null;
   const rows = await db().select().from(schema.uploads).where(eq(schema.uploads.id, project.currentUploadId)).limit(1);
   const u = rows[0];
@@ -178,7 +178,17 @@ export async function getSnapshot(project: ProjectSummary): Promise<Snapshot | n
   const stored = u.snapshot as (Snapshot & { schemaHash?: string }) | null;
   const aux = u.sheets ?? undefined;
   const snap = stored && stored.schemaHash === wanted && !countdownStale(stored, project.schemaMap) ? stored : await rebuildSnapshot(u, project.schemaMap);
-  return aux && Object.keys(aux).length ? { ...snap, aux } : snap;
+  return withReference(project, aux && Object.keys(aux).length ? { ...snap, aux } : snap);
+}
+
+/**
+ * Reference tables kept on the project rather than in a workbook (a rate card transcribed from a contract scan):
+ * `settings.referenceSheets`, stored in the database only, shown by auxTable widgets like the workbook's own sheets.
+ */
+function withReference(project: ProjectSummary, snap: Snapshot): Snapshot {
+  const ref = project.settings.referenceSheets as Record<string, AuxSheet> | undefined;
+  if (!ref || typeof ref !== "object" || Object.keys(ref).length === 0) return snap;
+  return { ...snap, aux: { ...ref, ...(snap.aux ?? {}) } };
 }
 
 /** Fields counted from today (days until an ETA, age in days) drift; a snapshot that carries them is rebuilt every 12 hours. */

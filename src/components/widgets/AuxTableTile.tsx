@@ -100,7 +100,7 @@ export function AuxTableTile({ w }: { w: AuxTableWidget }) {
                       const numeric = c.type === "number" || c.type === "date";
                       const t = text(c, v);
                       return (
-                        <td key={c.id} className={`align-top px-3 py-[5px] ${numeric ? "num text-right text-ink" : "text-ink-2"} ${c.id === "__count" && v !== null ? "font-semibold" : ""} ${c.id === "remarks" ? "max-w-[320px]" : "whitespace-nowrap"}`}>
+                        <td key={c.id} className={`align-top px-3 py-[5px] ${numeric ? "num text-right text-ink" : "text-ink-2"} ${c.id === "__count" && v !== null ? "font-semibold" : ""} ${c.wrap ? "min-w-[320px] max-w-[560px]" : c.id === "remarks" ? "max-w-[320px]" : "whitespace-nowrap"}`}>
                           {v === null ? <span className="text-ink-4">·</span> : c.id === w.statusField ? <span className="flex items-center gap-1.5 whitespace-nowrap text-ink"><span className="inline-block h-[7px] w-[7px] rounded-full" style={{ background: toneVar(statusTone(t)) }} />{t}</span> : t}
                         </td>
                       );

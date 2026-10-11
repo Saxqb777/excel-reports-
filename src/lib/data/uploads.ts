@@ -1,12 +1,11 @@
 import { nanoid } from "nanoid";
 import { and, desc, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db/client";
-import { parseWorkbook } from "@/lib/excel/parse";
-import { auxSheetsFor } from "@/lib/ingest";
+import { auxSheetsFor, readWorkbook } from "@/lib/ingest";
 import { diffSchema, inferField, buildValueMap, type SchemaDiff } from "@/lib/schema/infer";
 import { buildSnapshot } from "@/lib/schema/normalize";
 import type { Field, ParsedSheet, SchemaMap } from "@/lib/schema/types";
-import { storeFile } from "@/lib/storage/files";
+import { storeFile, type StoredFile } from "@/lib/storage/files";
 import { sha256 } from "@/lib/ingest";
 import { getProjectById, rebuildSnapshot, schemaHash, toUploadSummary, type ProjectSummary } from "./projects";
 import { augmentLayoutForNewMeasures } from "@/lib/dashboard/augment";
@@ -78,7 +77,7 @@ export function applyMapping(schemaMap: SchemaMap, diff: SchemaDiff, sheet: Pars
   return { ...schemaMap, version: schemaMap.version + 1, fields };
 }
 
-export interface AddUploadInput { project: ProjectSummary; buffer: Buffer; fileName: string; uploadedBy: string; mapping?: HeaderMapping; confirm: boolean }
+export interface AddUploadInput { project: ProjectSummary; buffer: Buffer; fileName: string; uploadedBy: string; mapping?: HeaderMapping; confirm: boolean; /** Already stored (a large file the browser put into Blob itself). */ stored?: StoredFile }
 
 export type AddUploadResult =
   | { status: "needs-confirmation"; diff: DiffPayload }
@@ -86,7 +85,7 @@ export type AddUploadResult =
 
 export async function addUpload(input: AddUploadInput): Promise<AddUploadResult> {
   const { project } = input;
-  const workbook = await parseWorkbook(input.buffer, input.fileName);
+  const workbook = await readWorkbook(input.buffer, input.fileName);
   const sheetIndex = project.schemaMap.sheet ? workbook.sheets.findIndex((s) => s.name === project.schemaMap.sheet) : -1;
   const sheet = workbook.sheets[sheetIndex === -1 ? workbook.primary : sheetIndex];
   const diff = diffSchema(project.schemaMap, sheet);
@@ -103,7 +102,7 @@ export async function addUpload(input: AddUploadInput): Promise<AddUploadResult>
   const versionNo = (last[0]?.v ?? 0) + 1;
   const uploadId = `upl_${nanoid(10)}`;
   const snapshot = { ...buildSnapshot(schemaMap, sheet, { uploadId, version: versionNo }), schemaHash: schemaHash(schemaMap) };
-  const stored = await storeFile(input.buffer, project.id, uploadId, input.fileName);
+  const stored = input.stored ?? await storeFile(input.buffer, project.id, uploadId, input.fileName);
   await db().insert(schema.uploads).values({
     id: uploadId, projectId: project.id, versionNo, fileName: input.fileName, fileSize: input.buffer.length, fileSha256: sha256(input.buffer),
     storageKind: stored.kind, storageRef: stored.ref, fileBytes: stored.bytes, uploadedBy: input.uploadedBy, sheetName: sheet.name,

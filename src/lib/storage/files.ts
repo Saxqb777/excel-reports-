@@ -37,3 +37,16 @@ export async function readStoredFile(kind: string, ref: string | null, bytes: Bu
   }
   return null;
 }
+
+/** Browser uploads larger than a function request allows go straight to Blob under this prefix (see uploads/blob). */
+export const incomingPrefix = (projectId: string) => `incoming/${projectId}/`;
+
+/** Reads a private blob into memory (a workbook uploaded straight from the browser). */
+export async function readBlobBuffer(ref: string): Promise<Buffer | null> {
+  const res = await get(ref, { access: "private" });
+  if (!res || res.statusCode !== 200 || !res.stream) return null;
+  const chunks: Uint8Array[] = [];
+  const reader = res.stream.getReader();
+  for (;;) { const { done, value } = await reader.read(); if (done) break; if (value) chunks.push(value); }
+  return Buffer.concat(chunks);
+}

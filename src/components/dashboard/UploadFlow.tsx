@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { upload as uploadToBlob } from "@vercel/blob/client";
 import type { DiffPayload } from "@/lib/data/uploads";
 import { Modal } from "./Modal";
 import { guardedFetch, requestUnlock } from "./UnlockPrompt";
@@ -7,6 +8,9 @@ import { guardedFetch, requestUnlock } from "./UnlockPrompt";
 export { Modal };
 
 export interface UploadOutcome { uploadId: string; versionNo: number; rows: number; excluded: number; schemaChanged: boolean }
+
+/** A function request carries at most 4.5 MB on Vercel; larger workbooks go from the browser straight to Blob storage. */
+const DIRECT_LIMIT = 4 * 1024 * 1024;
 
 interface Props { projectId: string; onDone: (outcome: UploadOutcome) => void; /** The project has an update password and this browser has not entered it yet. */ locked?: boolean; children: (api: { openPicker: () => void; busy: boolean }) => React.ReactNode }
 
@@ -20,12 +24,29 @@ export function UploadFlow({ projectId, onDone, locked, children }: Props) {
   const [toast, setToast] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const depth = useRef(0);
+  // A large file is put into Blob once; confirming a column change re-sends the same reference.
+  const blobs = useRef(new Map<File, string>());
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 5000); return () => clearTimeout(t); }, [toast]);
 
   const send = useCallback(async (file: File, confirm: boolean, map?: Record<string, string>) => {
     setBusy(true); setError(null);
     const fd = new FormData();
-    fd.set("file", file);
+    if (file.size > DIRECT_LIMIT) {
+      let ref = blobs.current.get(file);
+      if (!ref) {
+        try {
+          const res = await uploadToBlob(`incoming/${projectId}/${file.name.replace(/[^\w.\-]+/g, "_")}`, file, { access: "private", handleUploadUrl: `/api/projects/${projectId}/uploads/blob`, multipart: file.size > 8 * 1024 * 1024 });
+          ref = res.pathname;
+          blobs.current.set(file, ref);
+        } catch (e) {
+          setBusy(false);
+          setError(e instanceof Error ? e.message.replace(/^Vercel Blob: /, "") : "Upload failed");
+          return;
+        }
+      }
+      fd.set("blob", ref);
+      fd.set("fileName", file.name);
+    } else fd.set("file", file);
     if (confirm) fd.set("confirm", "1");
     if (map) fd.set("mapping", JSON.stringify(map));
     const res = await guardedFetch(projectId, `/api/projects/${projectId}/uploads`, { method: "POST", body: fd });
@@ -39,9 +60,13 @@ export function UploadFlow({ projectId, onDone, locked, children }: Props) {
   }, [projectId, onDone]);
 
   const start = useCallback((file: File) => {
-    if (!/\.(xlsx|xlsm|xls|csv)$/i.test(file.name)) { setError("Drop an Excel or CSV file."); return; }
-    void send(file, false);
-  }, [send]);
+    if (!/\.(xlsx|xlsm|xlsb|xls|csv)$/i.test(file.name)) { setError("Drop an Excel or CSV file."); return; }
+    void (async () => {
+      // A locked dashboard asks for the password before anything is sent (a large file would otherwise upload first).
+      if (locked && !(await requestUnlock(projectId))) return;
+      await send(file, false);
+    })();
+  }, [send, locked, projectId]);
 
   // When the project is locked and this browser has not unlocked it yet, ask for the password before the file picker opens.
   const openPicker = useCallback(() => { void (async () => { if (locked && !(await requestUnlock(projectId))) return; inputRef.current?.click(); })(); }, [locked, projectId]);
@@ -57,7 +82,7 @@ export function UploadFlow({ projectId, onDone, locked, children }: Props) {
 
   return (
     <>
-      <input ref={inputRef} type="file" accept=".xlsx,.xlsm,.xls,.csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) start(f); e.target.value = ""; }} />
+      <input ref={inputRef} type="file" accept=".xlsx,.xlsm,.xlsb,.xls,.csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) start(f); e.target.value = ""; }} />
       {children({ openPicker, busy })}
       {dragging && (
         <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center bg-[color-mix(in_oklab,var(--bg)_82%,transparent)]">

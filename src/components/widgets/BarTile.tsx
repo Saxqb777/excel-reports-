@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import type { BarWidget } from "@/lib/dashboard/types";
 import { groupBy } from "@/lib/engine/metrics";
+import { rowMatches } from "@/lib/engine/filters";
 import { useDashboard } from "@/lib/ui/dashboard-state";
 import { HBars, Legend } from "@/components/charts/HBars";
 import { Tile, DataTable } from "./Tile";
@@ -9,7 +10,15 @@ import { formatNumber, pct } from "@/lib/engine/format";
 
 export function BarTile({ w }: { w: BarWidget }) {
   const { snapshot, maskFor, dispatch, isSelected, fields } = useDashboard();
-  const mask = maskFor(w.id);
+  const baseMask = maskFor(w.id);
+  // A chart about one slice of the table (one stream of a merged sheet) groups only that slice, so other slices'
+  // categories do not appear as empty bars.
+  const mask = useMemo(() => {
+    if (!w.filter) return baseMask;
+    const out = new Uint8Array(baseMask.length);
+    for (let i = 0; i < baseMask.length; i++) out[i] = baseMask[i] && rowMatches(snapshot.columns, i, w.filter) ? 1 : 0;
+    return out;
+  }, [baseMask, w.filter, snapshot.columns]);
   const dim = fields.get(w.dimension);
   const stackField = w.stackBy ? fields.get(w.stackBy) : undefined;
   const rows = useMemo(() => groupBy(snapshot, mask, w.dimension, w.metric, { topN: w.topN, sort: w.sort ?? (dim?.order ? "order" : "value"), order: dim?.order, stackBy: w.stackBy, includeNull: w.includeNull, nullLabel: "Not set", fillOrder: Boolean(dim?.order) }), [snapshot, mask, w, dim]);

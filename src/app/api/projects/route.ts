@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof File)) return Response.json({ error: "Attach a workbook as the 'file' field" }, { status: 400 });
-  const name = String(form.get("name") ?? "").trim() || file.name.replace(/\.(xlsx|xlsm|xls|csv)$/i, "");
+  const name = String(form.get("name") ?? "").trim() || file.name.replace(/\.(xlsx|xlsm|xlsb|xls|csv)$/i, "");
   const clientName = String(form.get("clientName") ?? "").trim() || undefined;
   const uploadedBy = String(form.get("uploadedBy") ?? "").trim();
   const primary = String(form.get("primary") ?? "").trim() || undefined;

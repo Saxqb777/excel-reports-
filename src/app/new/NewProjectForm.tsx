@@ -24,7 +24,7 @@ export function NewProjectForm() {
   const pick = async (f: File | null) => {
     setFile(f); setPreview(null); setError(null);
     if (!f) return;
-    if (!name) setName(f.name.replace(/\.(xlsx|xlsm|xls|csv)$/i, ""));
+    if (!name) setName(f.name.replace(/\.(xlsx|xlsm|xlsb|xls|csv)$/i, ""));
     setBusy(true);
     const fd = new FormData(); fd.set("file", f);
     const res = await fetch("/api/projects/preview", { method: "POST", body: fd });
@@ -56,7 +56,7 @@ export function NewProjectForm() {
         onDrop={(e) => { e.preventDefault(); setOver(false); void pick(e.dataTransfer.files[0] ?? null); }}
         onClick={() => inputRef.current?.click()}
         className={`flex h-32 cursor-pointer flex-col items-center justify-center border border-dashed text-center transition-colors ${over ? "border-accent bg-[var(--accent-wash)]" : "border-line-strong hover:border-accent"}`}>
-        <input ref={inputRef} type="file" accept=".xlsx,.xlsm,.xls,.csv" className="hidden" onChange={(e) => void pick(e.target.files?.[0] ?? null)} />
+        <input ref={inputRef} type="file" accept=".xlsx,.xlsm,.xlsb,.xls,.csv" className="hidden" onChange={(e) => void pick(e.target.files?.[0] ?? null)} />
         {file ? (
           <><div className="num text-[14px] text-ink">{file.name}</div><div className="num mt-1 text-[14px] text-ink-3">{(file.size / 1024).toFixed(1)} KB · {busy && !preview ? "reading…" : "click to change"}</div></>
         ) : (

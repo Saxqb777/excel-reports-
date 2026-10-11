@@ -127,6 +127,12 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
       if (firstText === null && typeof out === "string") firstText = out;
     }
     const idValue = idField ? (rec[idField.id] as string | null) : null;
+    // Template hooks, both reproducible from the stored rows: a reason column excludes the row (a duplicate of a record
+    // counted on another sheet), and a note column carries the corrections a template made while merging sheets.
+    if (schema.excludeField && typeof rec[schema.excludeField] === "string") { excluded.push({ row: raw.row, reason: rec[schema.excludeField] as string, id: idValue }); continue; }
+    if (schema.noteField && typeof rec[schema.noteField] === "string") {
+      try { for (const fx of JSON.parse(rec[schema.noteField] as string) as Omit<Fix, "row">[]) fixes.push({ ...fx, row: raw.row, id: idValue }); } catch { /* not a note list */ }
+    }
     // Exclusions
     if (nonIdValues === 0) { excluded.push({ row: raw.row, reason: idValue ? "Only the identifier is filled in" : "Empty row", id: idValue }); continue; }
     // A row with no identifier and only a couple of cells (a totals line under the table, a stray number) is not a record.
@@ -194,6 +200,9 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
     } else if (spec.kind === "period") {
       const a = getCol(spec.from);
       for (let i = 0; i < n; i++) if (typeof a[i] === "number") out[i] = periodStart(a[i] as number, spec.unit);
+    } else if (spec.kind === "monthLabel") {
+      const a = getCol(spec.from);
+      for (let i = 0; i < n; i++) if (typeof a[i] === "number") out[i] = monthLabel(a[i] as number);
     } else if (spec.kind === "baseRef") {
       const a = getCol(spec.from);
       for (let i = 0; i < n; i++) {
@@ -305,6 +314,7 @@ function topoOrder(derived: Field[]): Field[] {
       case "pendingCount": return s.fields;
       case "pendingList": return s.fields;
       case "baseRef": return [s.from];
+      case "monthLabel": return [s.from];
     }
   };
   const out: Field[] = [];
@@ -329,3 +339,17 @@ export function periodStart(t: number, unit: "week" | "month" | "day"): number {
 
 export { rowMatches } from "@/lib/engine/filters";
 export type { FilterExpr };
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** "Jan 2026" for a timestamp (UTC). */
+export function monthLabel(t: number): string {
+  const d = new Date(t);
+  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+/** Inverse of monthLabel, for sorting month categories; falls back to Date.parse, then null. */
+export function parseMonthLabel(s: string): number | null {
+  const m = /^([A-Za-z]{3})[a-z]*\.?\s+(\d{4})$/.exec(s.trim());
+  if (m) { const i = MONTHS.findIndex((x) => x.toLowerCase() === m[1].toLowerCase()); if (i >= 0) return Date.UTC(+m[2], i, 1); }
+  const t = Date.parse(s);
+  return Number.isNaN(t) ? null : t;
+}

@@ -95,6 +95,8 @@ export function computeInsights({ current, previous, schema, layout, now = Date.
     if (cur === null || prev === null) continue;
     const delta = cur - prev;
     if (Math.abs(delta) < 1e-9) continue;
+    // A change that reads the same once formatted ("rose to 89% from 89%") is not news.
+    if (fmt(cur, w.metric) === fmt(prev, w.metric)) continue;
     const isRate = w.metric.format === "percent";
     let rel = prev !== 0 ? Math.abs(delta) / Math.abs(prev) : Math.min(1, Math.abs(delta) / Math.max(1, Math.abs(cur)));
     if (w.metric.format === "days" && Math.abs(delta) < 1) rel *= 0.25;

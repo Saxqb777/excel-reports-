@@ -100,7 +100,7 @@ export function QualityTile({ w, anomalies }: { w: QualityWidget; anomalies?: An
             <div className="mt-3">
               <div className="label mb-1">Corrections applied</div>
               <ul className="space-y-0.5 text-[14px]">
-                {snapshot.fixes.map((f, i) => <li key={i}><span className="num text-ink">row {f.row}</span> <span className="text-ink-2">{f.field}</span> <span className="num text-ink-3">{f.from} → {f.to}</span><div className="text-ink-3">{f.reason}</div></li>)}
+                {snapshot.fixes.map((f, i) => <li key={i}><span className="num text-ink">{f.id ?? `row ${f.row}`}</span> <span className="text-ink-2">{f.field}</span> <span className="num text-ink-3">{f.from} → {f.to}</span><div className="text-ink-3">{f.reason}</div></li>)}
               </ul>
             </div>
           )}

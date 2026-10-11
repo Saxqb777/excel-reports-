@@ -33,7 +33,9 @@ export type DerivedSpec =
   /** Labels of the `fields` not marked done, comma-separated; null when all are done. */
   | { kind: "pendingList"; fields: string[]; done: string[] }
   /** The reference without a trailing split suffix ("VSBU9012540-2" → "VSBU9012540"); rows without one get "Row n" so each still counts once. */
-  | { kind: "baseRef"; from: string };
+  | { kind: "baseRef"; from: string }
+  /** "Jan 2026" from a date, for month bars that stack by another dimension (sorted with `sort: "date"`). */
+  | { kind: "monthLabel"; from: string };
 
 export type FieldFormat = "integer" | "decimal" | "currency" | "percent" | "days" | "date" | "text";
 
@@ -74,6 +76,10 @@ export interface SchemaMap {
   home?: string[];
   /** Date fields in the order they happen in a row (loading before sailing before arrival); used to spot day/month swaps. */
   dateChain?: string[];
+  /** A text field whose value, when set, excludes the row with that value as the reason (set by a template). */
+  excludeField?: string;
+  /** A text field holding a JSON list of corrections a template made to the row ({ field, from, to, reason }). */
+  noteField?: string;
 }
 
 /** Column-level statistics captured from a parsed sheet. */
@@ -109,15 +115,17 @@ export interface ParsedWorkbook {
   sheets: ParsedSheet[];
   /** Index of the sheet chosen as the data sheet. */
   primary: number;
+  /** Small sheets as plain value grids (row by row, from the top-left cell), for templates that read a summary layout. */
+  grids?: Record<string, RawCell[][]>;
 }
 
 export type ColumnValue = number | string | null;
 
 export interface Exclusion { row: number; reason: string; id?: string | null }
-export interface Fix { row: number; field: string; from: string; to: string; reason: string }
+export interface Fix { row: number; field: string; from: string; to: string; reason: string; id?: string | null }
 
 /** A column of a secondary sheet kept alongside the main table (a vessel timetable, a price list). */
-export interface AuxColumn { id: string; label: string; type: FieldType; format?: FieldFormat; hidden?: boolean }
+export interface AuxColumn { id: string; label: string; type: FieldType; format?: FieldFormat; hidden?: boolean; /** Long text that wraps instead of widening the table (a note). */ wrap?: boolean }
 /** A small secondary sheet, normalised by a template at ingest time and stored with the upload. */
 export interface AuxSheet { id: string; label: string; columns: AuxColumn[]; rows: Record<string, ColumnValue>[] }
 

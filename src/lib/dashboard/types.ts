@@ -30,9 +30,12 @@ export interface BarWidget extends WidgetBase {
   stackBy?: string;
   orientation?: "horizontal" | "vertical";
   topN?: number;
-  sort?: "value" | "key" | "order";
+  /** "date" sorts month labels ("Jan 2026") chronologically. */
+  sort?: "value" | "key" | "order" | "date";
   colorBy?: "single" | "status" | "categorical";
   includeNull?: boolean;
+  /** Only rows matching this are grouped (a page about one stream of a merged table). */
+  filter?: FilterExpr;
 }
 
 export interface LineWidget extends WidgetBase {

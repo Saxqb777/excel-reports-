@@ -1,8 +1,8 @@
 import type { ColumnValue, Field, FilterExpr, Snapshot } from "@/lib/schema/types";
-import { periodStart } from "@/lib/schema/normalize";
+import { parseMonthLabel, periodStart } from "@/lib/schema/normalize";
 import { rowMatches } from "./filters";
 
-export type Agg = "count" | "sum" | "avg" | "median" | "min" | "max" | "distinct" | "rate";
+export type Agg = "count" | "sum" | "avg" | "median" | "min" | "max" | "distinct" | "rate" | "ratio";
 
 export interface MetricSpec {
   agg: Agg;
@@ -12,6 +12,8 @@ export interface MetricSpec {
   /** For rate: numerator filter / denominator filter (denominator defaults to filter or all). */
   numerator?: FilterExpr;
   denominator?: FilterExpr;
+  /** For ratio: the field summed as the denominator, so the metric is sum(field) / sum(over) (savings over old fees). */
+  over?: string;
   format?: "integer" | "decimal" | "currency" | "percent" | "days";
   currency?: string;
 }
@@ -62,6 +64,19 @@ export function computeMetric(snapshot: Pick<Snapshot, "columns" | "n">, mask: U
     if (keyCol) { num = numSet.size; den = denSet.size; }
     return den === 0 ? null : num / den;
   }
+  if (m.agg === "ratio") {
+    const num = m.field ? columns[m.field] : undefined, den = m.over ? columns[m.over] : undefined;
+    if (!num || !den) return null;
+    let a = 0, b = 0;
+    for (let i = 0; i < n; i++) {
+      if (!mask[i]) continue;
+      if (m.filter && !rowMatches(columns, i, m.filter)) continue;
+      const x = num[i], y = den[i];
+      if (typeof x !== "number" || typeof y !== "number") continue;
+      a += x; b += y;
+    }
+    return b === 0 ? null : a / b;
+  }
   if (m.agg === "distinct") {
     const col = m.field ? columns[m.field] : undefined;
     if (!col) return null;
@@ -91,7 +106,7 @@ export function computeMetric(snapshot: Pick<Snapshot, "columns" | "n">, mask: U
 
 export interface GroupRow { key: string; value: number; count: number; stacks?: Record<string, number> }
 
-export interface GroupOptions { topN?: number; sort?: "value" | "key" | "order"; order?: string[]; stackBy?: string; includeNull?: boolean; nullLabel?: string; /** Also list every value in `order` that has no rows, as a zero row. */ fillOrder?: boolean }
+export interface GroupOptions { topN?: number; sort?: "value" | "key" | "order" | "date"; order?: string[]; stackBy?: string; includeNull?: boolean; nullLabel?: string; /** Also list every value in `order` that has no rows, as a zero row. */ fillOrder?: boolean }
 
 export function groupBy(snapshot: Pick<Snapshot, "columns" | "n">, mask: Uint8Array, dimension: string, metric: MetricSpec, opts: GroupOptions = {}): GroupRow[] {
   const { columns, n } = snapshot;
@@ -137,6 +152,7 @@ export function groupBy(snapshot: Pick<Snapshot, "columns" | "n">, mask: Uint8Ar
   const sort = opts.sort ?? "value";
   if (sort === "value") rows.sort((a, b) => b.value - a.value || a.key.localeCompare(b.key));
   else if (sort === "key") rows.sort((a, b) => a.key.localeCompare(b.key));
+  else if (sort === "date") rows.sort((a, b) => (parseMonthLabel(a.key) ?? Infinity) - (parseMonthLabel(b.key) ?? Infinity));
   else if (sort === "order" && opts.order) {
     const pos = new Map(opts.order.map((k, i) => [k.toLowerCase(), i]));
     rows.sort((a, b) => (pos.get(a.key.toLowerCase()) ?? 999) - (pos.get(b.key.toLowerCase()) ?? 999));

@@ -7,6 +7,7 @@ import type { AuxSheet, ParsedWorkbook, SchemaMap, Snapshot } from "@/lib/schema
 import { agthiaLayout, agthiaSchema, matchesAgthia } from "@/lib/templates/agthia";
 import { matchesShipments, shipmentsLayout, shipmentsSchema } from "@/lib/templates/shipments";
 import { containersAux, containersLayout, containersSchema, matchesContainers } from "@/lib/templates/containers";
+import { matchesSavings, prepareSavingsWorkbook, savingsAux, savingsLayout, savingsSchema } from "@/lib/templates/savings";
 import { proposeLayout } from "@/lib/dashboard/propose";
 import type { Layout } from "@/lib/dashboard/types";
 
@@ -16,31 +17,41 @@ export interface IngestResult {
   layout: Layout | null;
   snapshot: Snapshot;
   sha256: string;
-  template: "agthia" | "shipments" | "containers" | "generic";
+  template: "agthia" | "shipments" | "containers" | "savings" | "generic";
   /** Secondary sheets the template knows how to read (empty for generic sheets). */
   aux: Record<string, AuxSheet>;
 }
 
 /** Secondary sheets a template keeps alongside the main table. */
 export function auxSheetsFor(template: string | undefined, workbook: ParsedWorkbook): Record<string, AuxSheet> {
-  return template === "containers" ? containersAux(workbook) : {};
+  if (template === "containers") return containersAux(workbook);
+  if (template === "savings") return savingsAux(workbook);
+  return {};
+}
+
+/**
+ * Parses a workbook and lets templates reshape it before the pipeline sees it: a savings report spread over one sheet
+ * per stream becomes one merged sheet. Every path that reads an uploaded file goes through here.
+ */
+export async function readWorkbook(buffer: Buffer, fileName: string): Promise<ParsedWorkbook> {
+  return prepareSavingsWorkbook(await parseWorkbook(buffer, fileName));
 }
 
 /** First upload for a project: infer schema, apply a curated template when the sheet matches, propose a layout. */
 export async function ingestNew(buffer: Buffer, fileName: string, uploadId = nanoid(12)): Promise<IngestResult> {
-  const workbook = await parseWorkbook(buffer, fileName);
+  const workbook = await readWorkbook(buffer, fileName);
   const sheet = workbook.sheets[workbook.primary];
   const inferred = inferSchema(sheet);
-  const template: IngestResult["template"] = matchesAgthia(sheet.headers) ? "agthia" : matchesShipments(sheet.headers) ? "shipments" : matchesContainers(sheet.headers) ? "containers" : "generic";
-  const schema = template === "agthia" ? agthiaSchema(inferred) : template === "shipments" ? shipmentsSchema(inferred) : template === "containers" ? containersSchema(inferred) : inferred;
-  const layout = template === "agthia" ? agthiaLayout(schema) : template === "shipments" ? shipmentsLayout(schema) : template === "containers" ? containersLayout(schema) : proposeLayout(schema);
+  const template: IngestResult["template"] = matchesSavings(sheet.headers) ? "savings" : matchesAgthia(sheet.headers) ? "agthia" : matchesShipments(sheet.headers) ? "shipments" : matchesContainers(sheet.headers) ? "containers" : "generic";
+  const schema = template === "savings" ? savingsSchema(inferred, sheet) : template === "agthia" ? agthiaSchema(inferred) : template === "shipments" ? shipmentsSchema(inferred) : template === "containers" ? containersSchema(inferred) : inferred;
+  const layout = template === "savings" ? savingsLayout() : template === "agthia" ? agthiaLayout(schema) : template === "shipments" ? shipmentsLayout(schema) : template === "containers" ? containersLayout(schema) : proposeLayout(schema);
   const snapshot = buildSnapshot(schema, sheet, { uploadId, version: 1 });
   return { workbook, schema, layout, snapshot, sha256: sha256(buffer), template, aux: auxSheetsFor(template, workbook) };
 }
 
 /** Re-upload against a known schema. Returns the diff so the caller can ask for confirmation when headers changed. */
 export async function ingestExisting(buffer: Buffer, fileName: string, schema: SchemaMap, version: number, uploadId = nanoid(12)) {
-  const workbook = await parseWorkbook(buffer, fileName);
+  const workbook = await readWorkbook(buffer, fileName);
   const sheetIndex = schema.sheet ? Math.max(0, workbook.sheets.findIndex((s) => s.name === schema.sheet)) : workbook.primary;
   const sheet = workbook.sheets[sheetIndex === -1 ? workbook.primary : sheetIndex];
   const diff = diffSchema(schema, sheet);

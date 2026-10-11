@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import Papa from "papaparse";
 import type { ColumnStats, ParsedSheet, ParsedWorkbook, RawCell, RawRow } from "@/lib/schema/types";
 import { cleanText, normKey } from "@/lib/schema/types";
+import { readXlsb } from "./xlsb";
 
 const MAX_HEADER_SCAN = 20;
 
@@ -167,12 +168,45 @@ async function loadWorkbook(buf: Buffer): Promise<ExcelJS.Workbook> {
   }
 }
 
+/** Small sheets (a summary, a pivot, a rate card) are also kept as plain grids so templates can read their layout. */
+const SMALL_GRID_ROWS = 300;
+const SMALL_GRID_COLS = 60;
+function keepGrid(grids: Record<string, RawCell[][]>, name: string, grid: { v: RawCell }[][]) {
+  if (grid.length === 0 || grid.length > SMALL_GRID_ROWS) return;
+  grids[name] = grid.map((row) => row.slice(0, SMALL_GRID_COLS).map((c) => c.v));
+}
+
+function pickPrimary(fileName: string, sheets: ParsedSheet[], grids: Record<string, RawCell[][]>): ParsedWorkbook {
+  if (sheets.length === 0) throw new Error("No sheet with data was found in the workbook.");
+  let primary = 0;
+  let best = -1;
+  sheets.forEach((s, i) => {
+    const score = s.rows.length * s.headers.length;
+    if (score > best) { best = score; primary = i; }
+  });
+  return { fileName, sheets, primary, grids };
+}
+
+async function parseXlsbWorkbook(buf: Buffer, fileName: string): Promise<ParsedWorkbook> {
+  const sheets: ParsedSheet[] = [];
+  const grids: Record<string, RawCell[][]> = {};
+  for (const s of await readXlsb(buf)) {
+    if (s.hidden) continue;
+    keepGrid(grids, s.name, s.grid);
+    const parsed = buildSheet(s.name, s.grid, {});
+    if (parsed && parsed.rows.length > 0) sheets.push(parsed);
+  }
+  return pickPrimary(fileName, sheets, grids);
+}
+
 export async function parseWorkbook(buffer: ArrayBuffer | Buffer, fileName: string): Promise<ParsedWorkbook> {
   const lower = fileName.toLowerCase();
   if (lower.endsWith(".csv") || lower.endsWith(".tsv") || lower.endsWith(".txt")) return parseCsv(buffer, fileName);
   const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+  if (lower.endsWith(".xlsb")) return parseXlsbWorkbook(buf, fileName);
   const wb = await loadWorkbook(buf);
   const sheets: ParsedSheet[] = [];
+  const grids: Record<string, RawCell[][]> = {};
   for (const ws of wb.worksheets) {
     if (ws.state && ws.state !== "visible") continue;
     const grid: { v: RawCell; k: CellKind }[][] = [];
@@ -191,17 +225,11 @@ export async function parseWorkbook(buffer: ArrayBuffer | Buffer, fileName: stri
       }
       grid.push(arr);
     }
+    keepGrid(grids, ws.name, grid);
     const parsed = buildSheet(ws.name, grid, extractValidations(ws));
     if (parsed && parsed.rows.length > 0) sheets.push(parsed);
   }
-  if (sheets.length === 0) throw new Error("No sheet with data was found in the workbook.");
-  let primary = 0;
-  let best = -1;
-  sheets.forEach((s, i) => {
-    const score = s.rows.length * s.headers.length;
-    if (score > best) { best = score; primary = i; }
-  });
-  return { fileName, sheets, primary };
+  return pickPrimary(fileName, sheets, grids);
 }
 
 function parseCsv(buffer: ArrayBuffer | Buffer, fileName: string): ParsedWorkbook {
