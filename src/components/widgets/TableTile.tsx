@@ -28,7 +28,8 @@ function rollup(f: Field, vals: ColumnValue[]): ColumnValue {
   const vs = vals.filter((v): v is string | number => v !== null && v !== undefined);
   if (vs.length === 0) return null;
   const first = vs[0];
-  if (vs.every((v) => v === first)) return first;
+  // Repeated values are one value (a container's sales order on each of its lines), unless the field asks to be summed (counts).
+  if (vs.every((v) => v === first) && !(f.aggregate === "sum" && typeof first === "number")) return first;
   if (vs.every((v) => typeof v === "number")) {
     const nums = vs as number[];
     const how = f.type === "date" ? "min" : f.aggregate ?? (f.role === "measure" ? "sum" : "min");
@@ -38,6 +39,20 @@ function rollup(f: Field, vals: ColumnValue[]): ColumnValue {
     return Math.min(...nums);
   }
   return [...new Set(vs.map(String))].join(", ");
+}
+
+function sortRows(rows: number[], columns: Record<string, ColumnValue[]>, sort: { field: string; dir: "asc" | "desc" } | null): number[] {
+  if (!sort) return rows;
+  const col = columns[sort.field] ?? [];
+  const dir = sort.dir === "asc" ? 1 : -1;
+  return rows.sort((a, b) => {
+    const va = col[a], vb = col[b];
+    if (va === null && vb === null) return 0;
+    if (va === null) return 1;
+    if (vb === null) return -1;
+    if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
+    return String(va).localeCompare(String(vb)) * dir;
+  });
 }
 
 function buildView(snapshot: Snapshot, mask: Uint8Array, filter: FilterExpr | undefined, groupBy: string | undefined, idField: Field | undefined, newSet: Set<string>, changedSet: Set<string>): View {
@@ -92,25 +107,14 @@ export function TableTile({ w, newIds, changedIds, comparedTo }: { w: TableWidge
   const view = useMemo(() => buildView(snapshot, mask, w.filter, w.groupBy, idField, newSet, changedSet), [snapshot, mask, w.filter, w.groupBy, idField, newSet, changedSet]);
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    const out = view.rows.filter((i) => {
+    const base = w.limit ? sortRows([...view.rows], view.columns, w.sort ?? null).slice(0, w.limit) : view.rows;
+    const out = base.filter((i) => {
       if (onlyChanges && idField && !view.isNew(i) && !view.isChanged(i)) return false;
       if (needle && !cols.some((c) => { const v = view.columns[c.id]?.[i]; return v !== null && v !== undefined && formatValue(v, c).toLowerCase().includes(needle); })) return false;
       return true;
     });
-    if (sort) {
-      const col = view.columns[sort.field] ?? [];
-      const dir = sort.dir === "asc" ? 1 : -1;
-      out.sort((a, b) => {
-        const va = col[a], vb = col[b];
-        if (va === null && vb === null) return 0;
-        if (va === null) return 1;
-        if (vb === null) return -1;
-        if (typeof va === "number" && typeof vb === "number") return (va - vb) * dir;
-        return String(va).localeCompare(String(vb)) * dir;
-      });
-    }
-    return out;
-  }, [view, cols, q, sort, onlyChanges, idField]);
+    return sortRows(out, view.columns, sort);
+  }, [view, cols, q, sort, onlyChanges, idField, w.limit, w.sort]);
   const changeCount = useMemo(() => (idField ? view.rows.filter((i) => view.isNew(i) || view.isChanged(i)).length : 0), [view, idField]);
   const pageRows = rows.slice(page * pageSize, (page + 1) * pageSize);
   const pages = Math.max(1, Math.ceil(rows.length / pageSize));
@@ -148,7 +152,7 @@ export function TableTile({ w, newIds, changedIds, comparedTo }: { w: TableWidge
           <div className="min-h-0 flex-1 overflow-auto">
             {pageRows.map((i) => {
               const isNew = view.isNew(i), isChanged = view.isChanged(i);
-              const idCol = cols.find((c) => c.role === "id");
+              const idCol = cols.find((c) => c.role === "id") ?? (w.groupBy ? cols.find((c) => c.id === w.groupBy) : undefined);
               const textCols = cols.filter((c) => c.role === "text");
               const statusCol = cols.find((c) => c.id === w.statusField);
               const emphCol = cols.find((c) => c.id === w.emphasisField);

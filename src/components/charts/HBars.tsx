@@ -67,7 +67,7 @@ export function HBars({ rows, stackKeys, colorBy = "single", format = "integer",
                 const sx = labelWidth + cursor + (cursor > 0 ? 2 : 0);
                 cursor += x(s.v);
                 const isLast = s === segs.filter((q) => q.v > 0).slice(-1)[0];
-                const color = keys.length ? stackColor(s.k, colorIndex.get(s.k) ?? s.ki, colorBy) : stackColor(r.key, ri, colorBy === "categorical" ? "categorical" : "single");
+                const color = keys.length ? stackColor(s.k, colorIndex.get(s.k) ?? s.ki, colorBy) : stackColor(r.key, ri, colorBy);
                 const segSel = isSel && (!selected?.stack || selected.stack === s.k);
                 return (
                   <path

@@ -20,10 +20,10 @@ function compactNumber(v: number): string {
   return numFmt({ maximumFractionDigits: 0 }).format(v);
 }
 
-export function formatNumber(v: number | null | undefined, format: ValueFormat = "integer", currency = "AED", compact = false): string {
+export function formatNumber(v: number | null | undefined, format: ValueFormat = "integer", currency = "AED", compact = false, decimals?: number): string {
   if (v === null || v === undefined || !Number.isFinite(v)) return "–";
   switch (format) {
-    case "percent": return numFmt({ style: "percent", maximumFractionDigits: Math.abs(v) < 0.1 ? 1 : 0 }).format(v);
+    case "percent": return numFmt({ style: "percent", maximumFractionDigits: decimals ?? (Math.abs(v) < 0.1 ? 1 : 0), minimumFractionDigits: decimals ?? 0 }).format(v);
     case "days": return `${numFmt({ maximumFractionDigits: Math.abs(v) < 10 ? 1 : 0 }).format(v)}d`;
     case "currency":
       return compact && Math.abs(v) >= 10000
@@ -77,6 +77,7 @@ export function formatDelta(delta: number | null, format: ValueFormat = "integer
   const abs = Math.abs(delta);
   if (format === "percent") return `${sign}${numFmt({ maximumFractionDigits: 1 }).format(abs * 100)} pts`;
   if (format === "days") return `${sign}${numFmt({ maximumFractionDigits: 1 }).format(abs)}d`;
+  if (format === "currency") return `${sign}${abs >= 100000 ? compactNumber(abs) : numFmt({ maximumFractionDigits: 0 }).format(abs)}`;
   return `${sign}${numFmt({ maximumFractionDigits: 1 }).format(abs)}`;
 }
 

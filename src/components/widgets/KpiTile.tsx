@@ -42,14 +42,14 @@ export function KpiTile({ w, anomaly, previous, comparedTo }: { w: KpiWidget; an
         </div>
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <div className="kpi-value" aria-live="polite">{formatNumber(tw === null ? null : fmt === "percent" ? tw : Math.round(tw * 10) / 10, fmt, w.metric.currency, true)}</div>
+            <div className="kpi-value" aria-live="polite">{formatNumber(tw === null ? null : fmt === "percent" ? tw : Math.round(tw * 10) / 10, fmt, w.metric.currency, true, w.metric.decimals)}</div>
             <div className="num mt-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0 text-[14px] text-ink-3">
               {delta !== null && (
                 <span className={`inline-flex items-center gap-1 whitespace-nowrap ${dTone === "pos" ? "text-pos" : dTone === "neg" ? "text-neg" : "text-ink-3"}`} title={`Compared with version ${comparedTo ?? "previous"}`}>
                   <span aria-hidden>{delta > 0 ? "▲" : delta < 0 ? "▼" : "▬"}</span>{formatDelta(delta, fmt)}<span className="text-ink-4">vs v{comparedTo}</span>
                 </span>
               )}
-              {w.secondary && <span className="whitespace-nowrap"><span className="text-ink-2">{formatNumber(secondary, w.secondary.metric.format ?? "integer", w.secondary.metric.currency)}</span> {w.secondary.label}</span>}
+              {w.secondary && <span className="whitespace-nowrap"><span className="text-ink-2">{formatNumber(secondary, w.secondary.metric.format ?? "integer", w.secondary.metric.currency, secondary !== null && Math.abs(secondary) >= 1e6, w.secondary.metric.decimals)}</span> {w.secondary.label}</span>}
               {filteredElsewhere && <span>{fmt === "percent" || fmt === "days" ? "overall" : "of"} {formatNumber(all, fmt, w.metric.currency, true)}</span>}
             </div>
           </div>

@@ -35,7 +35,9 @@ export type DerivedSpec =
   /** The reference without a trailing split suffix ("VSBU9012540-2" → "VSBU9012540"); rows without one get "Row n" so each still counts once. */
   | { kind: "baseRef"; from: string }
   /** "Jan 2026" from a date, for month bars that stack by another dimension (sorted with `sort: "date"`). */
-  | { kind: "monthLabel"; from: string };
+  | { kind: "monthLabel"; from: string }
+  /** The first case whose filter the row matches gives the value: a constant, or another field's value (`from`). */
+  | { kind: "case"; cases: { when: FilterExpr; value?: string | number; from?: string }[]; fallback?: string | number | null };
 
 export type FieldFormat = "integer" | "decimal" | "currency" | "percent" | "days" | "date" | "text";
 

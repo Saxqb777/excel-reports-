@@ -16,6 +16,8 @@ export interface MetricSpec {
   over?: string;
   format?: "integer" | "decimal" | "currency" | "percent" | "days";
   currency?: string;
+  /** Fixed decimals for a percentage shown on its own (a KPI: 80.5% rather than 80%). */
+  decimals?: number;
 }
 
 type Columns = Record<string, ColumnValue[]>;

@@ -21,6 +21,11 @@ export function toDate(v: RawCell): number | null {
     // Excel serial date (days since 1899-12-30) when in a plausible range.
     if (v > 20000 && v < 80000) return Math.round((v - 25569) * DAY);
     if (v > 1e11) return v; // epoch ms
+    // ERP exports write dates as yyyymmdd integers (20260131).
+    if (Number.isInteger(v) && v >= 19000101 && v <= 21001231) {
+      const y = Math.floor(v / 10000), m = Math.floor(v / 100) % 100, d = v % 100;
+      if (m >= 1 && m <= 12 && d >= 1 && d <= 31) return Date.UTC(y, m - 1, d);
+    }
     return null;
   }
   if (typeof v === "boolean") return null;
@@ -203,6 +208,12 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
     } else if (spec.kind === "monthLabel") {
       const a = getCol(spec.from);
       for (let i = 0; i < n; i++) if (typeof a[i] === "number") out[i] = monthLabel(a[i] as number);
+    } else if (spec.kind === "case") {
+      const froms = spec.cases.map((c) => (c.from ? getCol(c.from) : null));
+      for (let i = 0; i < n; i++) {
+        const k = spec.cases.findIndex((c) => rowMatches(columns, i, c.when));
+        out[i] = k === -1 ? spec.fallback ?? null : froms[k] ? froms[k]![i] ?? null : spec.cases[k].value ?? null;
+      }
     } else if (spec.kind === "baseRef") {
       const a = getCol(spec.from);
       for (let i = 0; i < n; i++) {
@@ -298,13 +309,21 @@ function fixDateOrder(base: Field[], chain: string[], sources: Map<string, strin
   }
 }
 
+/** Every field a filter reads, so derived fields that filter on other derived fields are computed after them. */
+function filterFields(e: FilterExpr): string[] {
+  if ("and" in e) return e.and.flatMap(filterFields);
+  if ("or" in e) return e.or.flatMap(filterFields);
+  if ("not" in e) return filterFields(e.not);
+  return [e.field];
+}
+
 function topoOrder(derived: Field[]): Field[] {
   const byId = new Map(derived.map((f) => [f.id, f]));
   const deps = (f: Field): string[] => {
     const s = f.derived!;
     switch (s.kind) {
       case "diffDays": return [s.from, s.to];
-      case "ageDays": return [s.from];
+      case "ageDays": return [s.from, ...(s.when ? filterFields(s.when) : [])];
       case "daysUntil": return [s.from];
       case "keyword": return s.from;
       case "laneType": return [s.origin, s.destination];
@@ -315,6 +334,7 @@ function topoOrder(derived: Field[]): Field[] {
       case "pendingList": return s.fields;
       case "baseRef": return [s.from];
       case "monthLabel": return [s.from];
+      case "case": return s.cases.flatMap((c) => [...filterFields(c.when), ...(c.from ? [c.from] : [])]);
     }
   };
   const out: Field[] = [];

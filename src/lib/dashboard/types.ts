@@ -71,6 +71,8 @@ export interface TableWidget extends WidgetBase {
   statusField?: string;
   /** Further fields rendered with a status dot (e.g. a document checklist). */
   statusFields?: string[];
+  /** Show only the first rows in the widget's own sort order (a "top five" list); viewers can still re-sort those. */
+  limit?: number;
   /** Roll rows sharing this field's value into one line (container lines → containers): measures sum, differing texts are listed. */
   groupBy?: string;
   /** Word for the row count in the footer, e.g. "containers". */

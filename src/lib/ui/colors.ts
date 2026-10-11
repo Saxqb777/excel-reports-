@@ -9,8 +9,8 @@ export const seqVar = (step: number) => `var(--seq-${Math.max(1, Math.min(7, ste
 /** Status tone for a category value: won/good -> pos, lost/bad -> neg, pending/waiting -> warn, quoted/open -> accent. */
 export function statusTone(value: string): Tone {
   const v = value.toLowerCase();
-  if (/\b(won|win|closed won|approved|complete|completed|delivered|success|active|paid|done|arrived|discharged|released)\b/.test(v)) return "pos";
-  if (/\b(lost|loss|rejected|cancel|cancelled|failed|overdue|declined|churn|returned)\b/.test(v)) return "neg";
+  if (/\b(won|win|closed won|approved|complete|completed|delivered|success|active|paid|done|arrived|discharged|released|collected)\b/.test(v)) return "pos";
+  if (/\b(lost|loss|rejected|cancel|cancelled|failed|overdue|declined|churn|returned|missing)\b/.test(v)) return "neg";
   if (/\b(pending|waiting|on hold|hold|late|not yet|todo|backlog|draft|planned|booked|not shipped)\b/.test(v)) return "warn";
   if (/\b(quoted|open|awaiting|in progress|progress|submitted|sent|review|transit|loaded|loading|shipped|on the water|in port|at port|sailing|sailed|on board|onboarded|on vessel|departed|on the way|under clearance|gate in)\b/.test(v)) return "accent";
   return "neutral";
@@ -19,6 +19,8 @@ export function statusTone(value: string): Tone {
 export function stackColor(value: string, index: number, mode: "status" | "categorical" | "single"): string {
   if (mode === "single") return "var(--accent)";
   if (mode === "status") {
+    // A catch-all bucket reads as grey, so it never looks like one of the real statuses.
+    if (/^(other|not set|not recorded|unknown)\b/i.test(value.trim())) return "var(--ink-3)";
     const t = statusTone(value);
     return t === "neutral" ? catVar(index) : toneVar(t);
   }
