@@ -34,6 +34,8 @@ export interface BarWidget extends WidgetBase {
   sort?: "value" | "key" | "order" | "date";
   colorBy?: "single" | "status" | "categorical";
   includeNull?: boolean;
+  /** false hides the share-of-total column (a measure that can be negative, such as a margin). */
+  share?: boolean;
   /** Only rows matching this are grouped (a page about one stream of a merged table). */
   filter?: FilterExpr;
 }

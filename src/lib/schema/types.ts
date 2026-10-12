@@ -80,6 +80,8 @@ export interface SchemaMap {
   dateChain?: string[];
   /** A text field whose value, when set, excludes the row with that value as the reason (set by a template). */
   excludeField?: string;
+  /** Rows where this field is empty are left out and listed with the reason (a container tracker: a planned booking or an air shipment has no container number). */
+  requireField?: string;
   /** A text field holding a JSON list of corrections a template made to the row ({ field, from, to, reason }). */
   noteField?: string;
 }

@@ -51,7 +51,7 @@ export function BarTile({ w }: { w: BarWidget }) {
         <div className="min-h-0 flex-1">
           {rows.length === 0 ? <Empty /> : rows.filter((r) => r.value > 0).every((r) => r.key === "Not set") && rows.some((r) => r.value > 0) ? <Empty text="Nothing recorded in the sheet yet." /> : (
             <Chart rows={rows} stackKeys={stackKeys} colorBy={w.colorBy ?? (w.stackBy ? "status" : "single")} format={w.metric.format ?? "integer"} currency={w.metric.currency}
-              selected={sel ? { key: sel.values[0], stack: selectedStack } : null} onSelect={onSelect} />
+              selected={sel ? { key: sel.values[0], stack: selectedStack } : null} onSelect={onSelect} showShare={w.share !== false} />
           )}
         </div>
       </div>

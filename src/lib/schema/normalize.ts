@@ -140,6 +140,11 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
     }
     // Exclusions
     if (nonIdValues === 0) { excluded.push({ row: raw.row, reason: idValue ? "Only the identifier is filled in" : "Empty row", id: idValue }); continue; }
+    if (schema.requireField && rec[schema.requireField] === null) {
+      const label = fields.find((f) => f.id === schema.requireField)?.label.toLowerCase() ?? schema.requireField;
+      excluded.push({ row: raw.row, reason: nonIdValues <= 2 ? "Almost empty row (looks like a total or a note)" : `No ${label} yet (a planned booking, or a shipment without one)`, id: idValue });
+      continue;
+    }
     // A row with no identifier and only a couple of cells (a totals line under the table, a stray number) is not a record.
     if (!idValue && nonIdValues <= Math.max(2, Math.floor(base.length * 0.1))) { excluded.push({ row: raw.row, reason: "Almost empty row (looks like a total or a note)", id: idValue }); continue; }
     if (firstText && /^(grand\s+)?(sub)?total\b/i.test(firstText)) { excluded.push({ row: raw.row, reason: "Totals row", id: idValue }); continue; }

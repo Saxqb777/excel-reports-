@@ -9,6 +9,7 @@ import { matchesShipments, shipmentsLayout, shipmentsSchema } from "@/lib/templa
 import { containersAux, containersLayout, containersSchema, matchesContainers } from "@/lib/templates/containers";
 import { matchesSavings, prepareSavingsWorkbook, savingsAux, savingsLayout, savingsSchema } from "@/lib/templates/savings";
 import { exitCertAux, exitCertLayout, exitCertSchema, matchesExitCert } from "@/lib/templates/exitcert";
+import { freightAux, freightLayout, freightSchema, matchesFreight } from "@/lib/templates/freight";
 import { proposeLayout } from "@/lib/dashboard/propose";
 import type { Layout } from "@/lib/dashboard/types";
 
@@ -18,7 +19,7 @@ export interface IngestResult {
   layout: Layout | null;
   snapshot: Snapshot;
   sha256: string;
-  template: "agthia" | "shipments" | "containers" | "savings" | "exitcert" | "generic";
+  template: "agthia" | "shipments" | "containers" | "savings" | "exitcert" | "freight" | "generic";
   /** Secondary sheets the template knows how to read (empty for generic sheets). */
   aux: Record<string, AuxSheet>;
 }
@@ -28,6 +29,7 @@ export function auxSheetsFor(template: string | undefined, workbook: ParsedWorkb
   if (template === "containers") return containersAux(workbook);
   if (template === "savings") return savingsAux(workbook);
   if (template === "exitcert") return exitCertAux(workbook);
+  if (template === "freight") return freightAux(workbook);
   return {};
 }
 
@@ -44,9 +46,9 @@ export async function ingestNew(buffer: Buffer, fileName: string, uploadId = nan
   const workbook = await readWorkbook(buffer, fileName);
   const sheet = workbook.sheets[workbook.primary];
   const inferred = inferSchema(sheet);
-  const template: IngestResult["template"] = matchesSavings(sheet.headers) ? "savings" : matchesExitCert(sheet.headers) ? "exitcert" : matchesAgthia(sheet.headers) ? "agthia" : matchesShipments(sheet.headers) ? "shipments" : matchesContainers(sheet.headers) ? "containers" : "generic";
-  const schema = template === "savings" ? savingsSchema(inferred, sheet) : template === "exitcert" ? exitCertSchema(inferred) : template === "agthia" ? agthiaSchema(inferred) : template === "shipments" ? shipmentsSchema(inferred) : template === "containers" ? containersSchema(inferred) : inferred;
-  const layout = template === "savings" ? savingsLayout() : template === "exitcert" ? exitCertLayout(schema) : template === "agthia" ? agthiaLayout(schema) : template === "shipments" ? shipmentsLayout(schema) : template === "containers" ? containersLayout(schema) : proposeLayout(schema);
+  const template: IngestResult["template"] = matchesSavings(sheet.headers) ? "savings" : matchesExitCert(sheet.headers) ? "exitcert" : matchesFreight(sheet.headers) ? "freight" : matchesAgthia(sheet.headers) ? "agthia" : matchesShipments(sheet.headers) ? "shipments" : matchesContainers(sheet.headers) ? "containers" : "generic";
+  const schema = template === "savings" ? savingsSchema(inferred, sheet) : template === "exitcert" ? exitCertSchema(inferred) : template === "freight" ? freightSchema(inferred) : template === "agthia" ? agthiaSchema(inferred) : template === "shipments" ? shipmentsSchema(inferred) : template === "containers" ? containersSchema(inferred) : inferred;
+  const layout = template === "savings" ? savingsLayout() : template === "exitcert" ? exitCertLayout(schema) : template === "freight" ? freightLayout(schema) : template === "agthia" ? agthiaLayout(schema) : template === "shipments" ? shipmentsLayout(schema) : template === "containers" ? containersLayout(schema) : proposeLayout(schema);
   const snapshot = buildSnapshot(schema, sheet, { uploadId, version: 1 });
   return { workbook, schema, layout, snapshot, sha256: sha256(buffer), template, aux: auxSheetsFor(template, workbook) };
 }

@@ -221,7 +221,11 @@ export async function parseWorkbook(buffer: ArrayBuffer | Buffer, fileName: stri
         // A cell merged sideways into a master on the same row (a title banner, a group heading) must not repeat the
         // master's text into every column, or the banner outscores the real header row. Vertical merges keep the value.
         const sideways = cell.isMerged && cell.master !== cell && cell.master.row === cell.row;
-        arr.push(sideways ? coerce(null) : coerce(cell.value));
+        // ExcelJS drops a formula's cached result when it is falsy (a margin of 0 reads as empty); the cell still has it.
+        const value = cell.value as unknown;
+        const cached = (cell as unknown as { result?: ExcelJS.CellValue }).result;
+        const lost = value !== null && typeof value === "object" && ("formula" in value || "sharedFormula" in value) && !("result" in value) && cached !== undefined;
+        arr.push(sideways ? coerce(null) : coerce(lost ? cached! : cell.value));
       }
       grid.push(arr);
     }
