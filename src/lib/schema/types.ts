@@ -37,7 +37,13 @@ export type DerivedSpec =
   /** "Jan 2026" from a date, for month bars that stack by another dimension (sorted with `sort: "date"`). */
   | { kind: "monthLabel"; from: string }
   /** The first case whose filter the row matches gives the value: a constant, or another field's value (`from`). */
-  | { kind: "case"; cases: { when: FilterExpr; value?: string | number; from?: string }[]; fallback?: string | number | null };
+  | { kind: "case"; cases: { when: FilterExpr; value?: string | number; from?: string }[]; fallback?: string | number | null }
+  /**
+   * A row identifier that survives rows being inserted or re-sorted: the first candidate field with a value (matching
+   * `pattern` when given, spaces ignored), with its prefix. A key already used by an earlier row gets " (2)", " (3)";
+   * rows with no candidate get "Row n".
+   */
+  | { kind: "rowKey"; candidates: { field: string; pattern?: string; prefix?: string }[] };
 
 export type FieldFormat = "integer" | "decimal" | "currency" | "percent" | "days" | "date" | "text";
 
@@ -84,6 +90,8 @@ export interface SchemaMap {
   requireField?: string;
   /** A text field holding a JSON list of corrections a template made to the row ({ field, from, to, reason }). */
   noteField?: string;
+  /** Spellings of a dimension value that differ only in case or spacing ("india", "India ") count as one, shown in the spelling with most capitalised words (then the most used). */
+  foldCase?: boolean;
 }
 
 /** Column-level statistics captured from a parsed sheet. */

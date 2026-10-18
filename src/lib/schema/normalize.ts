@@ -9,7 +9,7 @@ export function toNumber(v: RawCell): number | null {
   if (v === null || v === undefined || v === "") return null;
   if (typeof v === "number") return v;
   if (typeof v === "boolean") return v ? 1 : 0;
-  const s = String(v).replace(/[,\s]/g, "").replace(/^(AED|USD|EUR|GBP|SAR|\$|£|€)/i, "").replace(/(AED|USD|EUR|GBP|SAR)$/i, "");
+  const s = String(v).replace(/[,\s]/g, "").replace(/^(AED|USD|EUR|GBP|SAR|\$|£|€)/i, "").replace(/(AED|USD|EUR|GBP|SAR|days?)$/i, "");
   const neg = /^\(.*\)$/.test(s);
   const n = Number(s.replace(/[()]/g, "").replace(/%$/, ""));
   return Number.isFinite(n) ? (neg ? -n : n) : null;
@@ -168,6 +168,7 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
 
   const n = rowRefs.length;
   const getCol = (id: string) => columns[id] ?? new Array<ColumnValue>(n).fill(null);
+  if (schema.foldCase) foldCaseVariants(base, columns, noteVariant);
   fixSwappedDates(base, sources, sheet, columns, rowRefs, fixes);
   fixDateOrder(base, schema.dateChain ?? [], sources, sheet, columns, rowRefs, fixes);
   const home = schema.home ?? ["UAE", "United Arab Emirates", "Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Al Ain", "Jebel Ali", "JAFZA", "Kizad", "Mussafah", "Fujairah", "RAK", "Ras Al Khaimah", "Umm Al Quwain"];
@@ -187,7 +188,7 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
       }
     } else if (spec.kind === "daysUntil") {
       const a = getCol(spec.from);
-      for (let i = 0; i < n; i++) if (typeof a[i] === "number") out[i] = Math.trunc(((a[i] as number) - now) / DAY);
+      for (let i = 0; i < n; i++) if (typeof a[i] === "number") out[i] = Math.trunc(((a[i] as number) - now) / DAY) || 0;
     } else if (spec.kind === "keyword") {
       const cols = spec.from.map(getCol);
       for (let i = 0; i < n; i++) out[i] = keyword(cols.map((c) => (typeof c[i] === "string" ? (c[i] as string) : null)), spec.rules, spec.fallback);
@@ -224,6 +225,21 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
       for (let i = 0; i < n; i++) {
         const v = a[i];
         out[i] = typeof v === "string" && v.trim() ? v.trim().replace(/[\s_-]+\d{1,2}$/, "") : `Row ${rowRefs[i]}`;
+      }
+    } else if (spec.kind === "rowKey") {
+      const cols = spec.candidates.map((c) => ({ col: getCol(c.field), re: c.pattern ? new RegExp(c.pattern, "i") : null, prefix: c.prefix ?? "" }));
+      const seen = new Map<string, number>();
+      for (let i = 0; i < n; i++) {
+        let key: string | null = null;
+        for (const c of cols) {
+          const v = c.col[i];
+          const t = v === null ? "" : String(v).replace(/\s+/g, "");
+          if (t && (!c.re || c.re.test(t))) { key = c.prefix + (c.re ? t.toUpperCase() : String(v).trim()); break; }
+        }
+        key ??= `Row ${rowRefs[i]}`;
+        const k = (seen.get(key) ?? 0) + 1;
+        seen.set(key, k);
+        out[i] = k === 1 ? key : `${key} (${k})`;
       }
     } else if (spec.kind === "pendingCount" || spec.kind === "pendingList") {
       const cols = spec.fields.map(getCol);
@@ -263,7 +279,9 @@ function fixSwappedDates(base: Field[], sources: Map<string, string>, sheet: Par
       if (typeof v === "number" || (typeof v === "string" && /^\d{4}-\d{2}-\d{2}T/.test(v))) typed.push(i); else text.push(i);
     }
     if (text.length < 3 || typed.length === 0) continue;
-    const ts = text.map((i) => col[i] as number);
+    // The window the column lives in: text dates plus typed dates that cannot be swapped (day above 12). A column typed
+    // mostly by hand from January on, with a few recent text dates, keeps its typed February dates.
+    const ts = [...text, ...typed.filter((i) => new Date(col[i] as number).getUTCDate() > 12)].map((i) => col[i] as number);
     const lo = Math.min(...ts) - 45 * DAY, hi = Math.max(...ts) + 45 * DAY;
     for (const i of typed) {
       const v = col[i] as number;
@@ -315,6 +333,34 @@ function fixDateOrder(base: Field[], chain: string[], sources: Map<string, strin
 }
 
 /** Every field a filter reads, so derived fields that filter on other derived fields are computed after them. */
+/** One spelling per value for dimension text that differs only in case or spacing: the one with most capitalised words, then the most used. */
+function foldCaseVariants(base: Field[], columns: Record<string, ColumnValue[]>, noteVariant: (fieldId: string, raw: string, canonical: string) => void) {
+  for (const f of base) {
+    if (f.role !== "dimension" || f.type !== "string") continue;
+    const col = columns[f.id];
+    const counts = new Map<string, Map<string, number>>();
+    for (const v of col) {
+      if (typeof v !== "string") continue;
+      const g = counts.get(normKey(v)) ?? new Map<string, number>();
+      g.set(v, (g.get(v) ?? 0) + 1);
+      counts.set(normKey(v), g);
+    }
+    const pick = new Map<string, string>();
+    for (const [key, g] of counts) {
+      if (g.size < 2) continue;
+      const capitals = (x: string) => (x.match(/(^|\s)[A-Z]/g) ?? []).length;
+      pick.set(key, [...g.entries()].sort((a, b) => capitals(b[0]) - capitals(a[0]) || b[1] - a[1] || a[0].localeCompare(b[0]))[0][0]);
+    }
+    if (!pick.size) continue;
+    for (let i = 0; i < col.length; i++) {
+      const v = col[i];
+      if (typeof v !== "string") continue;
+      const c = pick.get(normKey(v));
+      if (c && c !== v) { noteVariant(f.id, v, c); col[i] = c; }
+    }
+  }
+}
+
 function filterFields(e: FilterExpr): string[] {
   if ("and" in e) return e.and.flatMap(filterFields);
   if ("or" in e) return e.or.flatMap(filterFields);
@@ -340,6 +386,7 @@ function topoOrder(derived: Field[]): Field[] {
       case "baseRef": return [s.from];
       case "monthLabel": return [s.from];
       case "case": return s.cases.flatMap((c) => [...filterFields(c.when), ...(c.from ? [c.from] : [])]);
+      case "rowKey": return s.candidates.map((c) => c.field);
     }
   };
   const out: Field[] = [];

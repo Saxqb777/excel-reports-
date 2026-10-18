@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { parseWorkbook } from "@/lib/excel/parse";
 import { diffSchema, inferSchema } from "@/lib/schema/infer";
 import { buildSnapshot } from "@/lib/schema/normalize";
-import type { AuxSheet, ParsedWorkbook, SchemaMap, Snapshot } from "@/lib/schema/types";
+import type { AuxSheet, ParsedSheet, ParsedWorkbook, SchemaMap, Snapshot } from "@/lib/schema/types";
 import { agthiaLayout, agthiaSchema, matchesAgthia } from "@/lib/templates/agthia";
 import { matchesShipments, shipmentsLayout, shipmentsSchema } from "@/lib/templates/shipments";
 import { containersAux, containersLayout, containersSchema, matchesContainers } from "@/lib/templates/containers";
@@ -56,11 +56,25 @@ export async function ingestNew(buffer: Buffer, fileName: string, uploadId = nan
 /** Re-upload against a known schema. Returns the diff so the caller can ask for confirmation when headers changed. */
 export async function ingestExisting(buffer: Buffer, fileName: string, schema: SchemaMap, version: number, uploadId = nanoid(12)) {
   const workbook = await readWorkbook(buffer, fileName);
-  const sheetIndex = schema.sheet ? Math.max(0, workbook.sheets.findIndex((s) => s.name === schema.sheet)) : workbook.primary;
-  const sheet = workbook.sheets[sheetIndex === -1 ? workbook.primary : sheetIndex];
+  const sheet = pickSheet(schema, workbook);
   const diff = diffSchema(schema, sheet);
   const snapshot = buildSnapshot(schema, sheet, { uploadId, version });
   return { workbook, sheet, diff, snapshot, sha256: sha256(buffer) };
+}
+
+/**
+ * The sheet a new version is read from: the one the project was built on, by name; when the workbook names it
+ * differently, the sheet whose headers match most of the project's columns (the main sheet wins ties).
+ */
+export function pickSheet(schema: SchemaMap, workbook: ParsedWorkbook): ParsedSheet {
+  const named = schema.sheet ? workbook.sheets.find((s) => s.name === schema.sheet) : undefined;
+  if (named) return named;
+  let best = workbook.sheets[workbook.primary], score = diffSchema(schema, best).matched.length;
+  for (const s of workbook.sheets) {
+    const k = diffSchema(schema, s).matched.length;
+    if (k > score) { best = s; score = k; }
+  }
+  return best;
 }
 
 export function sha256(buffer: Buffer): string {

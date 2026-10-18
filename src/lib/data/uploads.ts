@@ -1,7 +1,7 @@
 import { nanoid } from "nanoid";
 import { and, desc, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db/client";
-import { auxSheetsFor, readWorkbook } from "@/lib/ingest";
+import { auxSheetsFor, pickSheet, readWorkbook } from "@/lib/ingest";
 import { diffSchema, inferField, buildValueMap, type SchemaDiff } from "@/lib/schema/infer";
 import { buildSnapshot } from "@/lib/schema/normalize";
 import type { Field, ParsedSheet, SchemaMap } from "@/lib/schema/types";
@@ -86,8 +86,7 @@ export type AddUploadResult =
 export async function addUpload(input: AddUploadInput): Promise<AddUploadResult> {
   const { project } = input;
   const workbook = await readWorkbook(input.buffer, input.fileName);
-  const sheetIndex = project.schemaMap.sheet ? workbook.sheets.findIndex((s) => s.name === project.schemaMap.sheet) : -1;
-  const sheet = workbook.sheets[sheetIndex === -1 ? workbook.primary : sheetIndex];
+  const sheet = pickSheet(project.schemaMap, workbook);
   const diff = diffSchema(project.schemaMap, sheet);
   const payload = describeDiff(diff, sheet);
   if (payload.needsConfirmation && !input.confirm) return { status: "needs-confirmation", diff: payload };

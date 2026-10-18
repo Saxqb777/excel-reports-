@@ -18,13 +18,15 @@ import type { MetricSpec } from "@/lib/engine/metrics";
 
 const CURRENCY = "AED";
 
-const COUNTRIES: Record<string, string> = {
+/** Country spellings seen in the Al Foah sheets, folded to one name (shared with the shipment tracker). */
+export const COUNTRIES: Record<string, string> = {
   uae: "UAE", "united arab emirates": "UAE", ksa: "Saudi Arabia", "saudi arabia": "Saudi Arabia", "england -uk": "United Kingdom", "england - uk": "United Kingdom", england: "United Kingdom", uk: "United Kingdom",
   "united kingdom": "United Kingdom", crotia: "Croatia", croatia: "Croatia", swedan: "Sweden", sweden: "Sweden", brazil: "Brazil", india: "India", mexico: "Mexico", bolivia: "Bolivia", turkey: "Turkey",
   usa: "USA", "united states": "USA", oman: "Oman", australia: "Australia", tanzania: "Tanzania", somalia: "Somalia", kenya: "Kenya", germany: "Germany",
+  fiji: "Fiji", indonesia: "Indonesia", norway: "Norway", "south korea": "South Korea",
 };
-const CONTAINER_TYPES: Record<string, string> = { "40 hc": "40HC", "40hc": "40HC", "40 hr": "40HR (reefer)", "40hr": "40HR (reefer)", "20 std": "20STD", "20std": "20STD", "40 curtain": "40 curtain side" };
-const MODES: Record<string, string> = { sea: "Sea", land: "Land", air: "Air", road: "Land" };
+export const CONTAINER_TYPES: Record<string, string> = { "40 hc": "40HC", "40hc": "40HC", "40 hr": "40HR (reefer)", "40hr": "40HR (reefer)", "20 std": "20STD", "20std": "20STD", "40 curtain": "40 curtain side" };
+export const MODES: Record<string, string> = { sea: "Sea", land: "Land", air: "Air", road: "Land", "muliti model": "Multimodal", "multi model": "Multimodal", "multimodal": "Multimodal" };
 const EXIT: Record<string, string> = { y: "Received", yes: "Received", n: "Not yet", no: "Not yet", "n/a": "Not needed", na: "Not needed" };
 
 type Patch = Partial<Field> & { id: string };

@@ -20,5 +20,14 @@ export function logicChecks(s: Snapshot): LogicIssue[] {
   if (outcome && reason) collect("lost_no_reason", `Lost without a ${reason.label.toLowerCase()}`, "warn", (i) => /lost|loss/i.test(String(s.columns[outcome.id][i] ?? "")) && s.columns[reason.id][i] === null);
   if (outcome && remarks) collect("won_but_remark_conflicts", `Marked won but the latest update reads like a problem`, "warn", (i) => /won|win/i.test(String(s.columns[outcome.id][i] ?? "")) && /could not|couldn't|cancel|not complete|waiting|pending|on hold/i.test(String(s.columns[remarks.id][i] ?? "")));
   if (received) collect("no_received_date", `${received.label} is blank`, "warn", (i) => s.columns[received.id][i] === null);
+  // A key built from the rows ("MSNU6825945", "MSNU6825945 (2)"): the same container or invoice on two rows may be counted twice.
+  if (idField?.derived?.kind === "rowKey") {
+    const ids = s.columns[idField.id] ?? [];
+    const base = (v: unknown) => String(v ?? "").replace(/ \(\d+\)$/, "");
+    const repeated = new Set(ids.filter((v) => / \(\d+\)$/.test(String(v ?? ""))).map(base));
+    collect("same_key_twice", `Same ${idField.label.toLowerCase()} on more than one row (may be counted twice)`, "warn", (i) => repeated.has(base(ids[i])));
+  }
+  const ets = s.fields.find((x) => x.id === "ets"), revised = s.fields.find((x) => x.id === "revised_eta");
+  if (ets && revised) collect("revised_eta_before_sailing", `${revised.label} is before ${ets.label}`, "neg", (i) => { const a = s.columns[ets.id][i], b = s.columns[revised.id][i]; return typeof a === "number" && typeof b === "number" && b < a; });
   return issues;
 }
