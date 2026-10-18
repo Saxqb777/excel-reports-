@@ -28,6 +28,7 @@ const HEADERS = [
   "Line", "SRN date", "Vendor", "PO number", "Invoice number", "Invoice date", "BL / reference", "Currency", "Invoice amount", "SRN amount",
   "SRN number", "Invoice value (AED)", "SRN value (AED)", "VAT gap (AED)", "Other gap (AED)", "Status", "Invoice vs SRN", "Corrections",
   "PO and vendor", "Invoice count", "POs on the invoice", "Invoice also on PO", "How the invoice was posted", "PO amount", "Vendors on the BL",
+  "Invoice has an amount",
 ];
 const POSTING = ["One SRN, one PO", "One SRN in parts", "Finished by a later SRN", "One SRN over several POs", "Several SRNs over several POs", "Part still awaiting an SRN", "Awaiting an SRN"];
 
@@ -215,6 +216,8 @@ export function prepareSrnWorkbook(wb: ParsedWorkbook): ParsedWorkbook {
     cells["How the invoice was posted"] = posting(g);
     cells["PO amount"] = l.po ? poAmount.get(l.po) ?? null : null;
     cells["Vendors on the BL"] = l.bl ? blVendors.get(l.bl.toUpperCase())!.size : null;
+    // Per invoice, so a part still awaiting its SRN number is compared with the invoice it belongs to.
+    cells["Invoice has an amount"] = g.some((x) => x.invAmt !== null && x.invAmt > 0) ? "Yes" : "No";
     return { row: l.row, cells };
   });
   const sheet: ParsedSheet = { name: SRN_SHEET, headerRow: 1, headers: HEADERS, rows, stats: statsFor(HEADERS, rows), validations: {}, totalRowsInSheet: rows.length + 1 };
@@ -261,6 +264,7 @@ const SPECS: Record<string, Spec> = {
   "Invoice also on PO": { id: "other_pos", label: "Shares invoices with PO", type: "string", role: "text", hidden: true },
   "How the invoice was posted": { id: "posting", label: "How the invoice was posted", type: "string", role: "dimension", order: POSTING },
   "PO amount": { id: "po_amount", label: "PO amount (typed)", type: "number", role: "measure", format: "decimal", aggregate: "max", hidden: true },
+  "Invoice has an amount": { id: "inv_known", label: "Invoice amount typed", type: "string", role: "dimension", order: ["Yes", "No"], hidden: true },
   "Vendors on the BL": { id: "bl_vendors", label: "Vendors on the BL", type: "number", role: "measure", format: "integer", aggregate: "max", hidden: true },
 };
 
@@ -289,6 +293,8 @@ const is = (field: string, value: string): FilterExpr => ({ field, op: "eq", val
 const AWAITING = is("status", "Awaiting SRN number");
 const BEYOND_VAT: FilterExpr = { field: "check", op: "in", value: ["SRN below invoice", "SRN above invoice"] };
 const DATED: FilterExpr = { field: "days_to_srn", op: "notNull" };
+const KNOWN = is("inv_known", "Yes");
+const UNKNOWN = is("inv_known", "No");
 const OVER_90: FilterExpr = { field: "days_to_srn", op: "gt", value: 90 };
 const aed = (field: string, filter?: FilterExpr): MetricSpec => ({ agg: "sum", field, format: "currency", currency: "AED", ...(filter ? { filter } : {}) });
 const lines = (filter?: FilterExpr): MetricSpec => ({ agg: "count", ...(filter ? { filter } : {}) });
@@ -301,6 +307,9 @@ export function srnLayout(): Layout {
   const overview: Page = { id: "overview", title: "Overview", widgets: [
     { id: "insights", type: "insights", title: "What changed since the last update" },
     { id: "kpi_value", type: "kpi", title: "SRN value", metric: aed("srn_aed"), good: "none", secondary: { metric: lines(), label: "lines" } },
+    { id: "kpi_invoice", type: "kpi", title: "Invoice value", metric: aed("invoice_aed"), good: "none", secondary: { metric: { agg: "distinct", field: "invoice_no", filter: KNOWN }, label: "invoices with an amount" } },
+    { id: "kpi_cover", type: "kpi", title: "SRN against invoice", metric: { agg: "ratio", field: "srn_aed", over: "invoice_aed", unpaired: true, filter: KNOWN, format: "percent", decimals: 1 }, good: "none", secondary: { metric: aed("vat_gap_aed"), label: "VAT not in SRN" } },
+    { id: "kpi_noinv", type: "kpi", title: "Invoices with no amount", metric: { agg: "distinct", field: "invoice_no", filter: UNKNOWN }, good: "down", onClick: UNKNOWN, secondary: { metric: aed("srn_aed", UNKNOWN), label: "SRN value" } },
     { id: "kpi_vendors", type: "kpi", title: "Vendors", metric: { agg: "distinct", field: "vendor" }, good: "none", secondary: { metric: { agg: "distinct", field: "invoice_no" }, label: "invoices" } },
     { id: "kpi_days", type: "kpi", title: "Median days to SRN", metric: { agg: "median", field: "days_to_srn", format: "days" }, good: "down", secondary: { metric: { agg: "avg", field: "days_to_srn", format: "days" }, label: "average" } },
     { id: "kpi_old", type: "kpi", title: "SRN after 90 days", metric: lines(OVER_90), good: "down", onClick: OVER_90, secondary: { metric: { agg: "rate", numerator: OVER_90, denominator: DATED, format: "percent" }, label: "of dated lines" } },
@@ -312,10 +321,11 @@ export function srnLayout(): Layout {
     { id: "checks", type: "bar", title: "Invoice against SRN", subtitle: "Lines by how the SRN compares with the invoice", dimension: "check", metric: lines(), sort: "order", orientation: "horizontal", colorBy: "single" },
   ], grid: [
     { i: "insights", x: 0, y: 0, w: 12, h: 2, minH: 2 },
-    { i: "kpi_value", x: 0, y: 2, w: 2, h: 3 }, { i: "kpi_vendors", x: 2, y: 2, w: 2, h: 3 }, { i: "kpi_days", x: 4, y: 2, w: 2, h: 3 },
-    { i: "kpi_old", x: 6, y: 2, w: 2, h: 3 }, { i: "kpi_awaiting", x: 8, y: 2, w: 2, h: 3 }, { i: "kpi_gap", x: 10, y: 2, w: 2, h: 3 },
-    { i: "monthly", x: 0, y: 5, w: 6, h: 9 }, { i: "vendors", x: 6, y: 5, w: 6, h: 9 },
-    { i: "age", x: 0, y: 14, w: 6, h: 7 }, { i: "checks", x: 6, y: 14, w: 6, h: 7 },
+    { i: "kpi_value", x: 0, y: 2, w: 3, h: 3 }, { i: "kpi_invoice", x: 3, y: 2, w: 3, h: 3 }, { i: "kpi_cover", x: 6, y: 2, w: 3, h: 3 }, { i: "kpi_noinv", x: 9, y: 2, w: 3, h: 3 },
+    { i: "kpi_vendors", x: 0, y: 5, w: 2, h: 3 }, { i: "kpi_days", x: 2, y: 5, w: 2, h: 3 }, { i: "kpi_old", x: 4, y: 5, w: 2, h: 3 },
+    { i: "kpi_awaiting", x: 6, y: 5, w: 3, h: 3 }, { i: "kpi_gap", x: 9, y: 5, w: 3, h: 3 },
+    { i: "monthly", x: 0, y: 8, w: 6, h: 9 }, { i: "vendors", x: 6, y: 8, w: 6, h: 9 },
+    { i: "age", x: 0, y: 17, w: 6, h: 7 }, { i: "checks", x: 6, y: 17, w: 6, h: 7 },
   ] };
 
   const vendors: Page = { id: "vendors", title: "Vendors", widgets: [
@@ -353,8 +363,8 @@ export function srnLayout(): Layout {
     { id: "po_value", type: "bar", title: "SRN value by PO", subtitle: "The fifteen largest POs, in AED", dimension: "po_label", metric: aed("srn_aed"), orientation: "horizontal", topN: 15, colorBy: "single" },
     { id: "posting", type: "bar", title: "How invoices were posted", subtitle: "Invoices by SRNs and POs used", dimension: "posting", metric: { agg: "distinct", field: "invoice_no" }, sort: "order", orientation: "horizontal", colorBy: "single" },
     { id: "pos_vendor", type: "bar", title: "POs per vendor", subtitle: "Vendors using more than one PO", dimension: "vendor", metric: { agg: "distinct", field: "po" }, orientation: "horizontal", topN: 12, colorBy: "single", share: false },
-    { type: "table", id: "po_table", title: "PO register", subtitle: "One row per PO: invoices, SRN value, first and last SRN, and the POs its invoices are shared with", groupBy: "po", rowLabel: "POs",
-      columns: ["po", "vendor", "invoices", "lines", "srn_aed", "first_srn", "last_srn", "other_pos", "po_amount"], sort: { field: "srn_aed", dir: "desc" }, search: true, pageSize: 20 },
+    { type: "table", id: "po_table", title: "PO register", subtitle: "One row per PO: invoices, invoice and SRN value, first and last SRN, shared POs. A split invoice's amount sits on the PO that carries it", groupBy: "po", rowLabel: "POs",
+      columns: ["po", "vendor", "invoices", "lines", "invoice_aed", "srn_aed", "first_srn", "last_srn", "other_pos", "po_amount"], sort: { field: "srn_aed", dir: "desc" }, search: true, pageSize: 20 },
     table({ id: "split", title: "Invoices billed on more than one PO", subtitle: "Usually a PO running out: the rest of the invoice goes on the next PO", columns: ["line", "vendor", "invoice_no", "po", "srn_no", "invoice_amount", "srn_amount", "srn_aed", "posting"], filter: SPLIT, sort: { field: "invoice_no", dir: "asc" }, pageSize: 15 }),
     { id: "po_balance", type: "auxTable", title: "PO balance kept in the sheet", subtitle: "POs with an amount and running balance typed in the sheet, against the SRNs posted on them", sheet: "po_balance", columns: ["po", "vendor", "po_amount", "srn_total", "balance_sheet", "balance_check", "note"], rowLabel: "POs", pageSize: 10 },
   ], grid: [
@@ -372,15 +382,15 @@ export function srnLayout(): Layout {
     { id: "kpi_multi", type: "kpi", title: "Shipments with several vendors", metric: { agg: "distinct", field: "bl", filter: MULTI }, good: "none", onClick: MULTI, secondary: { metric: aed("srn_aed", MULTI), label: "SRN value" } },
     { id: "kpi_nobl", type: "kpi", title: "Lines without a BL", metric: lines(NO_BL), good: "down", onClick: NO_BL, secondary: { metric: aed("srn_aed", NO_BL), label: "SRN value" } },
     { id: "ship_vendors", type: "bar", title: "Vendors per shipment", subtitle: "Shipments by how many vendors invoiced on the same BL", dimension: "shipment_vendors", metric: { agg: "distinct", field: "bl" }, sort: "order", orientation: "horizontal", colorBy: "single" },
-    { type: "table", id: "bl_table", title: "Cost per shipment", subtitle: "SRN value per BL or reference across every vendor that invoiced on it", groupBy: "bl", rowLabel: "shipments", filter: HAS_BL,
-      columns: ["bl", "vendor", "lines", "srn_aed", "first_srn", "last_srn"], sort: { field: "srn_aed", dir: "desc" }, search: true, pageSize: 20 },
+    { type: "table", id: "bl_table", title: "Cost per shipment", subtitle: "Invoice and SRN value per BL or reference across every vendor that invoiced on it", groupBy: "bl", rowLabel: "shipments", filter: HAS_BL,
+      columns: ["bl", "vendor", "lines", "invoice_aed", "srn_aed", "first_srn", "last_srn"], sort: { field: "srn_aed", dir: "desc" }, search: true, pageSize: 20 },
   ], grid: [
     { i: "kpi_bls", x: 0, y: 0, w: 4, h: 3 }, { i: "kpi_multi", x: 4, y: 0, w: 4, h: 3 }, { i: "kpi_nobl", x: 8, y: 0, w: 4, h: 3 },
     { i: "ship_vendors", x: 0, y: 3, w: 12, h: 4 }, { i: "bl_table", x: 0, y: 7, w: 12, h: 16 },
   ] };
 
   const register: Page = { id: "register", title: "Register", widgets: [
-    table({ id: "register", title: "All SRN lines", columns: [...lineCols.slice(0, 7), "bl", "currency", "invoice_amount", "srn_amount", "srn_no", "srn_aed", "check", "status"], sort: { field: "srn_date", dir: "desc" }, search: true, pageSize: 50 }),
+    table({ id: "register", title: "All SRN lines", columns: [...lineCols.slice(0, 7), "bl", "currency", "invoice_amount", "srn_amount", "srn_no", "invoice_aed", "srn_aed", "check", "status"], sort: { field: "srn_date", dir: "desc" }, search: true, pageSize: 50 }),
   ], grid: [{ i: "register", x: 0, y: 0, w: 12, h: 18 }] };
   const quality: Page = { id: "quality", title: "Data quality", widgets: [{ id: "quality", type: "quality", title: "Data quality" }], grid: [{ i: "quality", x: 0, y: 0, w: 12, h: 16 }] };
 

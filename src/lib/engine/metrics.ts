@@ -14,6 +14,8 @@ export interface MetricSpec {
   denominator?: FilterExpr;
   /** For ratio: the field summed as the denominator, so the metric is sum(field) / sum(over) (savings over old fees). */
   over?: string;
+  /** For ratio: sum each side over every row that has it, not only rows that have both (an invoice amount on one line, its SRNs on several). */
+  unpaired?: boolean;
   format?: "integer" | "decimal" | "currency" | "percent" | "days";
   currency?: string;
   /** Fixed decimals for a percentage shown on its own (a KPI: 80.5% rather than 80%). */
@@ -74,6 +76,7 @@ export function computeMetric(snapshot: Pick<Snapshot, "columns" | "n">, mask: U
       if (!mask[i]) continue;
       if (m.filter && !rowMatches(columns, i, m.filter)) continue;
       const x = num[i], y = den[i];
+      if (m.unpaired) { if (typeof x === "number") a += x; if (typeof y === "number") b += y; continue; }
       if (typeof x !== "number" || typeof y !== "number") continue;
       a += x; b += y;
     }
