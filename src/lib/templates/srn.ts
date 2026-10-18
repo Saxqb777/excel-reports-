@@ -28,7 +28,7 @@ const HEADERS = [
   "Line", "SRN date", "Vendor", "PO number", "Invoice number", "Invoice date", "BL / reference", "Currency", "Invoice amount", "SRN amount",
   "SRN number", "Invoice value (AED)", "SRN value (AED)", "VAT gap (AED)", "Other gap (AED)", "Status", "Invoice vs SRN", "Corrections",
   "PO and vendor", "Invoice count", "POs on the invoice", "Invoice also on PO", "How the invoice was posted", "PO amount", "Vendors on the BL",
-  "Invoice has an amount",
+  "Invoice has an amount", "PO amount (AED)", "PO balance after this SRN (AED)", "PO balance left (AED)",
 ];
 const POSTING = ["One SRN, one PO", "One SRN in parts", "Finished by a later SRN", "One SRN over several POs", "Several SRNs over several POs", "Part still awaiting an SRN", "Awaiting an SRN"];
 
@@ -191,6 +191,16 @@ export function prepareSrnWorkbook(wb: ParsedWorkbook): ParsedWorkbook {
   };
   const poAmount = new Map<string, number>();
   for (const l of lines) if (l.po && l.poAmount !== null && !poAmount.has(l.po)) poAmount.set(l.po, l.poAmount);
+  // The sheet's running balance: PO amount less every SRN amount posted on the PO so far, in sheet order (in AED).
+  const running = new Map<Line, number>(), poFirst = new Set<Line>(), poLast = new Map<string, Line>();
+  const spent = new Map<string, number>();
+  for (const l of lines) {
+    if (!l.po || !poAmount.has(l.po)) continue;
+    if (!spent.has(l.po)) poFirst.add(l);
+    spent.set(l.po, (spent.get(l.po) ?? 0) + (l.srnAmt ?? 0));
+    running.set(l, round2((poAmount.get(l.po)! - spent.get(l.po)!) * (RATES[l.currency ?? "AED"] ?? 1)));
+    poLast.set(l.po, l);
+  }
   const blVendors = new Map<string, Set<string>>();
   for (const l of lines) if (l.bl) blVendors.set(l.bl.toUpperCase(), (blVendors.get(l.bl.toUpperCase()) ?? new Set()).add(l.vendor));
   const firstOfInvoice = new Set<Line>();
@@ -218,6 +228,9 @@ export function prepareSrnWorkbook(wb: ParsedWorkbook): ParsedWorkbook {
     cells["Vendors on the BL"] = l.bl ? blVendors.get(l.bl.toUpperCase())!.size : null;
     // Per invoice, so a part still awaiting its SRN number is compared with the invoice it belongs to.
     cells["Invoice has an amount"] = g.some((x) => x.invAmt !== null && x.invAmt > 0) ? "Yes" : "No";
+    cells["PO amount (AED)"] = poFirst.has(l) ? round2(poAmount.get(l.po!)! * (RATES[l.currency ?? "AED"] ?? 1)) : null;
+    cells["PO balance after this SRN (AED)"] = running.get(l) ?? null;
+    cells["PO balance left (AED)"] = l.po && poLast.get(l.po) === l ? running.get(l)! : null;
     return { row: l.row, cells };
   });
   const sheet: ParsedSheet = { name: SRN_SHEET, headerRow: 1, headers: HEADERS, rows, stats: statsFor(HEADERS, rows), validations: {}, totalRowsInSheet: rows.length + 1 };
@@ -264,6 +277,10 @@ const SPECS: Record<string, Spec> = {
   "Invoice also on PO": { id: "other_pos", label: "Shares invoices with PO", type: "string", role: "text", hidden: true },
   "How the invoice was posted": { id: "posting", label: "How the invoice was posted", type: "string", role: "dimension", order: POSTING },
   "PO amount": { id: "po_amount", label: "PO amount (typed)", type: "number", role: "measure", format: "decimal", aggregate: "max", hidden: true },
+  // Typed once per PO, so sums count each PO once; the balance left sits on the PO's last line.
+  "PO amount (AED)": { id: "po_amount_aed", label: "PO amount (AED)", type: "number", role: "measure", format: "currency", currency: "AED", aggregate: "sum", hidden: true },
+  "PO balance after this SRN (AED)": { id: "po_running", label: "PO balance after this SRN", type: "number", role: "measure", format: "currency", currency: "AED", aggregate: "min", hidden: true },
+  "PO balance left (AED)": { id: "po_left", label: "PO balance left (AED)", type: "number", role: "measure", format: "currency", currency: "AED", aggregate: "sum", hidden: true },
   "Invoice has an amount": { id: "inv_known", label: "Invoice amount typed", type: "string", role: "dimension", order: ["Yes", "No"], hidden: true },
   "Vendors on the BL": { id: "bl_vendors", label: "Vendors on the BL", type: "number", role: "measure", format: "integer", aggregate: "max", hidden: true },
 };
@@ -356,6 +373,7 @@ export function srnLayout(): Layout {
   const LATER: FilterExpr = is("posting", "Finished by a later SRN");
   const TRACKED: FilterExpr = { field: "po_amount", op: "notNull" };
   const pos: Page = { id: "pos", title: "POs", widgets: [
+    { id: "kpi_left", type: "kpi", title: "PO balance left", metric: aed("po_left"), good: "none", onClick: TRACKED, secondary: { metric: aed("po_amount_aed"), label: "PO amount typed" } },
     { id: "kpi_pos", type: "kpi", title: "POs used", metric: { agg: "distinct", field: "po" }, good: "none", secondary: { metric: { agg: "distinct", field: "vendor" }, label: "vendors" } },
     { id: "kpi_split", type: "kpi", title: "Invoices over more than one PO", metric: { agg: "distinct", field: "invoice_no", filter: SPLIT }, good: "none", onClick: SPLIT, secondary: { metric: aed("srn_aed", SPLIT), label: "SRN value" } },
     { id: "kpi_later", type: "kpi", title: "Invoices finished by a later SRN", metric: { agg: "distinct", field: "invoice_no", filter: LATER }, good: "none", onClick: LATER, secondary: { metric: aed("srn_aed", LATER), label: "SRN value" } },
@@ -363,14 +381,18 @@ export function srnLayout(): Layout {
     { id: "po_value", type: "bar", title: "SRN value by PO", subtitle: "The fifteen largest POs, in AED", dimension: "po_label", metric: aed("srn_aed"), orientation: "horizontal", topN: 15, colorBy: "single" },
     { id: "posting", type: "bar", title: "How invoices were posted", subtitle: "Invoices by SRNs and POs used", dimension: "posting", metric: { agg: "distinct", field: "invoice_no" }, sort: "order", orientation: "horizontal", colorBy: "single" },
     { id: "pos_vendor", type: "bar", title: "POs per vendor", subtitle: "Vendors using more than one PO", dimension: "vendor", metric: { agg: "distinct", field: "po" }, orientation: "horizontal", topN: 12, colorBy: "single", share: false },
+    { type: "table", id: "po_vs_srn", title: "PO balance against SRN value", subtitle: "POs with an amount typed in the sheet: the PO amount, the SRN value posted on it and what is left", groupBy: "po", rowLabel: "POs", filter: TRACKED,
+      columns: ["po", "vendor", "po_amount_aed", "srn_aed", "po_left", "invoices", "first_srn", "last_srn"], sort: { field: "po_left", dir: "asc" }, pageSize: 10 },
+    table({ id: "po_running", title: "Running PO balance, SRN by SRN", subtitle: "As the sheet's Balance column: the PO amount less each SRN in turn", columns: ["line", "po", "vendor", "invoice_no", "srn_no", "srn_date", "srn_aed", "po_running"], filter: TRACKED, sort: { field: "po_running", dir: "desc" }, pageSize: 15 }),
     { type: "table", id: "po_table", title: "PO register", subtitle: "One row per PO: invoices, invoice and SRN value, first and last SRN, shared POs. A split invoice's amount sits on the PO that carries it", groupBy: "po", rowLabel: "POs",
-      columns: ["po", "vendor", "invoices", "lines", "invoice_aed", "srn_aed", "first_srn", "last_srn", "other_pos", "po_amount"], sort: { field: "srn_aed", dir: "desc" }, search: true, pageSize: 20 },
+      columns: ["po", "vendor", "invoices", "lines", "invoice_aed", "srn_aed", "po_amount_aed", "po_left", "first_srn", "last_srn", "other_pos"], sort: { field: "srn_aed", dir: "desc" }, search: true, pageSize: 20 },
     table({ id: "split", title: "Invoices billed on more than one PO", subtitle: "Usually a PO running out: the rest of the invoice goes on the next PO", columns: ["line", "vendor", "invoice_no", "po", "srn_no", "invoice_amount", "srn_amount", "srn_aed", "posting"], filter: SPLIT, sort: { field: "invoice_no", dir: "asc" }, pageSize: 15 }),
-    { id: "po_balance", type: "auxTable", title: "PO balance kept in the sheet", subtitle: "POs with an amount and running balance typed in the sheet, against the SRNs posted on them", sheet: "po_balance", columns: ["po", "vendor", "po_amount", "srn_total", "balance_sheet", "balance_check", "note"], rowLabel: "POs", pageSize: 10 },
+    { id: "po_balance", type: "auxTable", title: "Check against the sheet's Balance column", subtitle: "The last balance typed in the sheet against the PO amount less the SRNs posted on it", sheet: "po_balance", columns: ["po", "vendor", "po_amount", "srn_total", "balance_sheet", "balance_check", "note"], rowLabel: "POs", pageSize: 10 },
   ], grid: [
-    { i: "kpi_pos", x: 0, y: 0, w: 3, h: 3 }, { i: "kpi_split", x: 3, y: 0, w: 3, h: 3 }, { i: "kpi_later", x: 6, y: 0, w: 3, h: 3 }, { i: "kpi_tracked", x: 9, y: 0, w: 3, h: 3 },
-    { i: "po_value", x: 0, y: 3, w: 7, h: 15 }, { i: "posting", x: 7, y: 3, w: 5, h: 7 }, { i: "pos_vendor", x: 7, y: 10, w: 5, h: 8 },
-    { i: "po_table", x: 0, y: 18, w: 12, h: 14 }, { i: "split", x: 0, y: 32, w: 12, h: 12 }, { i: "po_balance", x: 0, y: 44, w: 12, h: 4 },
+    { i: "kpi_left", x: 0, y: 0, w: 3, h: 3 }, { i: "kpi_pos", x: 3, y: 0, w: 2, h: 3 }, { i: "kpi_split", x: 5, y: 0, w: 3, h: 3 }, { i: "kpi_later", x: 8, y: 0, w: 2, h: 3 }, { i: "kpi_tracked", x: 10, y: 0, w: 2, h: 3 },
+    { i: "po_vs_srn", x: 0, y: 3, w: 12, h: 4 }, { i: "po_running", x: 0, y: 7, w: 12, h: 12 },
+    { i: "po_value", x: 0, y: 19, w: 7, h: 15 }, { i: "posting", x: 7, y: 19, w: 5, h: 7 }, { i: "pos_vendor", x: 7, y: 26, w: 5, h: 8 },
+    { i: "po_table", x: 0, y: 34, w: 12, h: 14 }, { i: "split", x: 0, y: 48, w: 12, h: 12 }, { i: "po_balance", x: 0, y: 60, w: 12, h: 4 },
   ] };
 
   // Shipments: the BL ties the freight line, transporter and customs invoices of one shipment together.
