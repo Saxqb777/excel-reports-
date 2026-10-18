@@ -114,7 +114,8 @@ export function shipmentsSchema(inferred: SchemaMap): SchemaMap {
     if (!spec || taken.has(spec.field.id)) { fields.push({ ...f, role: f.role === "id" ? "text" : f.role, hidden: true }); continue; }
     taken.add(spec.field.id);
     const aliases = spec.headers.filter((h) => normKey(h) !== normKey(f.source!));
-    fields.push({ ...spec.field, label: spec.field.label ?? f.label, source: f.source, ...(aliases.length ? { aliases } : {}) });
+    // Labels stay the tracker's tidy names whichever layout the sheet uses.
+    fields.push({ ...spec.field, label: spec.field.label ?? spec.headers[0], source: f.source, ...(aliases.length ? { aliases } : {}) });
   }
   // Columns only the other layout has: known, so a version in that layout matches too, and optional, so their absence never asks.
   for (const spec of SPECS) {
