@@ -32,7 +32,7 @@ function rollup(f: Field, vals: ColumnValue[]): ColumnValue {
   if (vs.every((v) => v === first) && !(f.aggregate === "sum" && typeof first === "number")) return first;
   if (vs.every((v) => typeof v === "number")) {
     const nums = vs as number[];
-    const how = f.type === "date" ? "min" : f.aggregate ?? (f.role === "measure" ? "sum" : "min");
+    const how = f.type === "date" ? (f.aggregate === "max" ? "max" : "min") : f.aggregate ?? (f.role === "measure" ? "sum" : "min");
     if (how === "sum") return nums.reduce((a, b) => a + b, 0);
     if (how === "avg") return nums.reduce((a, b) => a + b, 0) / nums.length;
     if (how === "max") return Math.max(...nums);
