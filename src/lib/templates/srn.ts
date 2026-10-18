@@ -349,6 +349,18 @@ export function srnAux(wb: ParsedWorkbook): Record<string, AuxSheet> {
   add("Invoice date after its SRN date", after, null, "Left as typed: day and month could not be swapped to fit.");
   const old = ls.filter((l) => l.invDate !== null && l.srnDate !== null && (l.srnDate - l.invDate) / DAY > 180);
   add("SRN more than 180 days after the invoice", old, val(old, (l) => l.srnAmt ?? 0), `${[...new Set(old.map((l) => l.vendor))].length} vendors.`);
+  // A large line in a currency the vendor does not usually invoice in: a typing slip changes the AED value a lot.
+  const usual = new Map<string, string>();
+  for (const v of new Set(ls.map((l) => l.vendor))) {
+    const counts = new Map<string, number>();
+    for (const l of ls) if (l.vendor === v && l.currency) counts.set(l.currency, (counts.get(l.currency) ?? 0) + 1);
+    const total = [...counts.values()].reduce((a, b) => a + b, 0);
+    const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+    // Only a vendor that clearly invoices in one currency (Maersk mixes AED and USD all year).
+    if (top && top[1] / total >= 0.7) usual.set(v, top[0]);
+  }
+  const oddCurrency = ls.filter((l) => l.currency && usual.has(l.vendor) && usual.get(l.vendor) !== l.currency && (l.srnAmt ?? 0) * rateOf(l) >= 100_000);
+  add("Currency worth confirming", oddCurrency, val(oddCurrency, (l) => l.srnAmt ?? 0), oddCurrency.map((l) => `${l.vendor} invoice ${l.invNo ?? "?"}: typed ${l.currency}, the vendor's other lines are ${usual.get(l.vendor)}`).join("; ") + ". Counted as typed.");
   const assumed = ls.filter((l) => l.notes.some((n) => n.field === "currency"));
   add("No currency typed", assumed, val(assumed, (l) => l.srnAmt ?? 0), "Currency taken from the invoice's other line or the vendor's usual one (AED for UAE vendors).");
   const undated = ls.filter((l) => l.srnDate === null);
