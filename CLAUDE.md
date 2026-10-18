@@ -90,4 +90,5 @@ This file is the running record of confirmed decisions. Any future session start
 - Hooks must sit above any early `return null` (the History drawer once declared `useState` after `if (!open) return null` and crashed with React #310 on open).
 - Never put a CSS animation that ends on `transform` directly on a react-grid-layout item: the animation outranks the inline transform RGL uses for positioning. Animate an inner wrapper.
 - Export needs `serverExternalPackages` for `@sparticuz/chromium` and `puppeteer-core`, plus `outputFileTracingIncludes` for the chromium binaries. Locally set `CHROME_PATH` to a Chromium binary and `NEXT_PUBLIC_APP_URL` to the local origin.
+- Adding columns to a live upload by SQL (no new version): update the `upload_rows` cells, then the project schema, then `uploads.headers` (the rebuild reads cells only through that header list) and drop `schemaHash` from the cached snapshot so it rebuilds. Done this way for the SRN PO columns (rows computed in SQL from the stored cells, md5 checked against the local build).
 - The share page accepts `?print=1&page=<id>&theme=dark|light` (no chrome, no animations) and `?board=1` (boardroom).
