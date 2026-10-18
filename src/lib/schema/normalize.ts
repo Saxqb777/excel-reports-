@@ -319,11 +319,14 @@ function fixDateOrder(base: Field[], chain: string[], sources: Map<string, strin
         for (let j = k - 1; j >= 0 && prev === null; j--) { const p = columns[ids[j]][i]; if (typeof p === "number") prev = p; }
         for (let j = k + 1; j < ids.length && next === null; j++) { const q = columns[ids[j]][i]; if (typeof q === "number") next = q; }
         const broken = (prev !== null && v < prev) || (next !== null && v > next);
-        if (!broken) continue;
+        // In order but months before the next step ("10 Apr" loaded for a 7 Oct cut-off): typed "4/10" read month-first.
+        const farBefore = !broken && next !== null && next - v > 90 * DAY;
+        if (!broken && !farBefore) continue;
         const swapped = swapDayMonth(v);
         if (swapped === null || swapped === v) continue;
         if ((prev !== null && swapped < prev) || (next !== null && swapped > next)) continue;
-        fixes.push({ row: rowRefs[i], field: ids[k], from: new Date(v).toISOString().slice(0, 10), to: new Date(swapped).toISOString().slice(0, 10), reason: "Day and month looked swapped: out of order with the row's other dates, in order once swapped" });
+        if (farBefore && next! - swapped > 90 * DAY) continue;
+        fixes.push({ row: rowRefs[i], field: ids[k], from: new Date(v).toISOString().slice(0, 10), to: new Date(swapped).toISOString().slice(0, 10), reason: farBefore ? "Day and month looked swapped: months before the row's next date, close to it once swapped" : "Day and month looked swapped: out of order with the row's other dates, in order once swapped" });
         columns[ids[k]][i] = swapped;
         changed = true;
       }

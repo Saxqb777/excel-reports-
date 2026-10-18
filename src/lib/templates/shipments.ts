@@ -154,7 +154,7 @@ export function shipmentsSchema(inferred: SchemaMap): SchemaMap {
       derived: { kind: "bucket", from: "delay_days", edges: [1, 8, 15], labels: ["On time / early", "1–7 days late", "8–14 days late", "15+ days late"] } },
     { id: "month_loaded", label: "Month loaded", source: null, type: "date", role: "date", format: "date", semantic: "period", derived: { kind: "period", from: "loading_date", unit: "month" } },
   );
-  return { ...inferred, fields, idField: "shipment", primaryDate: "loading_date", foldCase: true };
+  return { ...inferred, fields, idField: "shipment", primaryDate: "loading_date", foldCase: true, dateChain: ["loading_date", "cut_off_date", "ets", "eta"] };
 }
 
 const onWater: FilterExpr = { field: "stage", op: "eq", value: "On the water" };
