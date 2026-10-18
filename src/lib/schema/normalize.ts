@@ -431,7 +431,10 @@ export function monthLabel(t: number): string {
 }
 /** Inverse of monthLabel, for sorting month categories; falls back to Date.parse, then null. */
 export function parseMonthLabel(s: string): number | null {
-  const m = /^([A-Za-z]{3})[a-z]*\.?\s+(\d{4})$/.exec(s.trim());
+  // "Up to Jul 2026" (everything before a month) sorts just ahead of that month.
+  const before = /^(?:up to|before)\s+(.+)$/i.exec(s.trim());
+  if (before) { const t = parseMonthLabel(before[1]); if (t === null) return null; const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) - 1; }
+  const m = /^([A-Za-z]{3})[a-z]*\.?\s+(\d{4})(?:\s*\(.*\))?$/.exec(s.trim());
   if (m) { const i = MONTHS.findIndex((x) => x.toLowerCase() === m[1].toLowerCase()); if (i >= 0) return Date.UTC(+m[2], i, 1); }
   const t = Date.parse(s);
   return Number.isNaN(t) ? null : t;

@@ -26,12 +26,12 @@ export interface IngestResult {
 }
 
 /** Secondary sheets a template keeps alongside the main table. */
-export function auxSheetsFor(template: string | undefined, workbook: ParsedWorkbook): Record<string, AuxSheet> {
+export function auxSheetsFor(template: string | undefined, workbook: ParsedWorkbook, schema?: SchemaMap): Record<string, AuxSheet> {
   if (template === "containers") return containersAux(workbook);
   if (template === "savings") return savingsAux(workbook);
   if (template === "exitcert") return exitCertAux(workbook);
   if (template === "freight") return freightAux(workbook);
-  if (template === "srn") return srnAux(workbook);
+  if (template === "srn") return srnAux(workbook, schema);
   return {};
 }
 
@@ -52,7 +52,7 @@ export async function ingestNew(buffer: Buffer, fileName: string, uploadId = nan
   const schema = template === "savings" ? savingsSchema(inferred, sheet) : template === "srn" ? srnSchema(inferred) : template === "exitcert" ? exitCertSchema(inferred) : template === "freight" ? freightSchema(inferred) : template === "agthia" ? agthiaSchema(inferred) : template === "shipments" ? shipmentsSchema(inferred) : template === "containers" ? containersSchema(inferred) : inferred;
   const layout = template === "savings" ? savingsLayout() : template === "srn" ? srnLayout() : template === "exitcert" ? exitCertLayout(schema) : template === "freight" ? freightLayout(schema) : template === "agthia" ? agthiaLayout(schema) : template === "shipments" ? shipmentsLayout(schema) : template === "containers" ? containersLayout(schema) : proposeLayout(schema);
   const snapshot = buildSnapshot(schema, sheet, { uploadId, version: 1 });
-  return { workbook, schema, layout, snapshot, sha256: sha256(buffer), template, aux: auxSheetsFor(template, workbook) };
+  return { workbook, schema, layout, snapshot, sha256: sha256(buffer), template, aux: auxSheetsFor(template, workbook, schema) };
 }
 
 /** Re-upload against a known schema. Returns the diff so the caller can ask for confirmation when headers changed. */

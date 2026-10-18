@@ -112,7 +112,8 @@ export interface ColumnStats {
 }
 
 export type RawCell = string | number | boolean | null;
-export type RawRow = { row: number; cells: Record<string, RawCell> };
+/** `formulas`: the formula text of cells that hold one (header → formula), when the reader saw it. */
+export type RawRow = { row: number; cells: Record<string, RawCell>; formulas?: Record<string, string> };
 
 export interface ParsedSheet {
   name: string;

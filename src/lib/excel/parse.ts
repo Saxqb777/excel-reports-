@@ -85,7 +85,7 @@ function pickHeaderRow(grid: { v: RawCell; k: CellKind }[][]): number {
   return best;
 }
 
-function buildSheet(name: string, grid: { v: RawCell; k: CellKind }[][], validations: Record<number, string[]>): ParsedSheet | null {
+function buildSheet(name: string, grid: { v: RawCell; k: CellKind; f?: string }[][], validations: Record<number, string[]>): ParsedSheet | null {
   if (grid.length === 0) return null;
   const headerRow = pickHeaderRow(grid);
   const headerCells = grid[headerRow];
@@ -112,9 +112,11 @@ function buildSheet(name: string, grid: { v: RawCell; k: CellKind }[][], validat
     const row = grid[r];
     if (!row.some((c) => c.v !== null)) continue;
     const cells: Record<string, RawCell> = {};
+    let formulas: Record<string, string> | undefined;
     for (let c = 0; c < width; c++) {
       const cell = row[c] ?? { v: null, k: "e" };
       cells[headers[c]] = cell.v;
+      if (cell.f) (formulas ??= {})[headers[c]] = cell.f;
       if (cell.v === null) continue;
       const st = stats[c];
       st.nonEmpty++;
@@ -127,7 +129,7 @@ function buildSheet(name: string, grid: { v: RawCell; k: CellKind }[][], validat
       lengthSum[c] += String(cell.v).length;
       if (st.samples.length < 8 && !st.samples.includes(String(cell.v))) st.samples.push(String(cell.v));
     }
-    rows.push({ row: r + 1, cells });
+    rows.push({ row: r + 1, cells, ...(formulas ? { formulas } : {}) });
   }
   stats.forEach((st, c) => {
     st.distinct = distinctSets[c].size;
@@ -210,7 +212,7 @@ export async function parseWorkbook(buffer: ArrayBuffer | Buffer, fileName: stri
   const grids: Record<string, RawCell[][]> = {};
   for (const ws of wb.worksheets) {
     if (ws.state && ws.state !== "visible") continue;
-    const grid: { v: RawCell; k: CellKind }[][] = [];
+    const grid: { v: RawCell; k: CellKind; f?: string }[][] = [];
     // rowCount is the last row that has values; actualRowCount skips blank rows in between and would drop the tail.
     const rowCount = ws.rowCount;
     for (let r = 1; r <= rowCount; r++) {
@@ -226,7 +228,8 @@ export async function parseWorkbook(buffer: ArrayBuffer | Buffer, fileName: stri
         const value = cell.value as unknown;
         const cached = (cell as unknown as { result?: ExcelJS.CellValue }).result;
         const lost = value !== null && typeof value === "object" && ("formula" in value || "sharedFormula" in value) && !("result" in value) && cached !== undefined;
-        arr.push(sideways ? coerce(null) : coerce(lost ? cached! : cell.value));
+        const formula = value !== null && typeof value === "object" && "formula" in value ? String((value as { formula: unknown }).formula) : value !== null && typeof value === "object" && "sharedFormula" in value ? "(shared formula)" : undefined;
+        arr.push({ ...(sideways ? coerce(null) : coerce(lost ? cached! : cell.value)), ...(formula && !sideways ? { f: formula } : {}) });
       }
       grid.push(arr);
     }
