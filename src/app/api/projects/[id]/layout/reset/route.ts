@@ -9,6 +9,7 @@ import { containersLayout } from "@/lib/templates/containers";
 import { savingsLayout } from "@/lib/templates/savings";
 import { exitCertLayout } from "@/lib/templates/exitcert";
 import { freightLayout } from "@/lib/templates/freight";
+import { srnLayout } from "@/lib/templates/srn";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export async function POST(_req: NextRequest, ctx: RouteContext<"/api/projects/[
   const project = await getProjectById(id);
   if (!project) return Response.json({ error: "Project not found" }, { status: 404 });
   const template = project.settings.template;
-  const layout = template === "savings" ? savingsLayout() : template === "exitcert" ? exitCertLayout(project.schemaMap) : template === "freight" ? freightLayout(project.schemaMap) : template === "agthia" ? agthiaLayout(project.schemaMap) : template === "shipments" ? shipmentsLayout(project.schemaMap) : template === "containers" ? containersLayout(project.schemaMap) : proposeLayout(project.schemaMap);
+  const layout = template === "savings" ? savingsLayout() : template === "srn" ? srnLayout() : template === "exitcert" ? exitCertLayout(project.schemaMap) : template === "freight" ? freightLayout(project.schemaMap) : template === "agthia" ? agthiaLayout(project.schemaMap) : template === "shipments" ? shipmentsLayout(project.schemaMap) : template === "containers" ? containersLayout(project.schemaMap) : proposeLayout(project.schemaMap);
   await db().update(schema.projects).set({ layout, updatedAt: new Date() }).where(eq(schema.projects.id, project.id));
   return Response.json({ layout });
 }

@@ -10,7 +10,8 @@ type CellKind = "n" | "s" | "d" | "b" | "e";
 
 function coerce(value: ExcelJS.CellValue): { v: RawCell; k: CellKind } {
   if (value === null || value === undefined) return { v: null, k: "e" };
-  if (value instanceof Date) return { v: value.toISOString(), k: "d" };
+  // A number formatted as a date but far outside any calendar (a reference typed into a date column) has no date.
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? { v: null, k: "e" } : { v: value.toISOString(), k: "d" };
   if (typeof value === "number") return Number.isFinite(value) ? { v: value, k: "n" } : { v: null, k: "e" };
   if (typeof value === "boolean") return { v: value, k: "b" };
   if (typeof value === "string") {
@@ -267,7 +268,7 @@ export function parseLooseDate(s: string): number | null {
     if (month < 1 || month > 12 || day < 1 || day > 31) return null;
     return Date.UTC(y, month - 1, day);
   }
-  m = /^(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{4})$/.exec(t);
+  m = /^(\d{1,2})[\s/.-]+([A-Za-z]{3,})[\s/.,-]+(\d{4})$/.exec(t);
   if (m) {
     const month = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"].indexOf(m[2].slice(0, 3).toLowerCase());
     if (month >= 0) return Date.UTC(+m[3], month, +m[1]);
