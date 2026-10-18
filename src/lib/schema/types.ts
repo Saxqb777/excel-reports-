@@ -43,7 +43,9 @@ export type DerivedSpec =
    * `pattern` when given, spaces ignored), with its prefix. A key already used by an earlier row gets " (2)", " (3)";
    * rows with no candidate get "Row n".
    */
-  | { kind: "rowKey"; candidates: { field: string; pattern?: string; prefix?: string }[] };
+  | { kind: "rowKey"; candidates: { field: string; pattern?: string; prefix?: string }[] }
+  /** `from` times the rate for the row's currency (the value of `currency`, e.g. "EUR"); null when the amount or the rate is missing. */
+  | { kind: "convert"; from: string; currency: string; rates: Record<string, number> };
 
 export type FieldFormat = "integer" | "decimal" | "currency" | "percent" | "days" | "date" | "text";
 

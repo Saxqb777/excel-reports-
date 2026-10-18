@@ -88,7 +88,7 @@ const SPECS: Spec[] = [
   { headers: ["Packages", "Total package", "Total packages"], field: num("packages") },
   { headers: ["Ton/Kg"], field: ignore("weight_unit") },
   { headers: ["Weight (tons)", "Total weight"], field: num("weight_tons", { label: "Weight (tons)", format: "decimal", semantic: "quantity" }) },
-  { headers: ["Value (USD)", "Shipment value"], field: num("value_usd", { label: "Value (USD)", semantic: "amount", format: "currency", currency: "USD" }) },
+  { headers: ["Value (USD)", "Shipment value"], field: num("value_usd", { label: "Value as typed", semantic: "amount", format: "decimal" }) },
   { headers: ["Invoice number", "Invoice no"], field: text("invoice_number") },
   { headers: ["Invoice date"], field: date("invoice_date") },
   // The sheet's own day counts: worked out from the dates instead (below).
@@ -153,6 +153,11 @@ export function shipmentsSchema(inferred: SchemaMap): SchemaMap {
     { id: "delay_band", label: "Delay band", source: null, type: "string", role: "dimension", order: ["On time / early", "1–7 days late", "8–14 days late", "15+ days late"],
       derived: { kind: "bucket", from: "delay_days", edges: [1, 8, 15], labels: ["On time / early", "1–7 days late", "8–14 days late", "15+ days late"] } },
     { id: "month_loaded", label: "Month loaded", source: null, type: "date", role: "date", format: "date", semantic: "period", derived: { kind: "period", from: "loading_date", unit: "month" } },
+    // Each invoice is in its own currency and the sheet does not say which. The tracker's column is USD; customers billed
+    // in another currency are listed in the project's own schema (rules), never here.
+    { id: "value_currency", label: "Invoice currency", source: null, type: "string", role: "dimension", derived: { kind: "keyword", from: ["customer_name"], rules: [], fallback: "USD" } },
+    { id: "value_aed", label: "Value (AED)", source: null, type: "number", role: "measure", semantic: "amount", format: "currency", currency: "AED",
+      derived: { kind: "convert", from: "value_usd", currency: "value_currency", rates: { AED: 1, USD: 3.6725, EUR: 4.28 } } },
   );
   return { ...inferred, fields, idField: "shipment", primaryDate: "loading_date", foldCase: true, dateChain: ["loading_date", "cut_off_date", "ets", "eta"] };
 }
@@ -161,7 +166,7 @@ const onWater: FilterExpr = { field: "stage", op: "eq", value: "On the water" };
 const delivered: FilterExpr = { field: "stage", op: "eq", value: "Delivered" };
 const dueSoon: FilterExpr = { and: [onWater, { field: "days_to_arrival", op: "between", value: [0, 30] }] };
 const overdue: FilterExpr = { and: [onWater, { field: "days_to_arrival", op: "lt", value: 0 }] };
-const usd = (filter?: FilterExpr) => ({ agg: "sum" as const, field: "value_usd", format: "currency" as const, currency: "USD", ...(filter ? { filter } : {}) });
+const aed = (filter?: FilterExpr) => ({ agg: "sum" as const, field: "value_aed", format: "currency" as const, currency: "AED", ...(filter ? { filter } : {}) });
 
 export function shipmentsLayout(schema: SchemaMap): Layout {
   const has = (id: string) => schema.fields.some((f) => f.id === id);
@@ -169,18 +174,18 @@ export function shipmentsLayout(schema: SchemaMap): Layout {
     { id: "insights", type: "insights", title: "What changed since the last update" },
     { id: "kpi_shipments", type: "kpi", title: "Shipments", metric: { agg: "count" }, good: "up", sparkline: { dateField: "loading_date", unit: "month" } },
     { id: "kpi_containers", type: "kpi", title: "Containers", metric: { agg: "sum", field: "containers", format: "integer" }, good: "up", secondary: { metric: { agg: "sum", field: "weight_tons", format: "decimal" }, label: "tons" } },
-    { id: "kpi_value", type: "kpi", title: "Value shipped", metric: usd(), good: "up" },
-    { id: "kpi_water", type: "kpi", title: "On the water", metric: { agg: "count", filter: onWater }, good: "none", onClick: onWater, secondary: { metric: usd(onWater), label: "in transit" } },
+    { id: "kpi_value", type: "kpi", title: "Value shipped", metric: aed(), good: "up" },
+    { id: "kpi_water", type: "kpi", title: "On the water", metric: { agg: "count", filter: onWater }, good: "none", onClick: onWater, secondary: { metric: aed(onWater), label: "in transit" } },
     { id: "kpi_delivered", type: "kpi", title: "Delivered", metric: { agg: "count", filter: delivered }, good: "up", onClick: delivered, secondary: { metric: { agg: "rate", numerator: delivered, format: "percent" }, label: "of all shipments" } },
     { id: "kpi_overdue", type: "kpi", title: "Past arrival date", metric: { agg: "count", filter: overdue }, good: "down", onClick: overdue, secondary: { metric: { agg: "avg", field: "delay_days", format: "days", filter: onWater }, label: "avg delay" } },
     { id: "pipeline", type: "bar", title: "Where every shipment stands", subtitle: "Shipments by stage, click to filter", dimension: "stage", metric: { agg: "count" }, sort: "order", colorBy: "status", orientation: "horizontal" },
     { id: "monthly", type: "line", title: "Monthly shipments", subtitle: "Value shipped and number of shipments, by loading month", dateField: "loading_date", unit: "month", series: [
-      { label: "Value (USD)", metric: usd(), kind: "bar" }, { label: "Shipments", metric: { agg: "count" }, kind: "line" },
+      { label: "Value (AED)", metric: aed(), kind: "bar" }, { label: "Shipments", metric: { agg: "count" }, kind: "line" },
     ] },
-    { id: "destinations", type: "bar", title: "Destinations", subtitle: "Value by destination country", dimension: "pod_country", metric: usd(), stackBy: "stage", colorBy: "status", orientation: "horizontal", topN: 8 },
+    { id: "destinations", type: "bar", title: "Destinations", subtitle: "Value by destination country", dimension: "pod_country", metric: aed(), stackBy: "stage", colorBy: "status", orientation: "horizontal", topN: 8 },
     { id: "carriers", type: "bar", title: "Carriers", subtitle: "Containers by carrier", dimension: "carrier", metric: { agg: "sum", field: "containers", format: "integer" }, stackBy: "stage", colorBy: "status", orientation: "horizontal", topN: 8 },
-    { id: "customers", type: "bar", title: "Customers", subtitle: "Value by customer", dimension: "customer_name", metric: usd(), orientation: "horizontal", topN: 8 },
-    { id: "sales", type: "bar", title: "Sales people", subtitle: "Value by sales person", dimension: "sales_person", metric: usd(), stackBy: "stage", colorBy: "status", orientation: "horizontal" },
+    { id: "customers", type: "bar", title: "Customers", subtitle: "Value by customer", dimension: "customer_name", metric: aed(), orientation: "horizontal", topN: 8 },
+    { id: "sales", type: "bar", title: "Sales people", subtitle: "Value by sales person", dimension: "sales_person", metric: aed(), stackBy: "stage", colorBy: "status", orientation: "horizontal" },
   ];
   const overview: Page = { id: "overview", title: "Overview", widgets: overviewWidgets, grid: [
     { i: "insights", x: 0, y: 0, w: 12, h: 2, minH: 2 },
@@ -205,7 +210,7 @@ export function shipmentsLayout(schema: SchemaMap): Layout {
     { i: "carrier_delay", x: 0, y: 21, w: 5, h: 7 }, { i: "transit", x: 5, y: 21, w: 7, h: 7 },
   ] };
 
-  const registerCols = ["shipment", "customer_name", "product", "container_type", "carrier", "vessel", "pol", "pod_country", "pod", "loading_date", "ets", "eta", "revised_eta", "status", "status_text", "containers", "value_usd", "invoice_number"].filter(has);
+  const registerCols = ["shipment", "customer_name", "product", "container_type", "carrier", "vessel", "pol", "pod_country", "pod", "loading_date", "ets", "eta", "revised_eta", "status", "status_text", "containers", "value_aed", "value_currency", "value_usd", "invoice_number"].filter(has);
   const register: Page = { id: "register", title: "Register", widgets: [
     { id: "register", type: "table", title: "All shipments", columns: registerCols, sort: { field: "loading_date", dir: "desc" }, statusField: "status", search: true, pageSize: 50 },
   ], grid: [{ i: "register", x: 0, y: 0, w: 12, h: 18 }] };

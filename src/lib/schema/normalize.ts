@@ -241,6 +241,13 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
         seen.set(key, k);
         out[i] = k === 1 ? key : `${key} (${k})`;
       }
+    } else if (spec.kind === "convert") {
+      const a = getCol(spec.from), c = getCol(spec.currency);
+      const rates = Object.fromEntries(Object.entries(spec.rates).map(([k, v]) => [k.toUpperCase(), v]));
+      for (let i = 0; i < n; i++) {
+        const rate = typeof c[i] === "string" ? rates[(c[i] as string).trim().toUpperCase()] : undefined;
+        if (typeof a[i] === "number" && rate !== undefined) out[i] = Math.round((a[i] as number) * rate * 100) / 100;
+      }
     } else if (spec.kind === "pendingCount" || spec.kind === "pendingList") {
       const cols = spec.fields.map(getCol);
       const labels = spec.fields.map((id) => fields.find((x) => x.id === id)?.label ?? id);
@@ -390,6 +397,7 @@ function topoOrder(derived: Field[]): Field[] {
       case "monthLabel": return [s.from];
       case "case": return s.cases.flatMap((c) => [...filterFields(c.when), ...(c.from ? [c.from] : [])]);
       case "rowKey": return s.candidates.map((c) => c.field);
+      case "convert": return [s.from, s.currency];
     }
   };
   const out: Field[] = [];
