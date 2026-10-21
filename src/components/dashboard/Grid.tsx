@@ -24,14 +24,14 @@ function phoneLayout(page: Page, hidden: Set<string>): RglLayout {
       continue;
     }
     if (kpiCol === 1) { kpiCol = 0; y += 4; }
-    const h = t === "insights" ? 6 : t === "table" ? Math.max(11, g.h) : t === "quality" ? 22 : Math.max(6, Math.min(g.h, 9));
+    const h = t === "insights" ? 6 : t === "table" ? Math.max(11, g.h) : t === "quality" ? 22 : t === "story" ? 9 : t === "months" ? 4 : t === "map" || t === "flow" ? 9 : Math.max(6, Math.min(g.h, 9));
     out.push({ i: g.i, x: 0, y, w: 2, h, static: true });
     y += h;
   }
   return out;
 }
 
-export function Grid({ page, editable = false, onLayoutChange, onHide, intelligence, compact = false }: { page: Page; editable?: boolean; onLayoutChange?: (l: RglLayout) => void; onHide?: (id: string) => void; intelligence?: IntelligenceProps; compact?: boolean }) {
+export function Grid({ page, editable = false, onLayoutChange, onHide, intelligence, compact = false, gutter = 1 }: { page: Page; editable?: boolean; onLayoutChange?: (l: RglLayout) => void; onHide?: (id: string) => void; intelligence?: IntelligenceProps; compact?: boolean; /** Space between tiles: 1px hairlines (terminal look) or a card gap. */ gutter?: number }) {
   const { width, containerRef, mounted } = useContainerWidth();
   const [expanded, setExpanded] = useState<Widget | null>(null);
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === "Escape") setExpanded(null); }; if (expanded) window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [expanded]);
@@ -41,13 +41,13 @@ export function Grid({ page, editable = false, onLayoutChange, onHide, intellige
   const layout: RglLayout = phone ? phoneLayout(page, hidden) : items.map((g) => ({ ...g, static: !editable }));
   const canEdit = editable && !phone;
   return (
-    <div ref={containerRef} className="w-full bg-line">
+    <div ref={containerRef} className={`w-full ${gutter > 1 ? "bg-transparent" : "bg-line"}`}>
       {mounted && width > 0 && (
         <GridLayout
           key={page.id}
           width={width}
           layout={layout}
-          gridConfig={{ cols: phone ? 2 : 12, rowHeight: ROW_HEIGHT, margin: [1, 1], containerPadding: [0, 0] }}
+          gridConfig={{ cols: phone ? 2 : 12, rowHeight: ROW_HEIGHT, margin: [gutter, gutter], containerPadding: gutter > 1 ? [gutter + 4, gutter + 4] : [0, 0] }}
           dragConfig={{ enabled: canEdit, handle: ".drag-handle" }}
           resizeConfig={{ enabled: canEdit }}
           compactor={verticalCompactor}

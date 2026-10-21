@@ -214,6 +214,12 @@ export function buildSnapshot(schema: SchemaMap, sheet: ParsedSheet, opts: Build
     } else if (spec.kind === "monthLabel") {
       const a = getCol(spec.from);
       for (let i = 0; i < n; i++) if (typeof a[i] === "number") out[i] = monthLabel(a[i] as number);
+    } else if (spec.kind === "latestPeriod") {
+      const a = getCol(spec.from);
+      let latest = -Infinity;
+      for (let i = 0; i < n; i++) if (typeof a[i] === "number") latest = Math.max(latest, periodStart(a[i] as number, spec.unit));
+      const label = spec.unit === "month" ? "Latest month" : "Latest week";
+      for (let i = 0; i < n; i++) if (typeof a[i] === "number") out[i] = periodStart(a[i] as number, spec.unit) === latest ? label : "Earlier";
     } else if (spec.kind === "case") {
       const froms = spec.cases.map((c) => (c.from ? getCol(c.from) : null));
       for (let i = 0; i < n; i++) {
@@ -398,6 +404,7 @@ function topoOrder(derived: Field[]): Field[] {
       case "case": return s.cases.flatMap((c) => [...filterFields(c.when), ...(c.from ? [c.from] : [])]);
       case "rowKey": return s.candidates.map((c) => c.field);
       case "convert": return [s.from, s.currency];
+      case "latestPeriod": return [s.from];
     }
   };
   const out: Field[] = [];

@@ -108,7 +108,41 @@ export interface InsightsWidget extends WidgetBase { type: "insights" }
 export interface QualityWidget extends WidgetBase { type: "quality" }
 export interface TextWidget extends WidgetBase { type: "text"; body: string }
 
-export type Widget = KpiWidget | BarWidget | LineWidget | FunnelWidget | DotsWidget | TableWidget | AuxTableWidget | HeatmapWidget | InsightsWidget | QualityWidget | TextWidget;
+/** The period in one sentence: the latest (or selected) month's headline numbers, each with its trend and the change on the month before. */
+export interface StoryWidget extends WidgetBase {
+  type: "story";
+  /** Date field that places a row in its month. */
+  dateField: string;
+  /** The month label field ("Oct 2026") the filter row selects on. */
+  monthField: string;
+  metrics: { id: string; label: string; metric: MetricSpec; good?: "up" | "down" | "none" }[];
+}
+
+/** One pill per month with a small stacked bar; clicking a month filters the whole dashboard to it. */
+export interface MonthsWidget extends WidgetBase {
+  type: "months";
+  dateField: string;
+  monthField: string;
+  metric: MetricSpec;
+  stackBy?: string;
+}
+
+/** A world map with one dot per country: size from `metric`, colour from the executed share when `executedMetric` is given. */
+export interface MapWidget extends WidgetBase {
+  type: "map";
+  countryField: string;
+  metric: MetricSpec;
+  executedMetric?: MetricSpec;
+}
+
+/** Ribbons from one dimension to the next (direction → mode → stage); hovering a node traces its flows, clicking filters. */
+export interface FlowWidget extends WidgetBase {
+  type: "flow";
+  levels: string[];
+  metric: MetricSpec;
+}
+
+export type Widget = KpiWidget | BarWidget | LineWidget | FunnelWidget | DotsWidget | TableWidget | AuxTableWidget | HeatmapWidget | InsightsWidget | QualityWidget | TextWidget | StoryWidget | MonthsWidget | MapWidget | FlowWidget;
 
 export interface GridItem { i: string; x: number; y: number; w: number; h: number; minW?: number; minH?: number }
 

@@ -50,8 +50,8 @@ interface Ctx {
   fields: Map<string, Field>;
   state: State;
   dispatch: (a: Action) => void;
-  /** Mask of rows passing the filter row + every selection except the given widget's own. */
-  maskFor: (excludeWidgetId?: string) => Uint8Array;
+  /** Mask of rows passing the filter row + every selection except the given widget's own. `ignoreControls` leaves out those filter-row selects (a month strip shows every month while one is picked). */
+  maskFor: (excludeWidgetId?: string, opts?: { ignoreControls?: string[] }) => Uint8Array;
   /** Mask of rows passing the filter row only (no cross-filter selections). */
   baseMask: Uint8Array;
   isSelected: (widgetId: string) => Selection | undefined;
@@ -75,9 +75,9 @@ export function DashboardProvider({ snapshot, layout, children }: { snapshot: Sn
   const fields = useMemo(() => new Map(snapshot.fields.map((f) => [f.id, f])), [snapshot.fields]);
   const searchFields = useMemo(() => layout.filters.filter((f) => f.kind === "search").map((f) => f.field), [layout.filters]);
 
-  const rowFilters = useMemo<FilterExpr[]>(() => {
+  const rowFiltersFor = useCallback((ignoreControls: string[] = []): FilterExpr[] => {
     const out: FilterExpr[] = [];
-    for (const [field, values] of Object.entries(state.controls)) out.push({ field, op: "in", value: values });
+    for (const [field, values] of Object.entries(state.controls)) if (!ignoreControls.includes(field)) out.push({ field, op: "in", value: values });
     if (layout.dateField && (state.dateRange.from !== null || state.dateRange.to !== null)) out.push({ field: layout.dateField, op: "between", value: [state.dateRange.from, state.dateRange.to] });
     if (state.search.trim()) {
       const q = state.search.trim();
@@ -86,14 +86,16 @@ export function DashboardProvider({ snapshot, layout, children }: { snapshot: Sn
     }
     return out;
   }, [state.controls, state.dateRange, state.search, layout.dateField, searchFields, snapshot.fields]);
+  const rowFilters = useMemo(() => rowFiltersFor(), [rowFiltersFor]);
 
   const baseMask = useMemo(() => buildMask(snapshot.columns, snapshot.n, rowFilters), [snapshot, rowFilters]);
 
-  const maskFor = useCallback((excludeWidgetId?: string) => {
+  const maskFor = useCallback((excludeWidgetId?: string, opts?: { ignoreControls?: string[] }) => {
     const sels = state.selections.filter((s) => s.widgetId !== excludeWidgetId);
-    if (sels.length === 0) return baseMask;
-    return buildMask(snapshot.columns, snapshot.n, [...rowFilters, ...sels.map(selectionExpr)]);
-  }, [state.selections, baseMask, snapshot, rowFilters]);
+    const ignored = (opts?.ignoreControls ?? []).filter((f) => state.controls[f]);
+    if (sels.length === 0 && ignored.length === 0) return baseMask;
+    return buildMask(snapshot.columns, snapshot.n, [...(ignored.length ? rowFiltersFor(ignored) : rowFilters), ...sels.map(selectionExpr)]);
+  }, [state.selections, state.controls, baseMask, snapshot, rowFilters, rowFiltersFor]);
 
   const isSelected = useCallback((widgetId: string) => state.selections.find((s) => s.widgetId === widgetId), [state.selections]);
 

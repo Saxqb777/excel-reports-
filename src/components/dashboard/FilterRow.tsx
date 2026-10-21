@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useDashboard } from "@/lib/ui/dashboard-state";
 import { distinctValues } from "@/lib/engine/metrics";
 import { formatDate } from "@/lib/engine/format";
+import { parseMonthLabel } from "@/lib/schema/normalize";
 import { Select } from "@/components/ui/Select";
 
 const DAY = 86_400_000;
@@ -10,7 +11,8 @@ const PRESETS: { id: string; label: string; days?: number }[] = [
   { id: "all", label: "All" }, { id: "30", label: "30d", days: 30 }, { id: "90", label: "90d", days: 90 }, { id: "365", label: "12m", days: 365 },
 ];
 
-export function FilterRow() {
+/** `inline`: rendered inside the v2 header (no border, no phone toggle), the controls wrap in place. */
+export function FilterRow({ inline = false }: { inline?: boolean } = {}) {
   const { snapshot, layout, state, dispatch, fields, now } = useDashboard();
   const selects = layout.filters.filter((f) => f.kind === "select");
   const search = layout.filters.find((f) => f.kind === "search");
@@ -24,12 +26,12 @@ export function FilterRow() {
   const active = state.selections.length + Object.keys(state.controls).length + (state.search ? 1 : 0) + (state.dateRange.preset !== "all" ? 1 : 0);
   const [openMobile, setOpenMobile] = useState(false);
   return (
-    <div className="shrink-0 border-b border-line bg-bg">
-    <div className="flex items-center justify-between px-3 py-1.5 md:hidden">
+    <div className={inline ? "shrink-0" : "shrink-0 border-b border-line bg-bg"}>
+    <div className={`flex items-center justify-between px-3 py-1.5 md:hidden ${inline ? "!hidden" : ""}`}>
       <button type="button" className={`chip ${active ? "chip-on" : ""}`} onClick={() => setOpenMobile((o) => !o)} aria-expanded={openMobile}>Filters{active ? ` · ${active}` : ""} {openMobile ? "▴" : "▾"}</button>
       {active > 0 && <button type="button" className="btn h-[22px] px-2 py-0 text-[14px]" onClick={() => dispatch({ type: "reset" })}>Clear all</button>}
     </div>
-    <div className={`${openMobile ? "flex" : "hidden"} min-h-9 flex-wrap items-center gap-x-4 gap-y-1.5 px-3 py-1.5 md:flex`}>
+    <div className={`${openMobile || inline ? "flex" : "hidden"} min-h-9 flex-wrap items-center gap-x-4 gap-y-1.5 ${inline ? "px-0 py-0" : "px-3 py-1.5"} md:flex`}>
       {dateField && (
         <div className="flex items-center gap-1.5">
           <span className="label">{dateField.label}</span>
@@ -43,7 +45,9 @@ export function FilterRow() {
       {selects.map((s) => {
         const f = fields.get(s.field);
         const opts = options[s.field] ?? [];
-        const ordered = f?.order ? [...f.order.map((o) => opts.find((x) => x.value === o) ?? { value: o, count: 0 }), ...opts.filter((o) => !f.order!.includes(o.value))] : opts;
+        // A month select reads in calendar order; other dimensions follow their configured order, else the most used first.
+        const ordered = f?.order ? [...f.order.map((o) => opts.find((x) => x.value === o) ?? { value: o, count: 0 }), ...opts.filter((o) => !f.order!.includes(o.value))]
+          : f?.semantic === "period" ? [...opts].sort((a, b) => (parseMonthLabel(a.value) ?? Infinity) - (parseMonthLabel(b.value) ?? Infinity)) : opts;
         const current = state.controls[s.field]?.[0] ?? "";
         return (
           <Select key={s.field} label={s.label ?? f?.label ?? s.field} value={current} options={ordered.map((o) => ({ value: o.value, label: o.value, count: o.count }))} onChange={(v) => dispatch({ type: "control", field: s.field, values: v ? [v] : [] })} />

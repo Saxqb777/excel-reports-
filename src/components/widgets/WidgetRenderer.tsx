@@ -11,6 +11,10 @@ import { AuxTableTile } from "./AuxTableTile";
 import { InsightsTile, type Insight } from "./InsightsTile";
 import type { Anomaly } from "@/lib/intelligence/anomalies";
 import { QualityTile } from "./QualityTile";
+import { StoryTile } from "./StoryTile";
+import { MonthsTile } from "./MonthsTile";
+import { MapTile } from "./MapTile";
+import { FlowTile } from "./FlowTile";
 import { Tile } from "./Tile";
 
 export interface IntelligenceProps { insights?: Insight[]; anomalies?: Anomaly[]; comparedTo?: number | null; previousKpis?: Record<string, number | null> | null; newIds?: string[]; changedIds?: string[] }
@@ -28,5 +32,9 @@ export function WidgetRenderer({ w, insights, anomalies, comparedTo, previousKpi
     case "insights": return <InsightsTile w={w} insights={insights} comparedTo={comparedTo} />;
     case "quality": return <QualityTile w={w} anomalies={anomalies} />;
     case "text": return <Tile title={w.title}><div className="text-[14px] text-ink-2 whitespace-pre-wrap">{w.body}</div></Tile>;
+    case "story": return <StoryTile w={w} />;
+    case "months": return <MonthsTile w={w} />;
+    case "map": return <MapTile w={w} />;
+    case "flow": return <FlowTile w={w} />;
   }
 }

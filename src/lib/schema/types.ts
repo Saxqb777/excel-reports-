@@ -45,7 +45,9 @@ export type DerivedSpec =
    */
   | { kind: "rowKey"; candidates: { field: string; pattern?: string; prefix?: string }[] }
   /** `from` times the rate for the row's currency (the value of `currency`, e.g. "EUR"); null when the amount or the rate is missing. */
-  | { kind: "convert"; from: string; currency: string; rates: Record<string, number> };
+  | { kind: "convert"; from: string; currency: string; rates: Record<string, number> }
+  /** "Latest month" for rows whose date falls in the latest period present in the data, "Earlier" for the rest (null without a date). */
+  | { kind: "latestPeriod"; from: string; unit: "week" | "month" };
 
 export type FieldFormat = "integer" | "decimal" | "currency" | "percent" | "days" | "date" | "text";
 

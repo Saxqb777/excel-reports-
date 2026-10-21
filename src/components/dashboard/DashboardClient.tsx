@@ -9,6 +9,7 @@ import type { Intelligence } from "@/lib/data/intelligence";
 import { DashboardProvider } from "@/lib/ui/dashboard-state";
 import { TooltipProvider } from "@/lib/ui/tooltip";
 import { TopBar } from "./TopBar";
+import { ShellV2 } from "./ShellV2";
 import { FilterRow } from "./FilterRow";
 import { UpdateBanner } from "./UpdateBanner";
 import { Grid } from "./Grid";
@@ -21,6 +22,7 @@ import { Boardroom } from "./Boardroom";
 import { ExportMenu } from "./ExportMenu";
 import { applyTheme } from "./ThemeToggle";
 import { useBrand } from "@/lib/ui/theme";
+import { latestMonth, monthWord, nextMonthLabel, type Cadence } from "@/lib/dashboard/cadence";
 
 export interface DashboardProps {
   projectId: string;
@@ -28,6 +30,7 @@ export interface DashboardProps {
   name: string;
   clientName?: string | null;
   theme: Theme;
+  description?: string | null;
   layout: Layout;
   snapshot: Snapshot;
   upload: UploadSummary | null;
@@ -39,6 +42,10 @@ export interface DashboardProps {
   share?: { token: string; enabled: boolean; hasPassword: boolean };
   /** An update password is set and this browser has not entered it: the Update data button asks for it first. */
   updateLocked?: boolean;
+  /** A monthly project: the Update data button becomes "Add <next month>" and uploads merge by month. */
+  cadence?: Cadence | null;
+  /** Which shell renders the dashboard: the terminal look (v1) or the card look with a sidebar (v2). */
+  ui?: "v1" | "v2";
   boardroom?: boolean;
   print?: { page?: string; theme?: "dark" | "light" };
 }
@@ -66,6 +73,8 @@ export function DashboardClient(props: DashboardProps) {
   useEffect(() => setIntel(props.intelligence ?? null), [props.intelligence]);
   useEffect(() => { setLayout(props.layout); savedLayout.current = props.layout; }, [props.layout]);
   const page = layout.pages.find((p) => p.id === pageId) ?? layout.pages[0];
+  // Monthly projects: the next month to add, from the latest month on the dashboard.
+  const nextMonth = useMemo(() => (props.cadence ? monthWord(nextMonthLabel(latestMonth(snapshot.columns[props.cadence.dateField] ?? []))) : null), [props.cadence, snapshot.columns]);
   useBrand(theme.primary);
   useEffect(() => { if (props.print?.theme) applyTheme(props.print.theme); }, [props.print?.theme]);
 
@@ -113,6 +122,7 @@ export function DashboardClient(props: DashboardProps) {
   const hiddenWidgets = useMemo(() => (page.hidden ?? []).map((id) => page.widgets.find((w) => w.id === id)).filter((w): w is Widget => Boolean(w)), [page]);
 
   const readOnly = props.readOnly ?? false;
+  const v2 = props.ui === "v2" && !props.print;
   const intelligence = { insights: intel?.insights, anomalies: intel?.anomalies, comparedTo: intel?.comparedTo, previousKpis: intel?.previousKpis, newIds: intel?.newIds, changedIds: intel?.changedIds };
 
   if (board) {
@@ -125,60 +135,79 @@ export function DashboardClient(props: DashboardProps) {
     );
   }
 
+  const primaryButton = (openPicker: () => void, busy: boolean) => (
+    <button type="button" className="btn btn-accent h-7 whitespace-nowrap px-2 py-0 text-[14px]" onClick={openPicker} disabled={busy} title={props.updateLocked ? "Password protected" : nextMonth ? `Upload the sheet with ${nextMonth}'s rows; they are added to what is already here` : undefined}>
+      {props.updateLocked && <svg aria-hidden width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" className="mr-1 inline-block align-[-1px]"><rect x="3" y="7" width="10" height="7" rx="1" /><path d="M5 7V5a3 3 0 0 1 6 0v2" /></svg>}
+      {busy ? "Loading…" : nextMonth ? `Add ${nextMonth}` : "Update data"}
+    </button>
+  );
+  const secondaryActions = (
+    <>
+      {props.actions}
+      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setAskOpen(true)}>Ask</button>
+      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setEditing(true)}>Edit layout</button>
+      <ExportMenu projectId={props.projectId} pageId={page.id} name={props.name} />
+      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setBoard(true)} title="Full-screen boardroom mode">Boardroom</button>
+      {share && <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setShareOpen(true)}>Share</button>}
+      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setHistoryOpen(true)}>History</button>
+      {props.slug && <Link href={`/p/${props.slug}/settings`} className="btn h-7 px-2 py-0 text-[14px] leading-7">Settings</Link>}
+    </>
+  );
+  const editingActions = (
+    <>
+      <span className="label hidden md:inline">Editing layout · drag, resize, hide</span>
+      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={resetLayout} disabled={saving} title="Back to the proposed layout">Reset</button>
+      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={discard} disabled={saving}>Discard</button>
+      <button type="button" className="btn btn-accent h-7 px-2 py-0 text-[14px]" onClick={saveLayout} disabled={saving || !dirty}>{saving ? "Saving…" : "Save layout"}</button>
+    </>
+  );
+  const readOnlyActions = (
+    <>
+      <ExportMenu projectId={props.projectId} pageId={page.id} name={props.name} />
+      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setBoard(true)} title="Full-screen boardroom mode">Boardroom</button>
+    </>
+  );
+  const hiddenStrip = editing && hiddenWidgets.length > 0 ? (
+    <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-1.5">
+      <span className="label">Hidden</span>
+      {hiddenWidgets.map((w) => <button key={w.id} type="button" className="chip" onClick={() => showWidget(w.id)} title="Show again">{w.title} +</button>)}
+    </div>
+  ) : null;
+  const bannerNode = !props.print && intel?.comparedTo ? <UpdateBanner projectId={props.projectId} version={snapshot.version} comparedTo={intel.comparedTo} uploadedAt={upload?.uploadedAt ?? null} newCount={intel.newIds?.length ?? 0} changedCount={intel.changedIds?.length ?? 0} /> : null;
+  const footerNode = !props.print ? (
+    <footer className="flex h-7 items-center justify-between border-t border-line px-3 text-[14.5px] text-ink-4">
+      <span className="num">{snapshot.n} rows · version {snapshot.version}<span className="hidden sm:inline">{readOnly ? "" : nextMonth ? ` · drop the sheet with ${nextMonth}'s rows anywhere to add it` : " · drop a workbook anywhere to update"}</span></span>
+      <span className="label">{props.clientName ? `${props.name} · ` : ""}Reports and analytics</span>
+    </footer>
+  ) : null;
+
   return (
     <TooltipProvider>
       <DashboardProvider snapshot={snapshot} layout={layout}>
-        <UploadFlow projectId={props.projectId} locked={props.updateLocked} onDone={() => void refresh()}>
-          {({ openPicker, busy }) => (
+        <UploadFlow projectId={props.projectId} locked={props.updateLocked} nextMonth={nextMonth} onDone={() => void refresh()}>
+          {({ openPicker, busy }) => v2 ? (
+            <div className={`transition-opacity duration-300 ${reloading || busy ? "opacity-80" : ""}`}>
+              <ShellV2 theme={theme} name={props.name} description={props.description} pages={layout.pages.map((p) => ({ id: p.id, title: p.title }))} activePage={page.id} onPage={setPageId} upload={upload} homeHref={props.homeHref} scope={props.projectId}
+                filters={<FilterRow inline />} banner={<>{bannerNode}{hiddenStrip}</>} footer={footerNode}
+                primary={readOnly ? null : editing ? editingActions : primaryButton(openPicker, busy)} actions={readOnly ? readOnlyActions : editing ? null : secondaryActions}>
+                <div key={page.id} style={{ animation: "fade-in 180ms ease both" }}>
+                  {page && <Grid page={page} editable={editing} onLayoutChange={onLayoutChange} onHide={hideWidget} intelligence={intelligence} gutter={14} />}
+                </div>
+              </ShellV2>
+            </div>
+          ) : (
             <div className={`flex min-h-screen flex-col bg-bg transition-opacity duration-300 ${reloading || busy ? "opacity-80" : ""} ${props.print ? "print-mode" : ""}`} data-print={props.print ? "1" : undefined}>
               {!props.print && (
                 <TopBar theme={theme} name={props.name} clientName={props.clientName} pages={layout.pages.map((p) => ({ id: p.id, title: p.title }))} activePage={page.id} onPage={setPageId} upload={upload} homeHref={props.homeHref} scope={props.projectId}
-                  actions={readOnly ? (
-                    <>
-                      <ExportMenu projectId={props.projectId} pageId={page.id} name={props.name} />
-                      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setBoard(true)} title="Full-screen boardroom mode">Boardroom</button>
-                    </>
-                  ) : editing ? (
-                    <>
-                      <span className="label hidden md:inline">Editing layout · drag, resize, hide</span>
-                      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={resetLayout} disabled={saving} title="Back to the proposed layout">Reset</button>
-                      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={discard} disabled={saving}>Discard</button>
-                      <button type="button" className="btn btn-accent h-7 px-2 py-0 text-[14px]" onClick={saveLayout} disabled={saving || !dirty}>{saving ? "Saving…" : "Save layout"}</button>
-                    </>
-                  ) : (
-                    <>
-                      {props.actions}
-                      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setAskOpen(true)}>Ask</button>
-                      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setEditing(true)}>Edit layout</button>
-                      <ExportMenu projectId={props.projectId} pageId={page.id} name={props.name} />
-                      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setBoard(true)} title="Full-screen boardroom mode">Boardroom</button>
-                      {share && <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setShareOpen(true)}>Share</button>}
-                      <button type="button" className="btn h-7 px-2 py-0 text-[14px]" onClick={() => setHistoryOpen(true)}>History</button>
-                      {props.slug && <Link href={`/p/${props.slug}/settings`} className="btn h-7 px-2 py-0 text-[14px] leading-7">Settings</Link>}
-                      <button type="button" className="btn btn-accent h-7 whitespace-nowrap px-2 py-0 text-[14px]" onClick={openPicker} disabled={busy} title={props.updateLocked ? "Password protected" : undefined}>
-                        {props.updateLocked && <svg aria-hidden width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" className="mr-1 inline-block align-[-1px]"><rect x="3" y="7" width="10" height="7" rx="1" /><path d="M5 7V5a3 3 0 0 1 6 0v2" /></svg>}
-                        {busy ? "Loading…" : "Update data"}
-                      </button>
-                    </>
-                  )} />
+                  actions={readOnly ? readOnlyActions : editing ? editingActions : <>{secondaryActions}{primaryButton(openPicker, busy)}</>} />
               )}
               {!props.print && <FilterRow />}
-              {!props.print && intel?.comparedTo ? <UpdateBanner projectId={props.projectId} version={snapshot.version} comparedTo={intel.comparedTo} uploadedAt={upload?.uploadedAt ?? null} newCount={intel.newIds?.length ?? 0} changedCount={intel.changedIds?.length ?? 0} /> : null}
-              {editing && hiddenWidgets.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-1.5">
-                  <span className="label">Hidden</span>
-                  {hiddenWidgets.map((w) => <button key={w.id} type="button" className="chip" onClick={() => showWidget(w.id)} title="Show again">{w.title} +</button>)}
-                </div>
-              )}
+              {bannerNode}
+              {hiddenStrip}
               <main className="flex-1" key={page.id} style={{ animation: "fade-in 180ms ease both" }}>
                 {page && <Grid page={page} editable={editing} onLayoutChange={onLayoutChange} onHide={hideWidget} intelligence={intelligence} />}
               </main>
-              {!props.print && (
-                <footer className="flex h-7 items-center justify-between border-t border-line px-3 text-[14.5px] text-ink-4">
-                  <span className="num">{snapshot.n} rows · version {snapshot.version}<span className="hidden sm:inline">{readOnly ? "" : " · drop a workbook anywhere to update"}</span></span>
-                  <span className="label">{props.clientName ? `${props.name} · ` : ""}Reports and analytics</span>
-                </footer>
-              )}
+              {footerNode}
             </div>
           )}
         </UploadFlow>

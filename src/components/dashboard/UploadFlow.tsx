@@ -1,24 +1,33 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { upload as uploadToBlob } from "@vercel/blob/client";
-import type { DiffPayload } from "@/lib/data/uploads";
+import type { DiffPayload, MonthMerge } from "@/lib/data/uploads";
 import { Modal } from "./Modal";
 import { guardedFetch, requestUnlock } from "./UnlockPrompt";
+import { monthWord } from "@/lib/dashboard/cadence";
 
 export { Modal };
 
-export interface UploadOutcome { uploadId: string; versionNo: number; rows: number; excluded: number; schemaChanged: boolean }
+export interface UploadOutcome { uploadId: string; versionNo: number; rows: number; excluded: number; schemaChanged: boolean; months?: MonthMerge }
 
 /** A function request carries at most 4.5 MB on Vercel; larger workbooks go from the browser straight to Blob storage. */
 const DIRECT_LIMIT = 4 * 1024 * 1024;
 
-interface Props { projectId: string; onDone: (outcome: UploadOutcome) => void; /** The project has an update password and this browser has not entered it yet. */ locked?: boolean; children: (api: { openPicker: () => void; busy: boolean }) => React.ReactNode }
+interface Props {
+  projectId: string; onDone: (outcome: UploadOutcome) => void;
+  /** The project has an update password and this browser has not entered it yet. */
+  locked?: boolean;
+  /** A monthly project: the month the dashboard expects next ("October"), for the drop overlay and the toast. */
+  nextMonth?: string | null;
+  children: (api: { openPicker: () => void; busy: boolean }) => React.ReactNode;
+}
 
 /** Drag-anywhere upload with schema-change confirmation. Wraps the dashboard so the drop zone is the whole page. */
-export function UploadFlow({ projectId, onDone, locked, children }: Props) {
+export function UploadFlow({ projectId, onDone, locked, nextMonth, children }: Props) {
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<{ file: File; diff: DiffPayload } | null>(null);
+  const [monthAsk, setMonthAsk] = useState<{ file: File; months: MonthMerge } | null>(null);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -52,10 +61,11 @@ export function UploadFlow({ projectId, onDone, locked, children }: Props) {
     const res = await guardedFetch(projectId, `/api/projects/${projectId}/uploads`, { method: "POST", body: fd });
     const json = await res.json();
     setBusy(false);
+    if (res.status === 409 && json.status === "confirm-month") { setMonthAsk({ file, months: json.months }); return; }
     if (res.status === 409) { setPending({ file, diff: json.diff }); setMapping(Object.fromEntries((json.diff as DiffPayload).added.map((a) => [a.header, "new"]))); return; }
     if (!res.ok) { setError(json.error ?? "Upload failed"); return; }
-    setPending(null);
-    setToast(`Version ${json.versionNo} loaded · ${json.rows} rows${json.schemaChanged ? " · schema updated" : ""}`);
+    setPending(null); setMonthAsk(null);
+    setToast(json.months ? monthToast(json.months as MonthMerge, json.versionNo) : `Version ${json.versionNo} loaded · ${json.rows} rows${json.schemaChanged ? " · schema updated" : ""}`);
     onDone(json as UploadOutcome);
   }, [projectId, onDone]);
 
@@ -87,9 +97,9 @@ export function UploadFlow({ projectId, onDone, locked, children }: Props) {
       {dragging && (
         <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center bg-[color-mix(in_oklab,var(--bg)_82%,transparent)]">
           <div className="border border-accent bg-bg px-8 py-6 text-center">
-            <div className="label mb-1 text-accent">Update data</div>
-            <div className="text-[15px] font-medium">Drop the new workbook to refresh every visual</div>
-            <div className="mt-1 text-[14px] text-ink-3">The previous version stays in history. Columns are checked against the known schema first.</div>
+            <div className="label mb-1 text-accent">{nextMonth ? `Add ${nextMonth}` : "Update data"}</div>
+            <div className="text-[15px] font-medium">{nextMonth ? `Drop the sheet with ${nextMonth}'s rows` : "Drop the new workbook to refresh every visual"}</div>
+            <div className="mt-1 text-[14px] text-ink-3">{nextMonth ? "Its months are added to the dashboard; a month already there is replaced by the file's rows." : "The previous version stays in history. Columns are checked against the known schema first."}</div>
           </div>
         </div>
       )}
@@ -108,6 +118,20 @@ export function UploadFlow({ projectId, onDone, locked, children }: Props) {
           </div>
         </Modal>
       )}
+      {monthAsk && (
+        <Modal title={monthAsk.months.expected ? `This file has ${list(monthAsk.months.months)}, not ${monthWord(monthAsk.months.expected)}` : "Add these months?"} onClose={() => setMonthAsk(null)}>
+          <div className="space-y-3 text-[14.5px] text-ink-2">
+            <p>The dashboard was expecting <span className="font-semibold text-ink">{monthWord(monthAsk.months.expected) ?? "the next month"}</span>. The file you dropped has rows for <span className="text-ink">{list(monthAsk.months.months)}</span>.</p>
+            {monthAsk.months.replaced.length > 0 && <p><span className="font-semibold text-ink">{list(monthAsk.months.replaced)}</span> {monthAsk.months.replaced.length === 1 ? "is" : "are"} already on the dashboard: {monthAsk.months.replaced.length === 1 ? "its" : "their"} rows will be <span className="text-ink">replaced</span> by this file&rsquo;s. The other months stay as they are.</p>}
+            {monthAsk.months.added.length > 0 && <p><span className="font-semibold text-ink">{list(monthAsk.months.added)}</span> will be added.</p>}
+            <p className="text-ink-3">Fine if this is a correction. If you meant to add {monthWord(monthAsk.months.expected) ?? "the next month"}, cancel and check the Month column in the sheet.</p>
+          </div>
+          <div className="mt-5 flex justify-end gap-2">
+            <button type="button" className="btn" onClick={() => setMonthAsk(null)}>Cancel</button>
+            <button type="button" className="btn btn-accent" disabled={busy} onClick={() => void send(monthAsk.file, true)}>{busy ? "Loading…" : monthAsk.months.replaced.length ? "Replace and load" : "Add anyway"}</button>
+          </div>
+        </Modal>
+      )}
       {error && (
         <div role="alert" className="fixed bottom-4 left-1/2 z-[80] -translate-x-1/2 border border-neg bg-bg px-4 py-2 text-[14.5px] text-ink shadow-[var(--shadow-pop)]">
           <span className="text-neg">Upload failed.</span> {error} <button type="button" className="ml-3 text-ink-3 hover:text-ink" onClick={() => setError(null)}>Dismiss</button>
@@ -122,6 +146,15 @@ export function UploadFlow({ projectId, onDone, locked, children }: Props) {
   );
 }
 
+
+const list = (xs: string[]) => xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`;
+/** "October added · 14 rows" or "September replaced · 13 rows" for the toast after a monthly upload. */
+function monthToast(m: MonthMerge, version: number): string {
+  const parts: string[] = [];
+  if (m.added.length) parts.push(`${list(m.added.map((x) => monthWord(x) ?? x))} added`);
+  if (m.replaced.length) parts.push(`${list(m.replaced.map((x) => monthWord(x) ?? x))} replaced`);
+  return `${parts.join(" · ") || "Loaded"} · ${m.rows} rows on the dashboard · version ${version}`;
+}
 
 function SchemaDiffView({ diff, mapping, setMapping }: { diff: DiffPayload; mapping: Record<string, string>; setMapping: (m: Record<string, string>) => void }) {
   const renamed = diff.matched.filter((m) => m.how !== "exact");

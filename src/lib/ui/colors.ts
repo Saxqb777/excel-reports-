@@ -9,7 +9,10 @@ export const seqVar = (step: number) => `var(--seq-${Math.max(1, Math.min(7, ste
 /** Status tone for a category value: won/good -> pos, lost/bad -> neg, pending/waiting -> warn, quoted/open -> accent. */
 export function statusTone(value: string): Tone {
   const v = value.toLowerCase();
-  if (/\b(won|win|closed won|approved|complete|completed|delivered|success|active|paid|done|arrived|discharged|released|collected|received|positive|on time)\b/.test(v)) return "pos";
+  if (/\b(not executed|no quote received|no one quoted|closed without)\b/.test(v)) return "neg";
+  if (/\b(waiting for confirmation|quote pending)\b/.test(v)) return "warn";
+  if (/\b(under process)\b/.test(v)) return "accent";
+  if (/\b(won|win|closed won|approved|complete|completed|delivered|success|active|paid|done|arrived|discharged|released|collected|received|positive|on time|executed)\b/.test(v)) return "pos";
   if (/\b(lost|loss|rejected|cancel|cancelled|failed|overdue|declined|churn|returned|missing|negative)\b/.test(v)) return "neg";
   if (/\b(pending|waiting|on hold|hold|late|not yet|todo|backlog|draft|planned|booked|not shipped)\b/.test(v)) return "warn";
   if (/\b(quoted|open|awaiting|in progress|progress|submitted|sent|review|transit|loaded|loading|shipped|on the water|in port|at port|sailing|sailed|on board|onboarded|on vessel|departed|on the way|under clearance|gate in)\b/.test(v)) return "accent";

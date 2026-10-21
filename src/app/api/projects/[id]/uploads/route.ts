@@ -44,7 +44,7 @@ export async function POST(req: NextRequest, ctx: RouteContext<"/api/projects/[i
   if (typeof rawMapping === "string" && rawMapping) { try { mapping = JSON.parse(rawMapping) as HeaderMapping; } catch { return Response.json({ error: "mapping must be JSON" }, { status: 400 }); } }
   try {
     const result = await addUpload({ project, buffer: upload.buffer, fileName: upload.fileName, uploadedBy, mapping, confirm, stored: upload.stored });
-    if (result.status === "needs-confirmation") return Response.json(result, { status: 409 });
+    if (result.status === "needs-confirmation" || result.status === "confirm-month") return Response.json(result, { status: 409 });
     return Response.json(result, { status: 201 });
   } catch (e) {
     console.error(e);
