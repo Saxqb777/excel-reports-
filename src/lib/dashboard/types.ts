@@ -47,9 +47,10 @@ export interface LineWidget extends WidgetBase {
   series: { label: string; metric: MetricSpec; kind?: "line" | "bar" }[];
 }
 
+/** Shrinking bars, one per stage: rows matching `filter`, or `metric` summed (containers that reached each step of a plan). */
 export interface FunnelWidget extends WidgetBase {
   type: "funnel";
-  stages: { label: string; filter: FilterExpr; status?: "pos" | "neg" | "warn" | "neutral" | "accent" }[];
+  stages: { label: string; filter?: FilterExpr; metric?: MetricSpec; status?: "pos" | "neg" | "warn" | "neutral" | "accent" }[];
 }
 
 export interface DotsWidget extends WidgetBase {
@@ -133,6 +134,8 @@ export interface MapWidget extends WidgetBase {
   countryField: string;
   metric: MetricSpec;
   executedMetric?: MetricSpec;
+  /** Words for the colour legend and table: what the metric and the executed metric count (defaults: requests, executed). */
+  words?: { value: string; done: string };
 }
 
 /** Ribbons from one dimension to the next (direction → mode → stage); hovering a node traces its flows, clicking filters. */

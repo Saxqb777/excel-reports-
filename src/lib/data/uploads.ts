@@ -9,7 +9,7 @@ import { storeFile, type StoredFile } from "@/lib/storage/files";
 import { sha256 } from "@/lib/ingest";
 import { getProjectById, rebuildSnapshot, schemaHash, toUploadSummary, type ProjectSummary } from "./projects";
 import { augmentLayoutForNewMeasures } from "@/lib/dashboard/augment";
-import { cadenceOf, monthLabelOf, nextMonthLabel, type Cadence } from "@/lib/dashboard/cadence";
+import { cadenceOf, monthLabelOf, uploadMonth, type Cadence } from "@/lib/dashboard/cadence";
 export { cadenceOf, type Cadence };
 
 /** How the user decided to treat each header the schema did not recognise. */
@@ -105,7 +105,7 @@ export function mergeByMonth(current: RawRow[], incoming: RawRow[], cadence: Cad
     rows,
     info: {
       months, added: [...incomingMonths].filter((k) => !existingMonths.has(k)).sort((a, b) => a - b).map(monthName), replaced: [...incomingMonths].filter((k) => existingMonths.has(k)).sort((a, b) => a - b).map(monthName),
-      kept: [...existingMonths].filter((k) => !incomingMonths.has(k)).sort((a, b) => a - b).map(monthName), expected: nextMonthLabel(latest), rows: rows.length, previousRows: current.length,
+      kept: [...existingMonths].filter((k) => !incomingMonths.has(k)).sort((a, b) => a - b).map(monthName), expected: uploadMonth(latest)?.label ?? null, rows: rows.length, previousRows: current.length,
     },
   };
 }

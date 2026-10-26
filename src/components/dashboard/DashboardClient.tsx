@@ -22,7 +22,7 @@ import { Boardroom } from "./Boardroom";
 import { ExportMenu } from "./ExportMenu";
 import { applyTheme } from "./ThemeToggle";
 import { useBrand } from "@/lib/ui/theme";
-import { latestMonth, monthWord, nextMonthLabel, type Cadence } from "@/lib/dashboard/cadence";
+import { latestMonth, monthWord, uploadMonth, type Cadence } from "@/lib/dashboard/cadence";
 
 export interface DashboardProps {
   projectId: string;
@@ -73,8 +73,10 @@ export function DashboardClient(props: DashboardProps) {
   useEffect(() => setIntel(props.intelligence ?? null), [props.intelligence]);
   useEffect(() => { setLayout(props.layout); savedLayout.current = props.layout; }, [props.layout]);
   const page = layout.pages.find((p) => p.id === pageId) ?? layout.pages[0];
-  // Monthly projects: the next month to add, from the latest month on the dashboard.
-  const nextMonth = useMemo(() => (props.cadence ? monthWord(nextMonthLabel(latestMonth(snapshot.columns[props.cadence.dateField] ?? []))) : null), [props.cadence, snapshot.columns]);
+  // Monthly projects: the month the button offers ("Update October" while October runs, then "Add November").
+  const monthOffer = useMemo(() => (props.cadence ? uploadMonth(latestMonth(snapshot.columns[props.cadence.dateField] ?? [])) : null), [props.cadence, snapshot.columns]);
+  const nextMonth = monthOffer ? monthWord(monthOffer.label) : null;
+  const monthAction = monthOffer?.action ?? "Add";
   useBrand(theme.primary);
   useEffect(() => { if (props.print?.theme) applyTheme(props.print.theme); }, [props.print?.theme]);
 
@@ -136,9 +138,9 @@ export function DashboardClient(props: DashboardProps) {
   }
 
   const primaryButton = (openPicker: () => void, busy: boolean) => (
-    <button type="button" className="btn btn-accent h-7 whitespace-nowrap px-2 py-0 text-[14px]" onClick={openPicker} disabled={busy} title={props.updateLocked ? "Password protected" : nextMonth ? `Upload the sheet with ${nextMonth}'s rows; they are added to what is already here` : undefined}>
+    <button type="button" className="btn btn-accent h-7 whitespace-nowrap px-2 py-0 text-[14px]" onClick={openPicker} disabled={busy} title={props.updateLocked ? "Password protected" : nextMonth ? (monthAction === "Update" ? `Upload the sheet with ${nextMonth}'s rows; ${nextMonth} is replaced, earlier months stay` : `Upload the sheet with ${nextMonth}'s rows; they are added to what is already here`) : undefined}>
       {props.updateLocked && <svg aria-hidden width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" className="mr-1 inline-block align-[-1px]"><rect x="3" y="7" width="10" height="7" rx="1" /><path d="M5 7V5a3 3 0 0 1 6 0v2" /></svg>}
-      {busy ? "Loading…" : nextMonth ? `Add ${nextMonth}` : "Update data"}
+      {busy ? "Loading…" : nextMonth ? `${monthAction} ${nextMonth}` : "Update data"}
     </button>
   );
   const secondaryActions = (
@@ -176,7 +178,7 @@ export function DashboardClient(props: DashboardProps) {
   const bannerNode = !props.print && intel?.comparedTo ? <UpdateBanner projectId={props.projectId} version={snapshot.version} comparedTo={intel.comparedTo} uploadedAt={upload?.uploadedAt ?? null} newCount={intel.newIds?.length ?? 0} changedCount={intel.changedIds?.length ?? 0} /> : null;
   const footerNode = !props.print ? (
     <footer className="flex h-7 items-center justify-between border-t border-line px-3 text-[14.5px] text-ink-4">
-      <span className="num">{snapshot.n} rows · version {snapshot.version}<span className="hidden sm:inline">{readOnly ? "" : nextMonth ? ` · drop the sheet with ${nextMonth}'s rows anywhere to add it` : " · drop a workbook anywhere to update"}</span></span>
+      <span className="num">{snapshot.n} rows · version {snapshot.version}<span className="hidden sm:inline">{readOnly ? "" : nextMonth ? ` · drop the sheet with ${nextMonth}'s rows anywhere to ${monthAction === "Update" ? "update it" : "add it"}` : " · drop a workbook anywhere to update"}</span></span>
       <span className="label">{props.clientName ? `${props.name} · ` : ""}Reports and analytics</span>
     </footer>
   ) : null;
@@ -184,7 +186,7 @@ export function DashboardClient(props: DashboardProps) {
   return (
     <TooltipProvider>
       <DashboardProvider snapshot={snapshot} layout={layout}>
-        <UploadFlow projectId={props.projectId} locked={props.updateLocked} nextMonth={nextMonth} onDone={() => void refresh()}>
+        <UploadFlow projectId={props.projectId} locked={props.updateLocked} nextMonth={nextMonth} monthAction={monthAction} onDone={() => void refresh()}>
           {({ openPicker, busy }) => v2 ? (
             <div className={`transition-opacity duration-300 ${reloading || busy ? "opacity-80" : ""}`}>
               <ShellV2 theme={theme} name={props.name} description={props.description} pages={layout.pages.map((p) => ({ id: p.id, title: p.title }))} activePage={page.id} onPage={setPageId} upload={upload} homeHref={props.homeHref} scope={props.projectId}

@@ -38,6 +38,16 @@ export function nextMonthLabel(latest: number | null): string | null {
   return monthLabelOf(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
 }
 
+/**
+ * What the upload button offers: the latest month again while it is still the current month ("Update October": the
+ * plan is being worked on), else the month after it ("Add November").
+ */
+export function uploadMonth(latest: number | null, now = new Date()): { action: "Update" | "Add"; label: string } | null {
+  if (latest === null) return null;
+  const current = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1);
+  return latest >= current ? { action: "Update", label: monthLabelOf(latest) } : { action: "Add", label: nextMonthLabel(latest)! };
+}
+
 /** Latest month (first-of-month timestamp) in a column of month dates. */
 export function latestMonth(values: (number | string | null)[]): number | null {
   let latest = -Infinity;

@@ -19,11 +19,13 @@ interface Props {
   locked?: boolean;
   /** A monthly project: the month the dashboard expects next ("October"), for the drop overlay and the toast. */
   nextMonth?: string | null;
+  /** "Update" while the offered month is the current one, else "Add". */
+  monthAction?: "Update" | "Add";
   children: (api: { openPicker: () => void; busy: boolean }) => React.ReactNode;
 }
 
 /** Drag-anywhere upload with schema-change confirmation. Wraps the dashboard so the drop zone is the whole page. */
-export function UploadFlow({ projectId, onDone, locked, nextMonth, children }: Props) {
+export function UploadFlow({ projectId, onDone, locked, nextMonth, monthAction = "Add", children }: Props) {
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<{ file: File; diff: DiffPayload } | null>(null);
@@ -97,9 +99,9 @@ export function UploadFlow({ projectId, onDone, locked, nextMonth, children }: P
       {dragging && (
         <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center bg-[color-mix(in_oklab,var(--bg)_82%,transparent)]">
           <div className="border border-accent bg-bg px-8 py-6 text-center">
-            <div className="label mb-1 text-accent">{nextMonth ? `Add ${nextMonth}` : "Update data"}</div>
+            <div className="label mb-1 text-accent">{nextMonth ? `${monthAction} ${nextMonth}` : "Update data"}</div>
             <div className="text-[15px] font-medium">{nextMonth ? `Drop the sheet with ${nextMonth}'s rows` : "Drop the new workbook to refresh every visual"}</div>
-            <div className="mt-1 text-[14px] text-ink-3">{nextMonth ? "Its months are added to the dashboard; a month already there is replaced by the file's rows." : "The previous version stays in history. Columns are checked against the known schema first."}</div>
+            <div className="mt-1 text-[14px] text-ink-3">{nextMonth ? (monthAction === "Update" ? `${nextMonth}'s rows are replaced by the file's; earlier months stay as they are.` : "Its months are added to the dashboard; a month already there is replaced by the file's rows.") : "The previous version stays in history. Columns are checked against the known schema first."}</div>
           </div>
         </div>
       )}

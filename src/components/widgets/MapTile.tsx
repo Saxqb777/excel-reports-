@@ -32,6 +32,7 @@ const atlasName = (name: string) => ATLAS_NAMES[name] ?? name;
  * dots, not the view. Clicking a dot filters the dashboard to that country.
  */
 export function MapTile({ w }: { w: MapWidget }) {
+  const words = w.words ?? { value: "Requests", done: "Executed" };
   const { snapshot, maskFor, dispatch, isSelected, fields, baseMask } = useDashboard();
   const tip = useTooltip();
   const [ref, size] = useSize<HTMLDivElement>();
@@ -84,7 +85,7 @@ export function MapTile({ w }: { w: MapWidget }) {
   return (
     <Tile title={w.title} subtitle={w.subtitle} selected={Boolean(sel)} onClear={() => dispatch({ type: "clearSelection", widgetId: w.id })} padded={false} tableActive={table} onToggleTable={() => setTable((t) => !t)}>
       {table ? (
-        <div className="h-full px-3.5 pb-3"><DataTable columns={[dim?.label ?? "Country", "Requests", "Executed", "Share executed"]} rows={dots.map((d) => [d.key, formatNumber(d.value, fmt, w.metric.currency), formatNumber(d.exec, fmt), d.value ? `${Math.round((d.exec / d.value) * 100)}%` : "–"])} /></div>
+        <div className="h-full px-3.5 pb-3"><DataTable columns={[dim?.label ?? "Country", words.value, words.done, `Share ${words.done.toLowerCase()}`]} rows={dots.map((d) => [d.key, formatNumber(d.value, fmt, w.metric.currency), formatNumber(d.exec, fmt), d.value ? `${Math.round((d.exec / d.value) * 100)}%` : "–"])} /></div>
       ) : (
       <div ref={ref} className="relative h-full w-full overflow-hidden">
         {size.width > 0 && (
@@ -106,7 +107,7 @@ export function MapTile({ w }: { w: MapWidget }) {
               const color = w.executedMetric ? `color-mix(in oklab, var(--pos) ${Math.round(share * 100)}%, var(--warn-mark))` : "var(--accent)";
               return (
                 <g key={d.key} transform={`translate(${d.x},${d.y})`} className="cursor-pointer" opacity={dimmed ? 0.35 : 1} style={{ transition: "opacity 160ms ease" }} onClick={() => onSelect(d.key)}
-                  onPointerEnter={(e) => tip.show(e, { title: d.key, rows: [{ label: "Requests", value: formatNumber(d.value, fmt, w.metric.currency) }, ...(w.executedMetric ? [{ label: "Executed", value: `${formatNumber(d.exec, fmt)} · ${Math.round(share * 100)}%` }] : [])], note: "Click to filter the dashboard to this country" })} onPointerMove={tip.move} onPointerLeave={tip.hide}>
+                  onPointerEnter={(e) => tip.show(e, { title: d.key, rows: [{ label: words.value, value: formatNumber(d.value, fmt, w.metric.currency) }, ...(w.executedMetric ? [{ label: words.done, value: `${formatNumber(d.exec, fmt)} · ${Math.round(share * 100)}%` }] : [])], note: "Click to filter the dashboard to this country" })} onPointerMove={tip.move} onPointerLeave={tip.hide}>
                   <circle r={radius(d.value)} fill={color} fillOpacity={0.85} stroke={on ? "var(--ink)" : "var(--bg)"} strokeWidth={on ? 2 : 1.2} style={{ transition: "r 300ms ease" }} />
                   {radius(d.value) >= 11 && <text y={1} fontSize={11.5} fontWeight={700} textAnchor="middle" dominantBaseline="middle" fill="var(--accent-ink)" style={{ fontFamily: "var(--font-num)", pointerEvents: "none" }}>{formatNumber(d.value, fmt)}</text>}
                 </g>
@@ -116,9 +117,9 @@ export function MapTile({ w }: { w: MapWidget }) {
         )}
         {w.executedMetric && (
           <div className="pointer-events-none absolute bottom-2 left-3 flex items-center gap-2 text-[12.5px] text-ink-3">
-            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: "var(--warn-mark)" }} /> none executed
+            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: "var(--warn-mark)" }} /> none {words.done.toLowerCase()}
             <span className="inline-block h-2.5 w-10" style={{ background: "linear-gradient(90deg, var(--warn-mark), var(--pos))" }} />
-            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: "var(--pos)" }} /> all executed
+            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: "var(--pos)" }} /> all {words.done.toLowerCase()}
             {missing.length > 0 && <span className="ml-3">Not on the map: {missing.join(", ")}</span>}
           </div>
         )}

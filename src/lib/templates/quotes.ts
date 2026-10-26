@@ -52,7 +52,7 @@ const country = (name: string, region: string, ...spellings: string[]) => { for 
 country("UAE", "Middle East", "united arab emirates", "u.a.e", "al foah", "al ain");
 country("Qatar", "Middle East", "qatat");
 country("Saudi Arabia", "Middle East", "ksa");
-country("Oman", "Middle East");
+country("Oman", "Middle East"); country("Palestine", "Middle East", "palastine"); country("Syria", "Middle East");
 country("Kuwait", "Middle East"); country("Bahrain", "Middle East"); country("Jordan", "Middle East"); country("Iraq", "Middle East"); country("Lebanon", "Middle East");
 country("India", "Asia"); country("China", "Asia"); country("Vietnam", "Asia", "viet nam"); country("Malaysia", "Asia"); country("South Korea", "Asia", "korea", "korea, south", "republic of korea");
 country("Japan", "Asia"); country("Taiwan", "Asia"); country("Nepal", "Asia"); country("Bangladesh", "Asia", "bangaladesh"); country("Pakistan", "Asia", "pakisthan"); country("Sri Lanka", "Asia", "srilanka");
@@ -60,19 +60,21 @@ country("Indonesia", "Asia"); country("Philippines", "Asia", "phillipines"); cou
 country("Sweden", "Europe", "swedan"); country("Germany", "Europe"); country("United Kingdom", "Europe", "uk", "england", "britain", "great britain"); country("Norway", "Europe"); country("Ukraine", "Europe");
 country("Turkey", "Europe", "türkiye", "turkiye"); country("Croatia", "Europe", "crotia"); country("Netherlands", "Europe", "holland"); country("France", "Europe"); country("Italy", "Europe"); country("Spain", "Europe");
 country("Belgium", "Europe"); country("Poland", "Europe"); country("Denmark", "Europe"); country("Finland", "Europe"); country("Greece", "Europe"); country("Russia", "Europe");
-country("Tanzania", "Africa", "tanzania"); country("Kenya", "Africa"); country("Somalia", "Africa"); country("Ghana", "Africa"); country("South Africa", "Africa"); country("Egypt", "Africa");
-country("Algeria", "Africa"); country("Morocco", "Africa"); country("Nigeria", "Africa"); country("Ethiopia", "Africa"); country("Sudan", "Africa"); country("Djibouti", "Africa"); country("Tunisia", "Africa"); country("Libya", "Africa");
+country("Tanzania", "Africa", "tanzania", "tanznia", "tanzaniya"); country("Kenya", "Africa"); country("Somalia", "Africa"); country("Ghana", "Africa"); country("South Africa", "Africa"); country("Egypt", "Africa");
+country("Algeria", "Africa"); country("Morocco", "Africa"); country("Nigeria", "Africa"); country("Ethiopia", "Africa"); country("Sudan", "Africa"); country("Djibouti", "Africa", "dijubuti", "djibuti", "jibouti"); country("Tunisia", "Africa"); country("Libya", "Africa");
 country("USA", "Americas", "united states", "united states of america", "us", "u.s.a", "america"); country("Mexico", "Americas"); country("Brazil", "Americas", "brasil"); country("Argentina", "Americas");
 country("Bolivia", "Americas", "bolevia"); country("Uruguay", "Americas"); country("Canada", "Americas"); country("Chile", "Americas"); country("Peru", "Americas"); country("Colombia", "Americas");
+country("Maldives", "Asia", "maldive"); country("Brunei", "Asia"); country("Uganda", "Africa"); country("Zambia", "Africa"); country("Canada", "Americas");
 country("Australia", "Oceania"); country("New Zealand", "Oceania", "new zeland", "newzeland", "newzealand", "nz"); country("Fiji", "Oceania");
 
 /** Port spellings and the country each port is in, so a port typed in the country column still lands on the map. */
 const PORTS: Record<string, { name: string; country: string }> = {};
 const port = (name: string, cty: string, ...spellings: string[]) => { for (const s of [name, ...spellings]) PORTS[normKey(s)] = { name, country: cty }; };
-port("Nhava Sheva", "India", "nava sheva", "nhava seva", "jnpt"); port("Mundra", "India"); port("Chennai", "India"); port("Cochin", "India", "kochi");
-port("Santos", "Brazil", "santoz"); port("Paranaguá", "Brazil", "paranagua"); port("Dar es Salaam", "Tanzania", "dar al salam", "dar es salam", "dar-es-salaam"); port("Mombasa", "Kenya");
+port("Nhava Sheva", "India", "nava sheva", "nhava seva", "jnpt"); port("Jakarta", "Indonesia", "jakartha", "jakarta port", "tanjung priok"); port("Semarang", "Indonesia"); port("Surabaya", "Indonesia", "saurabya", "surabaya port"); port("Penang", "Malaysia");
+port("Colombo", "Sri Lanka"); port("Tokyo", "Japan"); port("Keelung", "Taiwan"); port("Vancouver", "Canada"); port("Montreal", "Canada"); port("Gävle", "Sweden", "gavle"); port("Novorossiysk", "Russia"); port("Berbera", "Somalia"); port("Bosaso", "Somalia"); port("Kismayo", "Somalia"); port("Barka", "Oman"); port("Al Buraimi", "Oman", "buraimi"); port("Mundra", "India"); port("Chennai", "India"); port("Cochin", "India", "kochi");
+port("Santos", "Brazil", "santoz"); port("Paranaguá", "Brazil", "paranagua"); port("Dar es Salaam", "Tanzania", "dar al salam", "dar es salam", "dar-es-salaam", "dar el salam", "dar el salaam", "dar-el-salaam"); port("Mombasa", "Kenya");
 port("Mogadishu", "Somalia", "magadishu"); port("Chittagong", "Bangladesh", "chitagong", "chattogram"); port("Los Angeles", "USA", "lose angels", "los angels"); port("Long Beach", "USA");
-port("New York", "USA"); port("New Jersey", "USA"); port("Galveston", "USA"); port("Chicago", "USA"); port("Houston", "USA"); port("Cape Town", "South Africa", "captown", "capetown"); port("Durban", "South Africa");
+port("New York", "USA", "ny", "nyc"); port("New Jersey", "USA"); port("Galveston", "USA"); port("Chicago", "USA"); port("Houston", "USA"); port("Cape Town", "South Africa", "captown", "capetown"); port("Durban", "South Africa", "darban");
 port("Sydney", "Australia"); port("Melbourne", "Australia"); port("Auckland", "New Zealand", "port of auckland"); port("Shanghai", "China", "port of shanghai", "shanghai,china."); port("Ningbo", "China");
 port("Veracruz", "Mexico", "vera cruz"); port("Buenos Aires", "Argentina"); port("Hamburg", "Germany"); port("Southampton", "United Kingdom"); port("London Gateway", "United Kingdom");
 port("Gothenburg", "Sweden", "gothenburg port", "goteborg"); port("Oslo", "Norway"); port("Port Klang", "Malaysia", "klang"); port("Busan", "South Korea"); port("Port Rashid", "UAE", "rashid port", "mina rashid");
@@ -116,7 +118,7 @@ export function matchesQuotes(headers: string[]): boolean {
 export const isQuotesSource = (sheet: ParsedSheet): boolean => quoteColumns(sheet) !== null;
 
 const text = (v: RawCell): string | null => { if (v === null || v === undefined) return null; const s = cleanText(v); return s ? s : null; };
-const title = (s: string) => s.replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
+export const title = (s: string) => s.replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
 type Note = { field: string; from: string; to: string; reason: string };
 
 /** Month index and year of a month cell: a month word, "Oct 2026", a typed date, or "10/2026". */
@@ -137,7 +139,7 @@ function readMonth(v: RawCell, yearHint: number | null, now: Date): { month: num
   return { month: word, year: y, source: "assumed" };
 }
 
-function readCountry(v: RawCell): { name: string; region: string } | null {
+export function readCountry(v: RawCell): { name: string; region: string } | null {
   const s = text(v);
   if (!s) return null;
   const hit = COUNTRIES[normKey(s)];
@@ -149,7 +151,7 @@ function readCountry(v: RawCell): { name: string; region: string } | null {
 }
 
 /** A port name folded to one spelling; null when the cell names the country instead of a port. */
-function readPort(v: RawCell, countryName: string | null): { port: string | null; note: string | null; mismatch: string | null } {
+export function readPort(v: RawCell, countryName: string | null): { port: string | null; note: string | null; mismatch: string | null } {
   const s = text(v);
   if (!s) return { port: null, note: null, mismatch: null };
   const key = normKey(s);
