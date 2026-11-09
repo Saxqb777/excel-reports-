@@ -24,7 +24,7 @@ function phoneLayout(page: Page, hidden: Set<string>): RglLayout {
       continue;
     }
     if (kpiCol === 1) { kpiCol = 0; y += 4; }
-    const h = t === "insights" ? 6 : t === "table" ? Math.max(11, g.h) : t === "quality" ? 22 : t === "story" ? 9 : t === "months" ? 4 : t === "map" || t === "flow" ? 9 : Math.max(6, Math.min(g.h, 9));
+    const h = t === "insights" ? 6 : t === "table" ? Math.max(11, g.h) : t === "quality" ? 22 : t === "story" ? 9 : t === "months" ? 4 : t === "map" || t === "flow" || t === "treemap" ? 9 : t === "tickets" ? 24 : t === "spotlight" ? 10 : t === "waterfall" ? 8 : Math.max(6, Math.min(g.h, 9));
     out.push({ i: g.i, x: 0, y, w: 2, h, static: true });
     y += h;
   }

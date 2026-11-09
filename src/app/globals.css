@@ -15,6 +15,7 @@
   --ink-4: #9a9a94;
   --accent: #0f5fd7;
   --accent-ink: #ffffff;
+  --on-mark: #ffffff;
   --accent-wash: color-mix(in oklab, var(--accent) 12%, transparent);
   --pos: #1d7a4c;
   --neg: #b83227;
@@ -44,6 +45,7 @@
   --ink-4: #56585a;
   --accent: #4d8dff;
   --accent-ink: #0b0c0e;
+  --on-mark: #ffffff;
   --pos: #3fbf7f;
   --neg: #e0574b;
   --warn: #d9a03a;
@@ -109,6 +111,9 @@ body {
 .field { font-family: var(--font-ui); font-size: 13.5px; height: 30px; padding: 0 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); outline: none; }
 .field:focus { border-color: var(--accent); }
 .field::placeholder { color: var(--ink-4); }
+.spot-card, .ticket { background: var(--bg-sunk); border: 1px solid var(--line); }
+.spot-card:hover, .ticket:hover { border-color: var(--line-strong); }
+.spot-on, .ticket-on { border-color: var(--accent) !important; box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 35%, transparent); }
 .kpi-value { font-family: var(--font-num); font-weight: 700; font-size: 36px; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 @media (min-width: 1600px) { .kpi-value { font-size: 40px; } }
 @media (max-width: 720px) { .kpi-value { font-size: 30px; } body { font-size: 14px; } }
@@ -152,3 +157,33 @@ body {
 [data-ui="v2"] .react-grid-item.react-grid-placeholder { border-radius: 14px; }
 [data-ui="v2"] [role="listbox"], [data-ui="v2"] [role="tooltip"] { border-radius: 10px; }
 @media (max-width: 720px) { [data-ui="v2"] .kpi-value { font-size: 30px; } }
+
+/* ---- UI v3: the glass look (per project, settings.ui = "v3") ---- */
+[data-ui="v3"] { --radius: 20px; --glass: color-mix(in oklab, var(--bg-elev) 78%, transparent); --glass-line: rgba(0, 0, 0, 0.07); --glass-shadow: 0 1px 2px rgba(20, 30, 60, 0.04), 0 18px 48px -28px rgba(20, 30, 60, 0.35); }
+:root[data-theme="dark"] [data-ui="v3"] { --glass: color-mix(in oklab, var(--bg-elev) 70%, transparent); --glass-line: rgba(255, 255, 255, 0.08); --glass-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 24px 60px -30px rgba(0, 0, 0, 0.9); --ink-3: #9a9c96; --ink-4: #6f716c; --line: #2a2d33; --bg-sunk: #0b0d10; }
+.v3-bg { background: radial-gradient(1200px 600px at 8% -10%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 60%), radial-gradient(900px 500px at 100% 0%, color-mix(in oklab, var(--accent) 9%, transparent), transparent 55%), var(--bg); background-attachment: fixed; }
+:root[data-theme="dark"] .v3-bg { background: radial-gradient(1200px 640px at 10% -10%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 60%), radial-gradient(900px 520px at 100% 0%, color-mix(in oklab, var(--accent) 10%, transparent), transparent 55%), linear-gradient(180deg, #0b0d12, #0d0e10 40%); background-attachment: fixed; }
+.v3-rail { background: color-mix(in oklab, var(--bg-elev) 55%, transparent); border-right: 1px solid var(--glass-line); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+.v3-header { background: color-mix(in oklab, var(--bg) 72%, transparent); border-bottom: 1px solid var(--glass-line); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+.v3-mono { background: linear-gradient(135deg, var(--accent), color-mix(in oklab, var(--accent) 70%, #ffffff 0%)); color: var(--accent-ink); box-shadow: 0 8px 22px -10px var(--accent); }
+.v3-nav { color: var(--ink-3); transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease; }
+.v3-nav:hover { background: var(--bg-hover); color: var(--ink); }
+.v3-nav-on { color: var(--accent); background: color-mix(in oklab, var(--accent) 16%, transparent); box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent), 0 0 24px -4px color-mix(in oklab, var(--accent) 65%, transparent); }
+.v3-nav-on::before { content: ""; position: absolute; left: -14px; top: 12px; bottom: 12px; width: 3px; border-radius: 3px; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+.v3-tip { background: var(--ink); color: var(--bg); box-shadow: var(--shadow-pop); }
+.v3-pop { background: var(--bg-elev); border: 1px solid var(--glass-line); box-shadow: var(--shadow-pop); }
+[data-ui="v3"] .tile { background: var(--glass); border: 1px solid var(--glass-line); border-radius: 20px; box-shadow: var(--glass-shadow); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); transition: box-shadow 180ms ease, border-color 180ms ease, transform 180ms ease; }
+[data-ui="v3"] .tile:hover { border-color: color-mix(in oklab, var(--accent) 35%, var(--glass-line)); }
+[data-ui="v3"] .tile > header { padding-top: 10px; padding-left: 18px; padding-right: 18px; }
+[data-ui="v3"] .tile > header + div { padding-left: 18px; padding-right: 18px; padding-bottom: 14px; }
+[data-ui="v3"] .tile > header + div.px-3\.5 { padding-left: 18px; padding-right: 18px; }
+[data-ui="v3"] .btn, [data-ui="v3"] .chip, [data-ui="v3"] .field { border-radius: 11px; }
+[data-ui="v3"] .btn-accent { box-shadow: 0 10px 24px -10px var(--accent); }
+[data-ui="v3"] .kpi-value { font-size: 40px; letter-spacing: -0.025em; }
+[data-ui="v3"] .label-strong { font-size: 15px; }
+[data-ui="v3"] .label { font-size: 13px; letter-spacing: 0.01em; }
+[data-ui="v3"] .spot-card, [data-ui="v3"] .ticket { background: color-mix(in oklab, var(--bg-elev) 55%, var(--bg-sunk)); border-color: var(--glass-line); border-radius: 16px; }
+[data-ui="v3"] .spot-card:hover, [data-ui="v3"] .ticket:hover { border-color: color-mix(in oklab, var(--accent) 45%, transparent); transform: translateY(-1px); }
+[data-ui="v3"] .react-grid-item.react-grid-placeholder { border-radius: 20px; }
+[data-ui="v3"] [role="listbox"], [data-ui="v3"] [role="tooltip"] { border-radius: 12px; }
+@media (max-width: 720px) { [data-ui="v3"] .kpi-value { font-size: 30px; } [data-ui="v3"] .tile { border-radius: 16px; } }

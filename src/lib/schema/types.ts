@@ -76,6 +76,8 @@ export interface Field {
   description?: string;
   /** The user confirmed this column may be absent from uploads; its absence no longer asks for confirmation. */
   optional?: boolean;
+  /** Row outliers are not looked for on this measure (charges of different kinds share one amount column). */
+  noAnomalies?: boolean;
 }
 
 export interface SchemaMap {

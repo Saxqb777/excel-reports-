@@ -146,6 +146,8 @@ export function groupBy(snapshot: Pick<Snapshot, "columns" | "n">, mask: Uint8Ar
           stacks[s] = seen[s].size;
         } else stacks[s] = (stacks[s] ?? 0) + (metric.agg === "count" ? 1 : (typeof columns[metric.field!]?.[i] === "number" ? (columns[metric.field!][i] as number) : 0));
       }
+      // Rows with no value in the stacked field add nothing: an empty "Not set" stack is not information.
+      if (stacks[nullLabel] === 0) delete stacks[nullLabel];
       row.stacks = stacks;
     }
     rows.push(row);

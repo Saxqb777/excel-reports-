@@ -15,6 +15,10 @@ import { StoryTile } from "./StoryTile";
 import { MonthsTile } from "./MonthsTile";
 import { MapTile } from "./MapTile";
 import { FlowTile } from "./FlowTile";
+import { SpotlightTile } from "./SpotlightTile";
+import { WaterfallTile } from "./WaterfallTile";
+import { TreemapTile } from "./TreemapTile";
+import { TicketsTile } from "./TicketsTile";
 import { Tile } from "./Tile";
 
 export interface IntelligenceProps { insights?: Insight[]; anomalies?: Anomaly[]; comparedTo?: number | null; previousKpis?: Record<string, number | null> | null; newIds?: string[]; changedIds?: string[] }
@@ -36,5 +40,9 @@ export function WidgetRenderer({ w, insights, anomalies, comparedTo, previousKpi
     case "months": return <MonthsTile w={w} />;
     case "map": return <MapTile w={w} />;
     case "flow": return <FlowTile w={w} />;
+    case "spotlight": return <SpotlightTile w={w} />;
+    case "waterfall": return <WaterfallTile w={w} />;
+    case "treemap": return <TreemapTile w={w} />;
+    case "tickets": return <TicketsTile w={w} />;
   }
 }

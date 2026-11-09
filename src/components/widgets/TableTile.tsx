@@ -65,19 +65,24 @@ function buildView(snapshot: Snapshot, mask: Uint8Array, filter: FilterExpr | un
   const rid = (i: number) => (idField ? String(snapshot.columns[idField.id]?.[i] ?? "") : "");
   const groupCol = groupBy ? snapshot.columns[groupBy] : undefined;
   if (!groupCol) return { columns: snapshot.columns, rows: keep, rid, isNew: (i) => newSet.has(rid(i)), isChanged: (i) => !newSet.has(rid(i)) && changedSet.has(rid(i)) };
+  // Rolled up by a dimension (supplier, shipping line): rows without a value share one "Not set" line. Rolled up by the
+  // id (split container lines): a row without an id stays its own line.
+  const foldNulls = groupBy !== idField?.id;
   const groups = new Map<string, number[]>();
   for (const i of keep) {
-    const key = groupCol[i] === null ? `\u0000${i}` : String(groupCol[i]);
+    const key = groupCol[i] === null ? (foldNulls ? "\u0000" : `\u0000${i}`) : String(groupCol[i]);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(i);
   }
   const members = [...groups.values()];
+  const nullGroup = foldNulls ? [...groups.keys()].indexOf("\u0000") : -1;
   const columns: Record<string, ColumnValue[]> = {};
   for (const f of snapshot.fields) {
     const src = snapshot.columns[f.id];
     if (!src) continue;
     columns[f.id] = members.map((m) => rollup(f, m.map((i) => src[i])));
   }
+  if (nullGroup >= 0 && groupBy && columns[groupBy]) columns[groupBy][nullGroup] = "Not set";
   // A rolled-up container shows its shared reference, not the list of its split lines.
   if (idField && columns[idField.id]) members.forEach((m, g) => { if (m.length > 1) columns[idField.id][g] = groupCol[m[0]]; });
   const vrid = (g: number) => (members[g].length > 1 ? String(groupCol[members[g][0]] ?? "") : rid(members[g][0]));

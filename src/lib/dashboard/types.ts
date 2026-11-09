@@ -136,6 +136,8 @@ export interface MapWidget extends WidgetBase {
   executedMetric?: MetricSpec;
   /** Words for the colour legend and table: what the metric and the executed metric count (defaults: requests, executed). */
   words?: { value: string; done: string };
+  /** Label on the home marker (default "Al Foah"). */
+  home?: string;
 }
 
 /** Ribbons from one dimension to the next (direction → mode → stage); hovering a node traces its flows, clicking filters. */
@@ -145,7 +147,49 @@ export interface FlowWidget extends WidgetBase {
   metric: MetricSpec;
 }
 
-export type Widget = KpiWidget | BarWidget | LineWidget | FunnelWidget | DotsWidget | TableWidget | AuxTableWidget | HeatmapWidget | InsightsWidget | QualityWidget | TextWidget | StoryWidget | MonthsWidget | MapWidget | FlowWidget;
+/** A row of callout cards: for each dimension, the single biggest value of `metric` with its share of the total. */
+export interface SpotlightWidget extends WidgetBase {
+  type: "spotlight";
+  metric: MetricSpec;
+  items: { label: string; dimension: string }[];
+  /** Only groups whose `countMetric` reaches this many compete (a per-container cost needs enough containers to mean anything). */
+  minCount?: number;
+  countMetric?: MetricSpec;
+}
+
+/** Floating bars from a base value through additions to a total (cost of goods + freight + customs … = landed cost). */
+export interface WaterfallWidget extends WidgetBase {
+  type: "waterfall";
+  steps: { label: string; metric?: MetricSpec; kind?: "base" | "total" }[];
+}
+
+/** Nested boxes sized by `metric`: one box per `dimension` value, coloured by its `groupBy` value. Click filters. */
+export interface TreemapWidget extends WidgetBase {
+  type: "treemap";
+  dimension: string;
+  groupBy?: string;
+  metric: MetricSpec;
+}
+
+/** One card per entity (a shipment): title, route timeline, tags, cost stack and totals. Click filters the dashboard to it. */
+export interface TicketsWidget extends WidgetBase {
+  type: "tickets";
+  idField: string;
+  titleField: string;
+  subtitleField?: string;
+  /** Fields that make the route, in order (origin port → via → destination → warehouse). Empty ones are skipped. */
+  route: string[];
+  dateField?: string;
+  tags?: string[];
+  countMetric?: MetricSpec;
+  total: MetricSpec;
+  stacks: { label: string; metric: MetricSpec }[];
+  perMetric?: MetricSpec;
+  goodsMetric?: MetricSpec;
+  pageSize?: number;
+}
+
+export type Widget = KpiWidget | BarWidget | LineWidget | FunnelWidget | DotsWidget | TableWidget | AuxTableWidget | HeatmapWidget | InsightsWidget | QualityWidget | TextWidget | StoryWidget | MonthsWidget | MapWidget | FlowWidget | SpotlightWidget | WaterfallWidget | TreemapWidget | TicketsWidget;
 
 export interface GridItem { i: string; x: number; y: number; w: number; h: number; minW?: number; minH?: number }
 

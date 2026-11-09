@@ -10,6 +10,7 @@ import { DashboardProvider } from "@/lib/ui/dashboard-state";
 import { TooltipProvider } from "@/lib/ui/tooltip";
 import { TopBar } from "./TopBar";
 import { ShellV2 } from "./ShellV2";
+import { ShellV3 } from "./ShellV3";
 import { FilterRow } from "./FilterRow";
 import { UpdateBanner } from "./UpdateBanner";
 import { Grid } from "./Grid";
@@ -44,8 +45,8 @@ export interface DashboardProps {
   updateLocked?: boolean;
   /** A monthly project: the Update data button becomes "Add <next month>" and uploads merge by month. */
   cadence?: Cadence | null;
-  /** Which shell renders the dashboard: the terminal look (v1) or the card look with a sidebar (v2). */
-  ui?: "v1" | "v2";
+  /** Which shell renders the dashboard: the terminal look (v1), the card look with a sidebar (v2) or the glass look with an icon rail (v3). */
+  ui?: "v1" | "v2" | "v3";
   boardroom?: boolean;
   print?: { page?: string; theme?: "dark" | "light" };
 }
@@ -124,7 +125,8 @@ export function DashboardClient(props: DashboardProps) {
   const hiddenWidgets = useMemo(() => (page.hidden ?? []).map((id) => page.widgets.find((w) => w.id === id)).filter((w): w is Widget => Boolean(w)), [page]);
 
   const readOnly = props.readOnly ?? false;
-  const v2 = props.ui === "v2" && !props.print;
+  const v2 = (props.ui === "v2" || props.ui === "v3") && !props.print;
+  const Shell = props.ui === "v3" ? ShellV3 : ShellV2;
   const intelligence = { insights: intel?.insights, anomalies: intel?.anomalies, comparedTo: intel?.comparedTo, previousKpis: intel?.previousKpis, newIds: intel?.newIds, changedIds: intel?.changedIds };
 
   if (board) {
@@ -189,13 +191,13 @@ export function DashboardClient(props: DashboardProps) {
         <UploadFlow projectId={props.projectId} locked={props.updateLocked} nextMonth={nextMonth} monthAction={monthAction} onDone={() => void refresh()}>
           {({ openPicker, busy }) => v2 ? (
             <div className={`transition-opacity duration-300 ${reloading || busy ? "opacity-80" : ""}`}>
-              <ShellV2 theme={theme} name={props.name} description={props.description} pages={layout.pages.map((p) => ({ id: p.id, title: p.title }))} activePage={page.id} onPage={setPageId} upload={upload} homeHref={props.homeHref} scope={props.projectId}
+              <Shell theme={theme} name={props.name} description={props.description} pages={layout.pages.map((p) => ({ id: p.id, title: p.title }))} activePage={page.id} onPage={setPageId} upload={upload} homeHref={props.homeHref} scope={props.projectId}
                 filters={<FilterRow inline />} banner={<>{bannerNode}{hiddenStrip}</>} footer={footerNode}
                 primary={readOnly ? null : editing ? editingActions : primaryButton(openPicker, busy)} actions={readOnly ? readOnlyActions : editing ? null : secondaryActions}>
                 <div key={page.id} style={{ animation: "fade-in 180ms ease both" }}>
-                  {page && <Grid page={page} editable={editing} onLayoutChange={onLayoutChange} onHide={hideWidget} intelligence={intelligence} gutter={14} />}
+                  {page && <Grid page={page} editable={editing} onLayoutChange={onLayoutChange} onHide={hideWidget} intelligence={intelligence} gutter={props.ui === "v3" ? 16 : 14} />}
                 </div>
-              </ShellV2>
+              </Shell>
             </div>
           ) : (
             <div className={`flex min-h-screen flex-col bg-bg transition-opacity duration-300 ${reloading || busy ? "opacity-80" : ""} ${props.print ? "print-mode" : ""}`} data-print={props.print ? "1" : undefined}>

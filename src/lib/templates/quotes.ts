@@ -53,6 +53,7 @@ country("UAE", "Middle East", "united arab emirates", "u.a.e", "al foah", "al ai
 country("Qatar", "Middle East", "qatat");
 country("Saudi Arabia", "Middle East", "ksa");
 country("Oman", "Middle East"); country("Palestine", "Middle East", "palastine"); country("Syria", "Middle East");
+country("Serbia", "Europe", "srbija"); country("Norway", "Europe"); country("Belgium", "Europe"); country("Netherlands", "Europe", "holland", "the netherlands");
 country("Kuwait", "Middle East"); country("Bahrain", "Middle East"); country("Jordan", "Middle East"); country("Iraq", "Middle East"); country("Lebanon", "Middle East");
 country("India", "Asia"); country("China", "Asia"); country("Vietnam", "Asia", "viet nam"); country("Malaysia", "Asia"); country("South Korea", "Asia", "korea", "korea, south", "republic of korea");
 country("Japan", "Asia"); country("Taiwan", "Asia"); country("Nepal", "Asia"); country("Bangladesh", "Asia", "bangaladesh"); country("Pakistan", "Asia", "pakisthan"); country("Sri Lanka", "Asia", "srilanka");
@@ -78,6 +79,7 @@ port("New York", "USA", "ny", "nyc"); port("New Jersey", "USA"); port("Galveston
 port("Sydney", "Australia"); port("Melbourne", "Australia"); port("Auckland", "New Zealand", "port of auckland"); port("Shanghai", "China", "port of shanghai", "shanghai,china."); port("Ningbo", "China");
 port("Veracruz", "Mexico", "vera cruz"); port("Buenos Aires", "Argentina"); port("Hamburg", "Germany"); port("Southampton", "United Kingdom"); port("London Gateway", "United Kingdom");
 port("Gothenburg", "Sweden", "gothenburg port", "goteborg"); port("Oslo", "Norway"); port("Port Klang", "Malaysia", "klang"); port("Busan", "South Korea"); port("Port Rashid", "UAE", "rashid port", "mina rashid");
+port("Khalifa Port", "UAE", "khalifa", "kizad", "khalifa port abu dhabi"); port("Fujairah", "UAE", "fujairah port", "fujaira"); port("Jeddah", "Saudi Arabia", "jeddah islamic port"); port("Laem Chabang", "Thailand", "laem chabang, thailand", "leam chabang"); port("Ho Chi Minh", "Vietnam", "hochiminh", "hochiminh, vietnam", "ho chi minh city", "hcmc", "cat lai"); port("Kristiansand", "Norway"); port("Antwerp", "Belgium", "antwerpen"); port("Ain Sokhna", "Egypt", "sokhna", "ain sukhna"); port("Karachi", "Pakistan", "karachi port", "port qasim"); port("Naples", "Italy", "napoli"); port("Rotterdam", "Netherlands"); port("Valencia", "Spain"); port("Belgrade", "Serbia");
 port("Jebel Ali", "UAE"); port("Khorfakkan", "UAE", "khor fakkan"); port("Montevideo", "Uruguay"); port("Istanbul", "Turkey"); port("Mersin", "Turkey"); port("Alexandria", "Egypt"); port("Tema", "Ghana"); port("Kathmandu", "Nepal");
 
 const PRODUCTS: { match: string[]; value: string }[] = [

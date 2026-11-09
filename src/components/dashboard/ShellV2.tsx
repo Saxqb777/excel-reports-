@@ -109,13 +109,16 @@ export function ShellV2({ theme, name, description, pages, activePage, onPage, u
   );
 }
 
-function PageIcon({ title, on }: { title: string; on: boolean }) {
+export function PageIcon({ title, on, size = 16 }: { title: string; on: boolean; size?: number }) {
   const t = title.toLowerCase();
   const stroke = on ? "var(--accent)" : "currentColor";
-  const common = { width: 16, height: 16, viewBox: "0 0 16 16", fill: "none", stroke, strokeWidth: 1.6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true, className: "shrink-0" };
+  const common = { width: size, height: size, viewBox: "0 0 16 16", fill: "none", stroke, strokeWidth: size > 16 ? 1.4 : 1.6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true, className: "shrink-0" };
   if (/overview|executive|summary/.test(t)) return <svg {...common}><rect x="2" y="2" width="5" height="5" rx="1" /><rect x="9" y="2" width="5" height="5" rx="1" /><rect x="2" y="9" width="5" height="5" rx="1" /><rect x="9" y="9" width="5" height="5" rx="1" /></svg>;
   if (/month|time|timing|trend/.test(t)) return <svg {...common}><rect x="2" y="3" width="12" height="11" rx="1.5" /><path d="M2 7h12M5 1.5v3M11 1.5v3" /></svg>;
   if (/destination|countr|map|lane|shipment|vessel/.test(t)) return <svg {...common}><circle cx="8" cy="8" r="6" /><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2c-2 2-2 10 0 12" /></svg>;
+  if (/charge|cost|spend|payment|value|money|fee/.test(t)) return <svg {...common}><circle cx="8" cy="8" r="6" /><path d="M8 4.5v7M6 6.5h3a1.25 1.25 0 0 1 0 2.5H6.5a1.25 1.25 0 0 0 0 2.5H10" /></svg>;
+  if (/supplier|origin|vendor|source/.test(t)) return <svg {...common}><path d="M2 5.5l6-3 6 3-6 3-6-3z" /><path d="M2 5.5v5l6 3 6-3v-5M8 8.5v5" /></svg>;
+  if (/shipping line|carrier|line/.test(t)) return <svg {...common}><path d="M2 11l1.2 2.5h9.6L14 11H2z" /><path d="M4 11V6h8v5M6 6V3.5h4V6M8 3.5V2" /></svg>;
   if (/follow|alert|remind|action|check|pending/.test(t)) return <svg {...common}><path d="M4 14V2M4 2h8l-2 3 2 3H4" /></svg>;
   if (/reconcil|quality/.test(t)) return <svg {...common}><path d="M3 8.5l3 3 7-7" /></svg>;
   if (/register|all|table|list|po|vendor|customer/.test(t)) return <svg {...common}><path d="M3 4h10M3 8h10M3 12h10" /></svg>;

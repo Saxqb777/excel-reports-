@@ -100,7 +100,7 @@ export function MapTile({ w }: { w: MapWidget }) {
               const line: GeoPermissibleObjects = { type: "LineString", coordinates: [path.centroid(home!) && projection.invert ? projection.invert(homeXY)! : [54, 24], projection.invert ? projection.invert([d.x!, d.y!])! : [0, 0]] };
               return <path key={`arc-${d.key}`} d={path(line) ?? undefined} fill="none" stroke="var(--accent)" strokeWidth={1} strokeOpacity={sel && sel.values[0] !== d.key ? 0.08 : 0.16 + 0.4 * (d.value / max)} strokeLinecap="round" style={{ transition: "stroke-opacity 200ms ease" }} />;
             })}
-            {homeXY && <g transform={`translate(${homeXY[0]},${homeXY[1]})`}><circle r={18} fill={`url(#${w.id}-glow)`} /><rect x={-4} y={-4} width={8} height={8} transform="rotate(45)" fill="var(--accent)" stroke="var(--bg)" strokeWidth={1.5} /><text x={-9} y={-9} fontSize={12} fontWeight={600} textAnchor="end" className="fill-[var(--ink-2)]" style={{ fontFamily: "var(--font-ui)", paintOrder: "stroke", stroke: "var(--bg-elev)", strokeWidth: 3 }}>Al Foah</text></g>}
+            {homeXY && <g transform={`translate(${homeXY[0]},${homeXY[1]})`}><circle r={18} fill={`url(#${w.id}-glow)`} /><rect x={-4} y={-4} width={8} height={8} transform="rotate(45)" fill="var(--accent)" stroke="var(--bg)" strokeWidth={1.5} /><text x={-9} y={-9} fontSize={12} fontWeight={600} textAnchor="end" className="fill-[var(--ink-2)]" style={{ fontFamily: "var(--font-ui)", paintOrder: "stroke", stroke: "var(--bg-elev)", strokeWidth: 3 }}>{w.home ?? "Al Foah"}</text></g>}
             {dots.filter((d) => d.x !== null && d.f?.properties.name !== HOME).sort((a, b) => b.value - a.value).map((d) => {
               const share = d.value ? d.exec / d.value : 0;
               const on = sel?.values[0] === d.key, dimmed = Boolean(sel) && !on;
@@ -109,7 +109,7 @@ export function MapTile({ w }: { w: MapWidget }) {
                 <g key={d.key} transform={`translate(${d.x},${d.y})`} className="cursor-pointer" opacity={dimmed ? 0.35 : 1} style={{ transition: "opacity 160ms ease" }} onClick={() => onSelect(d.key)}
                   onPointerEnter={(e) => tip.show(e, { title: d.key, rows: [{ label: words.value, value: formatNumber(d.value, fmt, w.metric.currency) }, ...(w.executedMetric ? [{ label: words.done, value: `${formatNumber(d.exec, fmt)} · ${Math.round(share * 100)}%` }] : [])], note: "Click to filter the dashboard to this country" })} onPointerMove={tip.move} onPointerLeave={tip.hide}>
                   <circle r={radius(d.value)} fill={color} fillOpacity={0.85} stroke={on ? "var(--ink)" : "var(--bg)"} strokeWidth={on ? 2 : 1.2} style={{ transition: "r 300ms ease" }} />
-                  {radius(d.value) >= 11 && <text y={1} fontSize={11.5} fontWeight={700} textAnchor="middle" dominantBaseline="middle" fill="var(--accent-ink)" style={{ fontFamily: "var(--font-num)", pointerEvents: "none" }}>{formatNumber(d.value, fmt)}</text>}
+                  {radius(d.value) >= 11 && <text y={1} fontSize={11.5} fontWeight={700} textAnchor="middle" dominantBaseline="middle" fill="var(--accent-ink)" style={{ fontFamily: "var(--font-num)", pointerEvents: "none" }}>{formatNumber(d.value, fmt === "currency" ? "compact" : fmt, w.metric.currency, true)}</text>}
                 </g>
               );
             })}
