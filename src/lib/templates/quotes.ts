@@ -54,7 +54,7 @@ country("Qatar", "Middle East", "qatat");
 country("Saudi Arabia", "Middle East", "ksa");
 country("Oman", "Middle East"); country("Palestine", "Middle East", "palastine"); country("Syria", "Middle East");
 country("Serbia", "Europe", "srbija"); country("Norway", "Europe"); country("Belgium", "Europe"); country("Netherlands", "Europe", "holland", "the netherlands");
-country("Kuwait", "Middle East"); country("Bahrain", "Middle East"); country("Jordan", "Middle East"); country("Iraq", "Middle East"); country("Lebanon", "Middle East");
+country("Kuwait", "Middle East", "kuwaith", "kuwiat"); country("Bahrain", "Middle East"); country("Jordan", "Middle East"); country("Iraq", "Middle East"); country("Lebanon", "Middle East");
 country("India", "Asia"); country("China", "Asia"); country("Vietnam", "Asia", "viet nam"); country("Malaysia", "Asia"); country("South Korea", "Asia", "korea", "korea, south", "republic of korea");
 country("Japan", "Asia"); country("Taiwan", "Asia"); country("Nepal", "Asia"); country("Bangladesh", "Asia", "bangaladesh"); country("Pakistan", "Asia", "pakisthan"); country("Sri Lanka", "Asia", "srilanka");
 country("Indonesia", "Asia"); country("Philippines", "Asia", "phillipines"); country("Thailand", "Asia"); country("Singapore", "Asia"); country("Hong Kong", "Asia", "hongkong");

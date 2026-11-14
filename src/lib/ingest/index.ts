@@ -14,6 +14,7 @@ import { matchesSrn, prepareSrnWorkbook, srnAux, srnLayout, srnSchema } from "@/
 import { matchesQuotes, prepareQuotesWorkbook, quotesAux, quotesLayout, quotesSchema } from "@/lib/templates/quotes";
 import { matchesPlan, planAux, planLayout, planSchema, preparePlanWorkbook } from "@/lib/templates/plan";
 import { costsAux, costsLayout, costsSchema, matchesCosts, prepareCostsWorkbook } from "@/lib/templates/costs";
+import { matchesPrPo, preparePrPoWorkbook, prpoAux, prpoLayout, prpoSchema } from "@/lib/templates/prpo";
 import { proposeLayout } from "@/lib/dashboard/propose";
 import type { Layout } from "@/lib/dashboard/types";
 
@@ -23,7 +24,7 @@ export interface IngestResult {
   layout: Layout | null;
   snapshot: Snapshot;
   sha256: string;
-  template: "agthia" | "shipments" | "containers" | "savings" | "exitcert" | "freight" | "srn" | "quotes" | "plan" | "costs" | "generic";
+  template: "agthia" | "shipments" | "containers" | "savings" | "exitcert" | "freight" | "srn" | "quotes" | "plan" | "costs" | "prpo" | "generic";
   /** Secondary sheets the template knows how to read (empty for generic sheets). */
   aux: Record<string, AuxSheet>;
 }
@@ -38,6 +39,7 @@ export function auxSheetsFor(template: string | undefined, workbook: ParsedWorkb
   if (template === "quotes") return quotesAux(workbook);
   if (template === "plan") return planAux(workbook);
   if (template === "costs") return costsAux(workbook);
+  if (template === "prpo") return prpoAux(workbook);
   return {};
 }
 
@@ -47,7 +49,7 @@ export function auxSheetsFor(template: string | undefined, workbook: ParsedWorkb
  * becomes one tidy row per request, a shipping plan one row per lane. Every path that reads an uploaded file goes through here.
  */
 export async function readWorkbook(buffer: Buffer, fileName: string): Promise<ParsedWorkbook> {
-  return prepareCostsWorkbook(preparePlanWorkbook(prepareQuotesWorkbook(prepareSrnWorkbook(prepareSavingsWorkbook(await parseWorkbook(buffer, fileName))))));
+  return preparePrPoWorkbook(prepareCostsWorkbook(preparePlanWorkbook(prepareQuotesWorkbook(prepareSrnWorkbook(prepareSavingsWorkbook(await parseWorkbook(buffer, fileName)))))));
 }
 
 /** First upload for a project: infer schema, apply a curated template when the sheet matches, propose a layout. */
@@ -55,9 +57,9 @@ export async function ingestNew(buffer: Buffer, fileName: string, uploadId = nan
   const workbook = await readWorkbook(buffer, fileName);
   const sheet = workbook.sheets[workbook.primary];
   const inferred = inferSchema(sheet);
-  const template: IngestResult["template"] = matchesCosts(sheet.headers) ? "costs" : matchesPlan(sheet.headers) ? "plan" : matchesQuotes(sheet.headers) ? "quotes" : matchesSavings(sheet.headers) ? "savings" : matchesSrn(sheet.headers) ? "srn" : matchesExitCert(sheet.headers) ? "exitcert" : matchesFreight(sheet.headers) ? "freight" : matchesAgthia(sheet.headers) ? "agthia" : matchesShipments(sheet.headers) ? "shipments" : matchesContainers(sheet.headers) ? "containers" : "generic";
-  const schema = template === "costs" ? costsSchema() : template === "plan" ? planSchema() : template === "quotes" ? quotesSchema() : template === "savings" ? savingsSchema(inferred, sheet) : template === "srn" ? srnSchema(inferred) : template === "exitcert" ? exitCertSchema(inferred) : template === "freight" ? freightSchema(inferred) : template === "agthia" ? agthiaSchema(inferred) : template === "shipments" ? shipmentsSchema(inferred) : template === "containers" ? containersSchema(inferred) : inferred;
-  const layout = template === "costs" ? costsLayout() : template === "plan" ? planLayout() : template === "quotes" ? quotesLayout() : template === "savings" ? savingsLayout() : template === "srn" ? srnLayout() : template === "exitcert" ? exitCertLayout(schema) : template === "freight" ? freightLayout(schema) : template === "agthia" ? agthiaLayout(schema) : template === "shipments" ? shipmentsLayout(schema) : template === "containers" ? containersLayout(schema) : proposeLayout(schema);
+  const template: IngestResult["template"] = matchesPrPo(sheet.headers) ? "prpo" : matchesCosts(sheet.headers) ? "costs" : matchesPlan(sheet.headers) ? "plan" : matchesQuotes(sheet.headers) ? "quotes" : matchesSavings(sheet.headers) ? "savings" : matchesSrn(sheet.headers) ? "srn" : matchesExitCert(sheet.headers) ? "exitcert" : matchesFreight(sheet.headers) ? "freight" : matchesAgthia(sheet.headers) ? "agthia" : matchesShipments(sheet.headers) ? "shipments" : matchesContainers(sheet.headers) ? "containers" : "generic";
+  const schema = template === "prpo" ? prpoSchema() : template === "costs" ? costsSchema() : template === "plan" ? planSchema() : template === "quotes" ? quotesSchema() : template === "savings" ? savingsSchema(inferred, sheet) : template === "srn" ? srnSchema(inferred) : template === "exitcert" ? exitCertSchema(inferred) : template === "freight" ? freightSchema(inferred) : template === "agthia" ? agthiaSchema(inferred) : template === "shipments" ? shipmentsSchema(inferred) : template === "containers" ? containersSchema(inferred) : inferred;
+  const layout = template === "prpo" ? prpoLayout() : template === "costs" ? costsLayout() : template === "plan" ? planLayout() : template === "quotes" ? quotesLayout() : template === "savings" ? savingsLayout() : template === "srn" ? srnLayout() : template === "exitcert" ? exitCertLayout(schema) : template === "freight" ? freightLayout(schema) : template === "agthia" ? agthiaLayout(schema) : template === "shipments" ? shipmentsLayout(schema) : template === "containers" ? containersLayout(schema) : proposeLayout(schema);
   const snapshot = buildSnapshot(schema, sheet, { uploadId, version: 1 });
   return { workbook, schema, layout, snapshot, sha256: sha256(buffer), template, aux: auxSheetsFor(template, workbook, schema) };
 }

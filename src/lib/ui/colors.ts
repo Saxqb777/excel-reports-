@@ -9,6 +9,10 @@ export const seqVar = (step: number) => `var(--seq-${Math.max(1, Math.min(7, ste
 /** Status tone for a category value: won/good -> pos, lost/bad -> neg, pending/waiting -> warn, quoted/open -> accent. */
 export function statusTone(value: string): Tone {
   const v = value.toLowerCase();
+  if (/^(po issued)$/.test(v)) return "pos";
+  if (/^(po pending|waiting for po)$/.test(v)) return "warn";
+  if (/^(pr to raise)$/.test(v)) return "neg";
+  if (/^(new po needed)$/.test(v)) return "accent";
   if (/\b(not executed|no quote received|no one quoted|closed without|no rate yet)\b/.test(v)) return "neg";
   if (/\b(rate with sales|empties picked|partly loaded)\b/.test(v)) return v.includes("rate with sales") ? "warn" : "accent";
   if (/\b(waiting for confirmation|quote pending)\b/.test(v)) return "warn";
