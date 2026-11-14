@@ -314,17 +314,15 @@ export function prpoLayout(): Layout {
       { id: "spot", type: "spotlight", title: "Where pending money sits", subtitle: "Biggest in each", metric: sum("pending_aed"), items: [
         { label: "Supplier", dimension: "supplier" }, { label: "Stage", dimension: "stage" }, { label: "Month raised", dimension: "period" }, { label: "Currency", dimension: "currency" },
       ] },
-      table({ id: "pending_table", title: "POs pending, oldest first", subtitle: "No PO number in the sheet yet. Click a row for details", filter: PENDING, columns: PENDING_SHORT, sort: { field: "pending_days", dir: "desc" }, pageSize: 12, statusField: "stage", rowLabel: "pending lines" }),
+      table({ id: "pending_table", title: "POs pending, oldest first", subtitle: "No PO number in the sheet yet. Click a row for details", filter: PENDING, columns: PENDING_SHORT, sort: { field: "pending_days", dir: "desc" }, pageSize: 25, statusField: "stage", rowLabel: "pending lines" }),
       { id: "by_supplier", type: "bar", title: "Requested by supplier", subtitle: "Issued and pending", dimension: "supplier", metric: sum("amount_aed"), stackBy: "po_status", topN: 12, orientation: "horizontal", colorBy: "status" },
       { id: "by_month", type: "bar", title: "PR lines by month raised", subtitle: "Where they stand now", dimension: "period", metric: count("lines"), stackBy: "stage", sort: "date", orientation: "vertical", colorBy: "status" },
-      { id: "tree", type: "treemap", title: "All requested value", subtitle: "Box = supplier, colour = PO issued or pending. Click to filter", dimension: "supplier", groupBy: "po_status", metric: sum("amount_aed") },
-      { id: "age", type: "bar", title: "How long pending POs have waited", dimension: "age_band", metric: count("pending"), filter: PENDING, sort: "order", orientation: "vertical", colorBy: "single" },
+      { id: "age", type: "bar", title: "How long pending POs have waited", subtitle: "Pending lines", dimension: "age_band", metric: count("pending"), filter: PENDING, sort: "order", orientation: "horizontal", colorBy: "single", share: false },
     ], grid: [
       { i: "story", x: 0, y: 0, w: 12, h: 5, minH: 5 },
       { i: "k_pending", x: 0, y: 5, w: 2, h: 3 }, { i: "k_pending_val", x: 2, y: 5, w: 2, h: 3 }, { i: "k_oldest", x: 4, y: 5, w: 2, h: 3 }, { i: "k_raise", x: 6, y: 5, w: 2, h: 3 }, { i: "k_issued", x: 8, y: 5, w: 2, h: 3 }, { i: "k_suppliers", x: 10, y: 5, w: 2, h: 3 },
-      { i: "pending_table", x: 0, y: 8, w: 8, h: 12 }, { i: "spot", x: 8, y: 8, w: 4, h: 12 },
-      { i: "funnel", x: 0, y: 20, w: 4, h: 8 }, { i: "age", x: 4, y: 20, w: 4, h: 8 }, { i: "by_month", x: 8, y: 20, w: 4, h: 8 },
-      { i: "by_supplier", x: 0, y: 28, w: 6, h: 10 }, { i: "tree", x: 6, y: 28, w: 6, h: 10 },
+      { i: "pending_table", x: 0, y: 8, w: 8, h: 17 }, { i: "spot", x: 8, y: 8, w: 4, h: 7 }, { i: "age", x: 8, y: 15, w: 4, h: 6 }, { i: "funnel", x: 8, y: 21, w: 4, h: 4 },
+      { i: "by_month", x: 0, y: 25, w: 6, h: 10 }, { i: "by_supplier", x: 6, y: 25, w: 6, h: 10 },
     ],
   };
   const pending: Page = {
@@ -334,15 +332,15 @@ export function prpoLayout(): Layout {
       { id: "p_new", type: "kpi", title: "New PO needed", metric: count("pending", NEW_PO), good: "down", onClick: NEW_PO, secondary: { metric: { agg: "distinct", field: "supplier", format: "integer", filter: NEW_PO }, label: "suppliers" } },
       { id: "p_30", type: "kpi", title: "Pending over 30 days", metric: count("pending", OVER_30), good: "down", onClick: { and: [PENDING, OVER_30] }, secondary: { metric: sum("pending_aed", OVER_30), label: "value" } },
       { id: "p_alerts", type: "auxTable", title: "What to do next", subtitle: "Every pending line, most urgent first", sheet: "actions", columns: ["priority", "what", "supplier", "value", "waiting", "next"], statusField: "priority", rowLabel: "actions", pageSize: 25 },
-      { id: "p_age", type: "bar", title: "How long they have waited", dimension: "age_band", metric: count("pending"), filter: PENDING, sort: "order", orientation: "vertical", colorBy: "single" },
+      { id: "p_age", type: "bar", title: "How long they have waited", subtitle: "Pending lines", dimension: "age_band", metric: count("pending"), filter: PENDING, sort: "order", orientation: "horizontal", colorBy: "single", share: false },
       { id: "p_supplier", type: "bar", title: "Pending value by supplier", dimension: "supplier", metric: sum("pending_aed"), filter: PENDING, stackBy: "stage", orientation: "horizontal", colorBy: "status" },
       table({ id: "p_wait_t", title: "PR raised, waiting for the PO", subtitle: "Chase approval", filter: WAITING, columns: PENDING_COLS, sort: { field: "pending_days", dir: "desc" }, pageSize: 20, statusField: "stage", rowLabel: "lines" }),
       table({ id: "p_raise_t", title: "PR still to raise, or a new PO needed", filter: { or: [TO_RAISE, NEW_PO] }, columns: ["line", "supplier", "stage", "for", "amount_aed", "currency", "raised", "next_step"], pageSize: 15, statusField: "stage", rowLabel: "lines" }),
     ], grid: [
       { i: "p_wait", x: 0, y: 0, w: 3, h: 3 }, { i: "p_raise", x: 3, y: 0, w: 3, h: 3 }, { i: "p_new", x: 6, y: 0, w: 3, h: 3 }, { i: "p_30", x: 9, y: 0, w: 3, h: 3 },
-      { i: "p_alerts", x: 0, y: 3, w: 12, h: 12 },
-      { i: "p_age", x: 0, y: 15, w: 5, h: 9 }, { i: "p_supplier", x: 5, y: 15, w: 7, h: 9 },
-      { i: "p_wait_t", x: 0, y: 24, w: 12, h: 12 }, { i: "p_raise_t", x: 0, y: 36, w: 12, h: 8 },
+      { i: "p_alerts", x: 0, y: 3, w: 12, h: 16 },
+      { i: "p_age", x: 0, y: 19, w: 5, h: 9 }, { i: "p_supplier", x: 5, y: 19, w: 7, h: 9 },
+      { i: "p_wait_t", x: 0, y: 28, w: 12, h: 14 }, { i: "p_raise_t", x: 0, y: 42, w: 12, h: 8 },
     ],
   };
   const issued: Page = {
@@ -366,7 +364,7 @@ export function prpoLayout(): Layout {
       table({ id: "s_table", title: "Every supplier", subtitle: "Issued, pending and the longest wait", groupBy: "supplier", columns: ["supplier", "lines", "issued", "issued_aed", "pending", "pending_aed", "pending_days", "currency"], sort: { field: "amount_aed", dir: "desc" }, pageSize: 50, search: true, rowLabel: "suppliers" }),
       { id: "s_bar", type: "bar", title: "Value by supplier", dimension: "supplier", metric: sum("amount_aed"), stackBy: "po_status", orientation: "horizontal", colorBy: "status" },
       { id: "s_tree", type: "treemap", title: "Share of requested value", dimension: "supplier", groupBy: "po_status", metric: sum("amount_aed") },
-    ], grid: [{ i: "s_table", x: 0, y: 0, w: 12, h: 13 }, { i: "s_bar", x: 0, y: 13, w: 6, h: 14 }, { i: "s_tree", x: 6, y: 13, w: 6, h: 14 }],
+    ], grid: [{ i: "s_table", x: 0, y: 0, w: 12, h: 13 }, { i: "s_bar", x: 0, y: 13, w: 5, h: 15 }, { i: "s_tree", x: 5, y: 13, w: 7, h: 15 }],
   };
   const links: Page = {
     id: "links", title: "PR → PO links", widgets: [
@@ -390,7 +388,7 @@ export function prpoLayout(): Layout {
   };
   const quality: Page = { id: "quality", title: "Data quality", widgets: [{ id: "quality", type: "quality", title: "Data quality" }], grid: [{ i: "quality", x: 0, y: 0, w: 12, h: 16 }] };
   return {
-    version: 1, dateField: "period_start", pages: [overview, pending, issued, suppliers, links, checks, register, quality],
+    version: 1, dateField: "period_start", datePresets: false, pages: [overview, pending, issued, suppliers, links, checks, register, quality],
     filters: [
       { kind: "select", field: "period", label: "Month" }, { kind: "select", field: "supplier", label: "Supplier" }, { kind: "select", field: "po_status", label: "PO status" },
       { kind: "select", field: "stage", label: "Stage" }, { kind: "select", field: "currency", label: "Currency" }, { kind: "search", field: "line", label: "PR / PO" },

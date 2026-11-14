@@ -29,7 +29,14 @@ export function VBars({ rows, stackKeys, colorBy = "single", format = "integer",
   const bw = Math.min(56, x.bandwidth());
   const maxChars = Math.max(3, Math.floor(x.step() / CHAR_W));
   // Narrow columns: "Sep" instead of "Sep 2026", and values without the currency code.
-  const label = (k: string) => (k.length <= maxChars ? k : /^[A-Za-z]{3} \d{4}$/.test(k) ? k.slice(0, 3) : k.slice(0, maxChars - 1) + "…");
+  const label = (k: string) => {
+    if (k.length <= maxChars) return k;
+    if (/^[A-Za-z]{3} \d{4}$/.test(k)) return k.slice(0, 3);
+    // "Before 13 Jun 2026" → "Before 13 Jun" (the tooltip keeps the year)
+    const before = /^Before (\d{1,2} [A-Za-z]{3}) \d{4}$/.exec(k);
+    if (before && 7 + before[1].length <= maxChars + 2) return `Before ${before[1]}`;
+    return k.slice(0, maxChars - 1) + "…";
+  };
   const valueFormat = format === "currency" && x.step() < 72 ? "compact" : format;
   const anySelected = Boolean(selected?.key);
   return (

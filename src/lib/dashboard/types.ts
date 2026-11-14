@@ -213,6 +213,8 @@ export interface Layout {
   filters: FilterControl[];
   /** Field used by the date range control. */
   dateField?: string;
+  /** false hides the All/30d/90d/12m chips (a Month select already covers it). */
+  datePresets?: boolean;
 }
 
 export interface Theme {

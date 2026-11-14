@@ -17,7 +17,7 @@ export function FilterRow({ inline = false }: { inline?: boolean } = {}) {
   const selects = layout.filters.filter((f) => f.kind === "select");
   const search = layout.filters.find((f) => f.kind === "search");
   const options = useMemo(() => Object.fromEntries(selects.map((s) => [s.field, distinctValues(snapshot, s.field)])), [snapshot, selects]);
-  const dateField = layout.dateField ? fields.get(layout.dateField) : undefined;
+  const dateField = layout.dateField && layout.datePresets !== false ? fields.get(layout.dateField) : undefined;
   const setPreset = (id: string, days?: number) => {
     if (!days) return dispatch({ type: "date", range: { from: null, to: null, preset: id } });
     const to = Math.floor(now / DAY) * DAY + DAY - 1;

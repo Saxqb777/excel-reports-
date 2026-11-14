@@ -60,11 +60,11 @@ export function StoryTile({ w }: { w: StoryWidget }) {
           </div>
           <span className="num text-[14px] text-ink-3">{span}</span>
         </div>
-        <p className="mt-2 max-w-[70ch] text-[15.5px] leading-snug text-ink-2">
+        <p className="mt-2 max-w-[120ch] text-[15.5px] leading-snug text-ink-2">
           {sentence.map((s, i) => <span key={i}>{i > 0 && <span className="text-ink-4"> · </span>}<span className="num font-semibold text-ink">{s.split(" ")[0]}</span> {s.split(" ").slice(1).join(" ")}</span>)}
           {prev !== null && <span className="text-ink-3"> — against {MONTH_NAMES[new Date(prev).getUTCMonth()]}.</span>}
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 lg:grid-cols-5">
+        <div className={`mt-3 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 ${w.metrics.length === 4 ? "lg:grid-cols-4" : w.metrics.length === 3 ? "lg:grid-cols-3" : "lg:grid-cols-5"}`}>
           {w.metrics.map((m, i) => <Stat key={m.id} label={m.label} value={values[i].now} before={values[i].before} series={values[i].series} format={m.metric.format ?? "integer"} currency={m.metric.currency} good={m.good ?? "none"} prevLabel={prev === null ? null : MONTH_NAMES[new Date(prev).getUTCMonth()]} />)}
         </div>
       </div>
@@ -86,7 +86,7 @@ function Stat({ label, value, before, series, format, currency, good, prevLabel 
           {delta !== null && <span className={`num whitespace-nowrap ${tone === "pos" ? "text-pos" : tone === "neg" ? "text-neg" : "text-ink-3"}`}>{delta > 0 ? "▲" : delta < 0 ? "▼" : "▬"} {delta > 0 ? "+" : ""}{formatNumber(delta, format, currency)}</span>}
         </div>
       </div>
-      <div className="shrink-0 pb-1"><Sparkline values={series} width={72} height={26} /></div>
+      <div className="hidden shrink-0 pb-1 sm:block"><Sparkline values={series} width={72} height={26} /></div>
     </div>
   );
 }
