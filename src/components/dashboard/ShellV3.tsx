@@ -25,7 +25,7 @@ export function ShellV3({ theme, name, description, pages, activePage, onPage, u
   return (
     <div className="v3-bg flex min-h-screen" data-ui="v3">
       {/* Icon rail (laptop and up) */}
-      <div className="v3-rail hidden w-[76px] shrink-0 lg:block">
+      <div className="v3-rail relative z-[40] hidden w-[76px] shrink-0 lg:block">
       <aside className="sticky top-0 flex h-screen w-[76px] flex-col items-center py-3" aria-label="Pages">
         {homeHref ? (
           <Link href={homeHref} className="v3-mono num flex h-11 w-11 items-center justify-center rounded-[14px] text-[15px] font-bold" title="Reports and analytics">{theme.logoUrl ? <img src={theme.logoUrl} alt="" className="h-7 w-7 object-contain" /> : monogram}</Link>
